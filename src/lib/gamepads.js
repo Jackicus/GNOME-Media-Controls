@@ -17,6 +17,7 @@
 // without it loses the pads and keeps the bar.
 
 import {buttonForCode} from './actions.js';
+import {note} from './log.js';
 
 export class Gamepads {
     constructor(settings, onButton) {
@@ -32,7 +33,7 @@ export class Gamepads {
         let Manette;
         try {
             ({default: Manette} = await import('gi://Manette?version=0.2'));
-        } catch (e) {
+        } catch {
             console.warn('[Media Controls] libmanette is not installed, so game controllers are off');
             return;
         }
@@ -67,7 +68,7 @@ export class Gamepads {
         if (this._devices.has(device))
             return;
         this._devices.add(device);
-        console.log(`[Media Controls] Controller connected: ${device.get_name()}`);
+        note(`Controller connected: ${device.get_name()}`);
         device.connectObject('button-press-event', (_device, event) => this._pressed(device, event), this);
     }
 
@@ -75,7 +76,7 @@ export class Gamepads {
         if (!this._devices.delete(device))
             return;
         device.disconnectObject(this);
-        console.log(`[Media Controls] Controller disconnected: ${device.get_name()}`);
+        note(`Controller disconnected: ${device.get_name()}`);
     }
 
     _pressed(device, event) {

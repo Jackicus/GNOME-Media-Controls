@@ -112,8 +112,11 @@ never); the project's SessionEnd hook stops it when that session ends.
 
 **`stop` + `start` at least once before calling a change done.** `reload` keeps
 the old dconf snapshot and whatever the previous build left on screen; only a
-fresh start exercises `extension.js` and the enable path as a login does. Edits
-to `extension.js`, `metadata.json` or the schema *need* one.
+fresh start exercises the entry point and the enable path as a login does.
+Edits to `scripts/dev-extension.js`, `metadata.json` or the schema *need* one.
+The nested shell runs the link's entry point, `scripts/dev-extension.js`; to
+check the shipped `src/extension.js` (which logs nothing on success), point the
+installed `extension.js` link at it for one `start`, then point it back.
 
 ## Gotchas
 

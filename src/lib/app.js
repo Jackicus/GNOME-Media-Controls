@@ -50,6 +50,7 @@ import {getPointerWatcher} from 'resource:///org/gnome/shell/ui/pointerWatcher.j
 import {NAVIGATION, SLEEP_STEPS, SUBTITLE_SHIFT_MS, isIgnored, normaliseName, playerNames, stepRate} from './actions.js';
 import {ControlBar} from './bar.js';
 import {Gamepads} from './gamepads.js';
+import {note} from './log.js';
 import {PlayerRegistry} from './mpris.js';
 import {VlcRemote} from './vlcremote.js';
 
@@ -89,7 +90,19 @@ export class MediaControlsApp {
         this._sleepId = 0;
     }
 
+    // The shell never disables an extension whose enable() threw, so a failure
+    // halfway would leave the bar, the key binding and the signals behind until
+    // a restart: take down what was built, then fail as the shell expects.
     enable() {
+        try {
+            this._enable();
+        } catch (e) {
+            this.disable();
+            throw e;
+        }
+    }
+
+    _enable() {
         this._settings = this._extension.getSettings();
 
         this._bar = new ControlBar();
@@ -249,7 +262,7 @@ export class MediaControlsApp {
             this._syncPointerWatch();
             return;
         }
-        console.log(`[Media Controls] Attached to ${player.identity || player.busName} (pid ${player.pid})`);
+        note(`Attached to ${player.identity || player.busName} (pid ${player.pid})`);
         this._bar.setMonitor(window.get_monitor());
         let status = player.status;
         let url = player.url;

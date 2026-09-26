@@ -5,8 +5,9 @@ over a **fullscreen video player** — a replacement for VLC's own fullscreen
 controller that works the same way over mpv, Celluloid or anything else that
 speaks MPRIS, and that for VLC adds audio and subtitle tracks, subtitle timing
 and chapters. It is a bar the shell draws over the player's window, not a
-player. Shell versions 48 to 50 (50 by boot, 48 and 49 by audit against the
-shell's sources — see Gotchas). GJS, ES modules.
+player. `metadata.json` claims shell 50, the version it has been run on; 48
+and 49 pass an audit against the shell's sources (see Gotchas) and can be
+claimed once booted. GJS, ES modules.
 
 It stands alone: it depends on no other extension and knows of none. If another
 extension has trouble working beside it, that is fixed in that extension's own
@@ -42,11 +43,13 @@ libmanette sees — the same two lists the preferences show.
 
 ## Layout
 
-`src/` is an **exact mirror of the installed extension directory** (`make link`
-symlinks it). Add a file to `src/` and it ships.
+`src/` is **exactly what ships**: `make pack` zips it (and refuses a stray
+file), `make install` copies it. `make link` builds the development install
+instead — a directory of links into `src/`, except that its entry point is
+`scripts/dev-extension.js`.
 
 ```
-src/extension.js      loader: stages lib/ under $XDG_RUNTIME_DIR/media-controls/
+src/extension.js      the shipped entry point: imports lib/app.js and enables it
 src/lib/app.js        which player, when the bar is seen, the key, the pads,
                       the sleep timer, perform(action)
 src/lib/mpris.js      PlayerRegistry + Player: the players on the bus, their
@@ -60,10 +63,13 @@ src/lib/gamepads.js   libmanette → (button, action)
 src/lib/actions.js    pure data shared with prefs.js: ACTIONS, BUTTONS,
                       NAVIGATION, RATES, SLEEP_STEPS, formatTime, playerNames
 src/lib/anim.js       the only durations and curves
+src/lib/log.js        note(): informational lines, on only under dev-extension.js
 src/prefs.js          Bar / Players (with the VLC switches) / Controllers pages
 src/stylesheet.css    paint only, every size in em (see Design rules)
 src/schemas/          org.gnome.shell.extensions.media-controls
 src/metadata.json     UUID, shell versions
+scripts/dev-extension.js  the development entry point `make link` installs:
+                      stages lib/ so `reload` runs what is on disk
 scripts/dev.sh        link / install / reload / pack / logs / status / stalls / clean
 scripts/nested.sh     the nested shell: start / player / do / pad / mpris / stop …
 scripts/nested_driver.py  what `do`, `shot`, `say`, `window` run: input and
@@ -86,10 +92,15 @@ preferences pick it up. `actions.js` and `vlcconfig.js` are imported by
 `prefs.js`, which runs outside the shell: they must never import St, Clutter or
 `ui/`.
 
-`extension.js` copies `lib/` into a directory named after a checksum of its
-files and imports from there, because GJS caches modules by URL for the life of
-the shell — so `reload` picks up edits without a restart, and an unlock
-re-enables into the same module graph.
+GJS caches modules by URL for the life of the shell, so the link's entry point,
+`scripts/dev-extension.js`, copies `lib/` into a directory named after a
+checksum of its files and imports from there — `reload` picks up edits without
+a restart, and an unlock re-enables into the same module graph. It also turns
+on `lib/log.js`'s `note()` lines (`Attached to …`, controllers coming and
+going), which the shipped extension keeps quiet: it logs only failures.
+
+`make lint` runs ESLint (gjs.guide's configuration, `eslint.config.mjs`); keep
+it free of errors.
 
 ## How it fits together
 
@@ -299,7 +310,9 @@ The extension:
   seek slider skips by `seek-step` instead of the Slider's 10%-of-the-film
   step); Up/Down leave it.
 - **`extension.js` and `metadata.json` are cached for the life of the shell**;
-  `reload` picks up `lib/`, the stylesheet and the schema only. New UUIDs need a
+  `reload` picks up `lib/`, the stylesheet and the schema only. An install
+  made by `make link` before the development entry point moved out of `src/`
+  is a symlink to `src/`; `make status` says so, and `make link` replaces it. New UUIDs need a
   logout (or a nested `stop` + `start`).
 
 The nested shell:

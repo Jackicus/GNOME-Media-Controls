@@ -7,7 +7,7 @@ Apply the current `src/` edits to the running shell, then confirm they took.
 
 1. Run `make reload`.
 2. Run `./scripts/dev.sh logs "1 min ago"` to see what the shell logged.
-3. Report whether it came up clean. A healthy reload logs
+3. Report whether it came up clean. A healthy reload of the `make link` install logs
    `[Media Controls] Enabled from /run/user/1000/media-controls/lib-<stamp>`,
    and `[Media Controls] Attached to <player> (pid N)` once a fullscreen player
    has focus. Anything with `Failed to load`, `Error during disable`, or a JS
@@ -15,5 +15,6 @@ Apply the current `src/` edits to the running shell, then confirm they took.
 
 If the shell reports the extension doesn't exist, it needs a log out / log back
 in before it will register the UUID — say so rather than retrying. The same
-applies when `extension.js` or `metadata.json` changed: the shell caches those
-for its whole lifetime, and a reload runs the old loader.
+applies when `scripts/dev-extension.js` or `metadata.json` changed: the shell
+caches those for its whole lifetime, and a reload runs the old loader. A copy
+made by `make install` logs nothing on a healthy reload; it logs only failures.
