@@ -70,7 +70,7 @@
 #
 set -euo pipefail
 
-UUID="media-controls@jackt"
+UUID="media-controls@jackicus"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SELF="$REPO_DIR/scripts/nested.sh"
 RUN_DIR="${XDG_RUNTIME_DIR:-/tmp}/media-controls-nested"

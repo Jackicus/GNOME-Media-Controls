@@ -28,9 +28,9 @@ cd GNOME-Media-Controls
 make install
 ```
 
-Log out and back in, then run `gnome-extensions enable media-controls@jackt`.
+Log out and back in, then run `gnome-extensions enable media-controls@jackicus`.
 
-**VLC:** open the preferences (`gnome-extensions prefs media-controls@jackt`),
+**VLC:** open the preferences (`gnome-extensions prefs media-controls@jackicus`),
 go to **Players** and turn on both VLC switches. Then restart VLC.
 
 **mpv:** install [mpv-mpris](https://github.com/hoyon/mpv-mpris) and run mpv

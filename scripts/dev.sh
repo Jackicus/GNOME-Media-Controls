@@ -19,7 +19,7 @@
 #
 set -euo pipefail
 
-UUID="media-controls@jackt"
+UUID="media-controls@jackicus"
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC_DIR="$REPO_DIR/src"

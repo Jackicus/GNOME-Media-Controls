@@ -1,6 +1,6 @@
 # Media Controls
 
-A GNOME Shell extension (UUID `media-controls@jackt`) that draws a control bar
+A GNOME Shell extension (UUID `media-controls@jackicus`) that draws a control bar
 over a **fullscreen video player** — a replacement for VLC's own fullscreen
 controller that works the same way over mpv, Celluloid or anything else that
 speaks MPRIS, and that for VLC adds audio and subtitle tracks, subtitle timing

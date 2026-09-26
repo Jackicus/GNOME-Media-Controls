@@ -49,7 +49,7 @@ showing a pause is not the player pausing.
 | `mpris get PROP` / `set PROP '<VALUE>'` / `METHOD [ARGS]` / `Quit` | Poke it directly (`set Volume '<0.8>'`, `PlayPause`, `Quit`) |
 | `pad [HOLD] BUTTON...` | Plug in a virtual Xbox 360 pad, wait HOLD s (default 1.5) for libmanette to open it, press each BUTTON, unplug. Buttons are the `gamepad-buttons` ids: `south` `east` `west` `north` `dpad-left` `dpad-right` `dpad-up` `dpad-down` `left-shoulder` `right-shoulder` `left-trigger` `right-trigger` `select` `start` `mode` `left-stick` `right-stick`, plus `wait:SECS`. |
 | `do "STEP"...` | A batch over one connection: `say TEXT`, `move X Y`, `click X Y`, `key KEYSYM` (`Super+c`, `Escape`, `Right`, `Return`, `f`), `wait SECS`, `shot [FILE [X Y W H]]`, `window FILE` (the focused window alone, corners transparent — for the preferences), `overview on\|off` |
-| `run CMD...` | Run against the nested bus **and displays** (never the real desktop's): `run gnome-extensions prefs media-controls@jackt` opens the preferences inside it |
+| `run CMD...` | Run against the nested bus **and displays** (never the real desktop's): `run gnome-extensions prefs media-controls@jackicus` opens the preferences inside it |
 | `reload`, `logs [N] [--all]`, `status`, `mirror on\|off` | As named. `[Media Controls]` lines are ours; `Attached to <player> (pid N)` says which player the bar belongs to. |
 
 ## Reading the screen (1600×900)
@@ -85,7 +85,7 @@ showing a pause is not the player pausing.
   opens the pop-out with the current audio track focused. Each `pad` call plugs
   a fresh pad in (1.5 s), so for a walk with shots in between, open with `pad`
   and continue with `key` steps — the path is the same.
-- **Preferences** (after `run gnome-extensions prefs media-controls@jackt`,
+- **Preferences** (after `run gnome-extensions prefs media-controls@jackicus`,
   `wait 2.5`): a 640×800 window, centred in the work area — so where it lands
   depends on the panels loaded. Under `--clean` (stock top bar) its tabs are
   Bar (687,86), Players (800,86), Controllers (925,86); with other panels, take

@@ -16,7 +16,7 @@ packs `src/` plus `lib/` and `LICENSE` with `gnome-extensions pack`, drops
 and older only — 46 and later compile the schema on install, so the zip never
 carries a compiled one), then checks the zip holds exactly the files that
 should ship and prints the listing. Output:
-`dist/media-controls@jackt.shell-extension.zip`.
+`dist/media-controls@jackicus.shell-extension.zip`.
 
 What it contains:
 
@@ -35,7 +35,7 @@ lib/log.js  lib/mpris.js  lib/tracksmenu.js  lib/vlcconfig.js  lib/vlcremote.js
 never ship; `make pack` refuses a zip holding anything else, naming the file.
 
 To test the built zip rather than the `make link` install: `make uninstall`,
-`gnome-extensions install dist/media-controls@jackt.shell-extension.zip`, log
+`gnome-extensions install dist/media-controls@jackicus.shell-extension.zip`, log
 out and back in, enable it. Don't `gnome-extensions install --force` over the
 link — its recursive delete follows symlinks into `src/`.
 
@@ -43,7 +43,7 @@ link — its recursive delete follows symlinks into `src/`.
 
 | Key | Now | Note |
 |---|---|---|
-| `uuid` | `media-controls@jackt` | Fixed once uploaded — this is the EGO entry |
+| `uuid` | `media-controls@jackicus` | Fixed once uploaded — this is the EGO entry |
 | `shell-version` | `["50"]` | The only version run. 48 and 49 pass an audit against the shell's sources (CLAUDE.md, Gotchas) but haven't been booted, so they stay off the list until they have |
 | `settings-schema` | set | `getSettings()` is called with no arguments in both `app.js` and `prefs.js` |
 | `version-name` | `"1.0"` | Must match `/^(?!^[. ]+$)[a-zA-Z0-9 .]{1,16}$/` (letters, digits, space, period) — `"1.0"` qualifies. Bump it with each upload |
@@ -158,9 +158,9 @@ and when here.
 ## Uploading
 
 - **Web:** https://extensions.gnome.org/upload/ — choose
-  `dist/media-controls@jackt.shell-extension.zip`, accept the terms.
+  `dist/media-controls@jackicus.shell-extension.zip`, accept the terms.
 - **Command line:** `gnome-extensions upload --accept-tos
-  dist/media-controls@jackt.shell-extension.zip` (gnome-extensions 49 and
+  dist/media-controls@jackicus.shell-extension.zip` (gnome-extensions 49 and
   later). It prompts for the EGO username and password; avoid `--password` on
   a shared machine, since a command-line password can end up in shell history
   or process listings.
