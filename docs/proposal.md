@@ -1,8 +1,6 @@
 # Proposal: take the bar's colours from the shell's theme
 
-*Proposed 2026-09-25. Nothing has changed yet.*
-
-The bar's widgets and behaviour are already the shell's. Its colours are not:
+Unimplemented. The bar's widgets and behaviour are already the shell's. Its colours are not:
 `stylesheet.css` copies the OSD's `#2e2e33` and gives the buttons colours of
 its own. So the bar ignores High Contrast, a shell theme, and any future
 restyle of that dark surface. This proposal hands the colours to three of the
@@ -104,8 +102,9 @@ load after the theme, so our em sizes win.
 - **Shell versions:** no gain. One more thing can move: three class names.
 - **When a class goes:** if GNOME renames `screenshot-ui-panel`, or a theme
   doesn't style it, the panel loses its background. The bar still works and
-  can be clicked, but it's visibly wrong. The screenshot UI arrived in GNOME
-  42, so an old or unmaintained theme could show this.
+  can be clicked, but it's visibly wrong — an unmaintained theme is the likely
+  case, since the shell versions this extension supports all have the
+  screenshot UI.
 - **Looks different:** the panel loses its drop shadow, because the screenshot
   panel has none. Keeping ours would override High Contrast's inset outline,
   so it goes. Hover and pressed shades change slightly, to the screenshot

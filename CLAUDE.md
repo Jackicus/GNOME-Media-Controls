@@ -82,7 +82,8 @@ scripts/vlc-setup.js  vlcconfig.js from the command line (nested `player` uses i
 
 `docs/proposal.md` is a live proposal (taking the bar's colours from the
 shell's theme classes instead of copying the OSD's); nothing in it has been
-done yet.
+done yet. `docs/publishing.md` covers building the EGO zip and checks the code
+against the review guidelines.
 
 The **action vocabulary** (`ACTIONS` in `actions.js`) is the one list every input
 speaks: the bar's buttons emit an action id, the pads map a button id to one
@@ -112,8 +113,7 @@ Matched by **process id** first — `GetConnectionUnixProcessID` on the player's
 bus connection against `Meta.Window.get_pid()` — and by **desktop entry** after
 that, against the window's app id, sandboxed app id, GTK application id and WM
 class, for a sandboxed player whose bus connection is a proxy's. Two VLCs, two
-pids: the one you are looking at is the one you get (tested: a pad press paused
-only the focused one). No fullscreen player focused → nothing is attached and
+pids: the one you are looking at is the one you get. No fullscreen player focused → nothing is attached and
 nothing reacts — the pads included, so a game is never driven. `ignored-players`
 is matched against **every name a player goes by** (`playerNames`: desktop entry,
 identity, and the bus name without its `.instanceN`) — Chrome names no desktop
@@ -242,7 +242,7 @@ itself (see Gotchas).
 
 ## Gotchas
 
-VLC's remote-control socket, all found the hard way:
+VLC's remote-control socket:
 
 - **The module is `oldrc`.** `--extraintf rc` loads VLC 3's *Lua* CLI, which
   cannot listen on a Unix socket and ignores `--rc-unix`.
@@ -278,16 +278,16 @@ VLC's remote-control socket, all found the hard way:
 The extension:
 
 - **Two writes at once on a GIO stream fail** ("Stream has outstanding
-  operation"); `VlcRemote` queues its lines. That failure used to read as VLC
-  going away.
+  operation"); `VlcRemote` queues its lines.
 - **Never name a method `connect` on an `EventEmitter`** — nor `connectAfter`,
   `disconnect`, `disconnectAll`, `emit` or `signalHandlerIsConnected`.
   `connectObject` is built on the signal methods it finds on the prototype;
   a `connect` of our own made every tracked connection a Promise, and
   `disconnectObject` threw.
-- **`disable()` runs each teardown step on its own**, catching each. One that
-  threw used to abandon the rest — and the bar and handlers left behind kept
-  running beside the next enable's (two "Attached" lines per event).
+- **`disable()` runs each teardown step on its own**, catching each: a step
+  that throws must not abandon the rest, or the bar and handlers it should
+  have torn down keep running beside the next enable's (two "Attached" lines
+  per event).
 - **A `PopupMenuSection` closes the whole menu when one of its items is
   activated** (its own `itemActivated`), so `TracksMenu` overrides it on the
   sections as well as the menu.
@@ -298,11 +298,12 @@ The extension:
 - **St does not size a button's icon against the panel's font**, so a font-size
   on the panel scaled everything but the icons. `bar.js` sets `icon_size` from
   `ICON_SIZE` × the setting, the pop-out's buttons too.
-- **`addChrome()` takes no `affectsInputRegion` on 50.** It was X11-only and is
-  gone from `layout.js`'s `defaultParams`; passing it throws "Unrecognized
-  parameter". 48's default for it is `true`, so no params is right everywhere.
+- **`addChrome()` takes no `affectsInputRegion` on 50** (X11-only; not in
+  `layout.js`'s `defaultParams`): passing it throws "Unrecognized parameter".
+  48's default for it is `true`, so omitting it is correct on both.
 - **`Clutter.Grab` has no `get_seat_state()` on 50** (`activate`, `dismiss`,
-  `is_revoked` only). The shell no longer checks what a `pushModal` grab got.
+  `is_revoked` only); the shell itself doesn't check that on a `pushModal`
+  grab.
 - **Arrow keys never reach the focus manager while the bar holds the grab.**
   `St.FocusManager` moves focus from the stage's event handler, and a grab stops
   the event at the grab actor. The panel calls `navigate_from_event` itself, as
@@ -310,10 +311,10 @@ The extension:
   seek slider skips by `seek-step` instead of the Slider's 10%-of-the-film
   step); Up/Down leave it.
 - **`extension.js` and `metadata.json` are cached for the life of the shell**;
-  `reload` picks up `lib/`, the stylesheet and the schema only. An install
-  made by `make link` before the development entry point moved out of `src/`
-  is a symlink to `src/`; `make status` says so, and `make link` replaces it. New UUIDs need a
-  logout (or a nested `stop` + `start`).
+  `reload` picks up `lib/`, the stylesheet and the schema only. An older
+  `make link` install may be a symlink to `src/` rather than a directory of
+  links; `make status` reports this, and `make link` replaces it. New UUIDs
+  need a logout (or a nested `stop` + `start`).
 
 The nested shell:
 
@@ -374,6 +375,6 @@ Everywhere:
   `drag-begin`/`drag-end`, `global.stage.get_event_actor()`,
   `global.focus_manager.navigate_from_event()`, `EventEmitter` in
   `misc/signals.js`, `PopupMenu.setSourceAlignment`, Clutter virtual input
-  devices. `Ornament.NO_DOT` falls back to `NONE` where missing. Unredirection
-  moved from `Meta.*_unredirect_for_display` to `global.compositor` around 49;
-  `bar.js` `setUnredirect` uses whichever exists.
+  devices. `Ornament.NO_DOT` falls back to `NONE` where missing. Unredirection's
+  API differs by version (`Meta.*_unredirect_for_display` vs.
+  `global.compositor`); `bar.js` `setUnredirect` uses whichever exists.

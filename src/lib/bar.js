@@ -41,8 +41,8 @@ const PLAY_ICON_SIZE = 22;
 
 const scaleFactor = () => St.ThemeContext.get_for_stage(global.stage).scale_factor;
 
-// Unredirection is the compositor's on 49 and 50 and was the display's
-// before; whichever this shell has.
+// The unredirection API differs by shell version (global.compositor vs.
+// Meta.*_unredirect_for_display); use whichever this shell has.
 function setUnredirect(allowed) {
     if (global.compositor?.disable_unredirect) {
         if (allowed)

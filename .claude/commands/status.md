@@ -6,9 +6,10 @@ allowed-tools: Bash(make status), Bash(./scripts/dev.sh status), Bash(./scripts/
 Run `./scripts/dev.sh status` and `./scripts/dev.sh devices`, and report:
 
 - **install** — `link` means dev mode (edits in `src/` are live after a
-  reload, through `scripts/dev-extension.js`); `old-style symlink` means it
-  predates that entry point and needs `make link` again; `copy` means a real install that won't pick up edits until
-  `make install` is re-run.
+  reload, through `scripts/dev-extension.js`); `old-style symlink` means the
+  install isn't using that entry point and needs `make link` again; `copy`
+  means a real install that won't pick up edits until `make install` is
+  re-run.
 - **state** — `ACTIVE` is healthy. `unknown to the running shell` means the UUID
   was never registered, which needs a logout, not a reload.
 - **pads** — whether libmanette is installed; without it the bar works but game
