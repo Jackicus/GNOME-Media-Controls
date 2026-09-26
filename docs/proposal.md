@@ -71,8 +71,8 @@ fill, with its hover, active and focus states, in every theme.
 
 **One paint class per widget.** A button with both `icon-button` and
 `screenshot-ui-type-button` is painted by whichever rule comes later in the
-theme's file. In Adwaita that happens to be the screenshot button's (line 477
-against 60), but another theme may order them differently, so `icon-button`
+theme's file. In Adwaita that happens to be the screenshot button's (as of
+Shell 50.5), but another theme may order them differently, so `icon-button`
 goes. Its geometry comes with it into `.mc-bar .mc-button`:
 `border-radius: 999px; padding: 0.818em; min-height: 1.091em; min-width: 0`.
 

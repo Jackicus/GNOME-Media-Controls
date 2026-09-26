@@ -20,7 +20,7 @@ the mouse, the keyboard or a game controller.
 
 ## Install
 
-Needs GNOME Shell 48, 49 or 50.
+Needs GNOME Shell 50.
 
 ```bash
 git clone https://github.com/Jackicus/GNOME-Media-Controls.git
@@ -81,6 +81,10 @@ If the bar never shows up, `make logs` will show you what went wrong.
 
 Run `make link` once, then `make reload` after each edit. `CLAUDE.md` explains
 how it's built.
+
+## Licence
+
+GPL-2.0-or-later. See [LICENSE](LICENSE).
 
 ## Credits
 
