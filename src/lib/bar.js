@@ -69,8 +69,8 @@ const clockTime = dateTime => formatClock(dateTime, {timeOnly: true}).trim();
 // title gives the room.
 const CentredRowLayout = GObject.registerClass(
 class CentredRowLayout extends Clutter.LayoutManager {
-    _init() {
-        super._init();
+    constructor() {
+        super();
         // The bar's size setting, as a factor.
         this.scale = 1;
     }
@@ -172,8 +172,8 @@ export const ControlBar = GObject.registerClass({
     // The actor itself only places the panel: the constraint sizes it to the
     // monitor, and the alignment shrinks it back around the panel at the
     // bottom centre — the OSD's arrangement (osdWindow.js).
-    _init() {
-        super._init({
+    constructor() {
+        super({
             x_expand: true,
             y_expand: true,
             x_align: Clutter.ActorAlign.CENTER,

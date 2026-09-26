@@ -261,18 +261,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             settings.set_strv('ignored-players', list);
         };
 
-        let rebuildId = 0;
-        const rebuild = () => {
-            if (rebuildId)
-                return;
-            rebuildId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                rebuildId = 0;
-                fill();
-                return GLib.SOURCE_REMOVE;
-            });
-        };
-        cleanup.add(() => rebuildId && GLib.source_remove(rebuildId));
-
         const fill = () => {
             removeAllRows(running, runningRows);
             const ignored = settings.get_strv('ignored-players');
@@ -322,6 +310,19 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                 ignoredRows.push(row);
             }
         };
+
+        let rebuildId = 0;
+        const rebuild = () => {
+            if (rebuildId)
+                return;
+            rebuildId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                rebuildId = 0;
+                fill();
+                return GLib.SOURCE_REMOVE;
+            });
+        };
+        cleanup.add(() => rebuildId && GLib.source_remove(rebuildId));
+
         cleanup.connect(settings, 'changed::ignored-players', rebuild);
 
         const readAll = (busName, owner, iface, field) => {
@@ -334,7 +335,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                             Object.assign(info[field], props);
                             rebuild();
                         }
-                    } catch (e) {
+                    } catch {
                         // Gone, cancelled, or not answering: its row keeps what it had.
                     }
                 });
@@ -376,7 +377,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                 let names = [];
                 try {
                     [names] = bus.call_finish(result).deep_unpack();
-                } catch (e) {
+                } catch {
                     return;
                 }
                 for (const name of names.filter(n => n.startsWith(`${MPRIS_NAMESPACE}.`))) {
@@ -385,7 +386,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                         Gio.DBusCallFlags.NONE, 3000, cancellable, (_b, res) => {
                             try {
                                 add(name, bus.call_finish(res).deep_unpack()[0]);
-                            } catch (e) {
+                            } catch {
                                 // Went away before it could be asked.
                             }
                         });

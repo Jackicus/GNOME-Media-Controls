@@ -49,7 +49,7 @@ function readLines(path) {
     try {
         const [, bytes] = GLib.file_get_contents(path);
         return new TextDecoder().decode(bytes).split('\n');
-    } catch (e) {
+    } catch {
         return null;
     }
 }

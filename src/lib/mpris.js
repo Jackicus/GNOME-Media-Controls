@@ -45,7 +45,7 @@ function nameFromUrl(url) {
     const last = url.replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop();
     try {
         return decodeURIComponent(last);
-    } catch (e) {
+    } catch {
         return last;
     }
 }
@@ -404,7 +404,7 @@ export class PlayerRegistry extends EventEmitter {
                 try {
                     const [owner] = bus.call_finish(result).deep_unpack();
                     this._addName(name, owner);
-                } catch (e) {
+                } catch {
                     // Gone again already, or cancelled: nothing to follow.
                 }
             });
@@ -425,7 +425,7 @@ export class PlayerRegistry extends EventEmitter {
             Gio.DBusCallFlags.NONE, CALL_TIMEOUT, this._cancellable, (bus, result) => {
                 try {
                     [player.pid] = bus.call_finish(result).deep_unpack();
-                } catch (e) {
+                } catch {
                     return;
                 }
                 if (this._players.get(owner) === player)

@@ -35,8 +35,8 @@ function formatDelay(ms) {
 // between them with the arrow keys like any other items.
 const ButtonRow = GObject.registerClass(
 class ButtonRow extends PopupMenu.PopupBaseMenuItem {
-    _init(title) {
-        super._init({activate: false, hover: false, can_focus: false, style_class: 'mc-menu-row'});
+    constructor(title) {
+        super({activate: false, hover: false, can_focus: false, style_class: 'mc-menu-row'});
         this.label = new St.Label({
             text: title,
             x_expand: true,
@@ -228,7 +228,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
                 this._chapterState = chapter;
                 this._syncChapter();
             }
-        } catch (e) {
+        } catch {
             // The player went; the menu goes with the bar.
         }
     }

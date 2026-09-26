@@ -113,7 +113,7 @@ export class VlcRemote extends EventEmitter {
                 let connection;
                 try {
                     connection = client.connect_finish(result);
-                } catch (e) {
+                } catch {
                     // No socket: VLC is not set up for it, or not running.
                     resolve(false);
                     return;
@@ -121,7 +121,7 @@ export class VlcRemote extends EventEmitter {
                 let peer = 0;
                 try {
                     peer = connection.get_socket().get_credentials().get_unix_pid();
-                } catch (e) {
+                } catch {
                     // Credentials unavailable: treat as not ours.
                 }
                 if (this._closed || peer !== pid) {
