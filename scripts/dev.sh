@@ -208,8 +208,7 @@ cmd_uninstall() {
     ok "Removed $EXT_DIR"
 }
 
-# Only what the scripts make: dist/ also holds hand-made films for the README
-# screenshots, which nothing can regenerate.
+# Only what the scripts put in dist/.
 cmd_clean() {
     rm -f "$SRC_DIR/schemas/gschemas.compiled"
     rm -f "$REPO_DIR"/dist/*.shell-extension.zip "$REPO_DIR/dist/test-video.mkv" \

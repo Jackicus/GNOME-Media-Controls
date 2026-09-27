@@ -90,5 +90,5 @@ GPL-2.0-or-later. See [LICENSE](LICENSE).
 
 The screenshots show [Big Buck Bunny](https://peach.blender.org/), © 2008
 Blender Foundation,
-[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Its audio and
-subtitle tracks were added for the demo.
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), with captions
+added for the demo. `make demo-clip` builds that copy.

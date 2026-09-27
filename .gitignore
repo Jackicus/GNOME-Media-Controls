@@ -13,3 +13,6 @@ __pycache__/
 *.swp
 *~
 node_modules/
+
+# Built by scripts/demo-clip.sh
+docs/media/*.mkv

@@ -78,6 +78,9 @@ scripts/fakepad.py    the virtual Xbox pad `pad` plugs in (python-evdev)
 scripts/stallwatch.py what `make stalls` runs
 scripts/devices.js    what `dev.sh devices` runs: the players and pads on the bus
 scripts/vlc-setup.js  vlcconfig.js from the command line (nested `player` uses it)
+scripts/demo-clip.sh  what `make demo-clip` runs: builds docs/media/big-buck-bunny-demo.mkv,
+                      the README screenshots' film, from Blender's download and
+                      the captions in docs/media/captions/
 ```
 
 `docs/proposal.md` is a live proposal (taking the bar's colours from the

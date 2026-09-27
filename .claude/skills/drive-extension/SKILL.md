@@ -137,11 +137,12 @@ installed `extension.js` link at it for one `start`, then point it back.
   it is plugged in. It does nothing there unless a fullscreen player is focused
   on the real desktop.
 - **Screenshots for the README** live in `docs/screenshots/`: taken under
-  `--clean`, 1600×900, the film is `dist/big-buck-bunny-demo.mkv` — Big Buck
+  `--clean`, 1600×900, the film is `docs/media/big-buck-bunny-demo.mkv` — Big Buck
   Bunny (CC BY 3.0, credited in the README) with two audio tracks (Stereo, 5.1
   Surround) and two subtitle tracks (English, Español), so the tracks pop-out
-  has something to show. It was made by hand, is not in git and no script
-  regenerates it; `make clean` leaves it alone. The hero is a JPEG, the
+  has something to show. It is not in git: `make demo-clip` downloads the film
+  and builds it with the captions in `docs/media/captions/`. Play it with
+  `./scripts/nested.sh player docs/media/big-buck-bunny-demo.mkv`. The hero is a JPEG, the
   preference windows PNGs from `window`.
 - **Never click or hover at the top-left**: the Activities hot corner.
 - **`Eval` is blocked** in the nested shell; drive it with input and D-Bus like a

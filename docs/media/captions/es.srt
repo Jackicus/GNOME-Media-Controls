@@ -1,0 +1,60 @@
+1
+00:00:08,000 --> 00:00:13,000
+[Canto de pájaros en el bosque]
+
+2
+00:00:30,000 --> 00:00:35,000
+[Un pájaro dormita en una rama]
+
+3
+00:00:58,000 --> 00:01:03,000
+[Un bostezo desde la madriguera]
+
+4
+00:01:24,000 --> 00:01:29,000
+[Big Buck Bunny se estira al sol]
+
+5
+00:01:40,000 --> 00:01:45,000
+[Pasa una mariposa revoloteando]
+
+6
+00:02:30,000 --> 00:02:35,000
+[Crujidos entre los árboles]
+
+7
+00:03:10,000 --> 00:03:15,000
+[Algo cae al suelo]
+
+8
+00:04:00,000 --> 00:04:05,000
+[Los roedores se ríen]
+
+9
+00:04:50,000 --> 00:04:55,000
+[Un silencio triste]
+
+10
+00:05:30,000 --> 00:05:35,000
+[Ruido de herramientas]
+
+11
+00:06:20,000 --> 00:06:25,000
+[Cruje una cuerda]
+
+12
+00:07:10,000 --> 00:07:15,000
+[Crujen las hojas bajo los pies]
+
+13
+00:08:00,000 --> 00:08:05,000
+[Un silbido en el aire]
+
+14
+00:08:40,000 --> 00:08:45,000
+[Un golpe seco, y luego calma]
+
+15
+00:09:20,000 --> 00:09:25,000
+[Vuelve el canto de los pájaros]
+

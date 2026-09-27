@@ -3,13 +3,17 @@
 DEV := ./scripts/dev.sh
 NESTED := ./scripts/nested.sh
 
-.PHONY: all link install reload logs pack devices uninstall status stalls clean help lint \
+.PHONY: all link install reload logs pack devices uninstall status stalls clean help lint demo-clip \
         nested nested-headless nested-stop nested-status preview
 
 all: install
 
 link install reload logs pack devices uninstall status stalls clean:
 	@$(DEV) $@
+
+# The film the README screenshots are taken over (docs/media/, not in git).
+demo-clip:
+	@./scripts/demo-clip.sh
 
 # gjs.guide's ESLint rules over the GJS code (eslint.config.mjs).
 lint: node_modules
