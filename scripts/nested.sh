@@ -550,7 +550,8 @@ ensure_test_video() {
     info "Generating $TEST_VIDEO (10 min, two audio and two subtitle tracks, chapters)..."
     local work
     work="$(mktemp -d)"
-    trap 'rm -rf "$work"' EXIT
+    # The path goes into the trap now: it runs at exit, when this local is gone.
+    trap "rm -rf $(printf %q "$work")" EXIT
     python3 - "$work" <<'PY'
 import sys
 work = sys.argv[1]
