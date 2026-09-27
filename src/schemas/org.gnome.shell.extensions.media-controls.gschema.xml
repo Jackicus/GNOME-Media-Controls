@@ -69,6 +69,11 @@
             <summary>Buttons left off the bar</summary>
             <description>Any of "skip" (Skip back and forward), "volume" (mute and the volume slider), "rate" (the speed) and "close". What they do is still there for the keyboard and the controllers.</description>
         </key>
+        <key name="show-length" type="b">
+            <default>false</default>
+            <summary>Show the length instead of the time left</summary>
+            <description>At the end of the seek slider. Clicking the time there switches between the two.</description>
+        </key>
         <key name="show-clock" type="b">
             <default>false</default>
             <summary>Show the time, and when the video ends</summary>

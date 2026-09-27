@@ -110,6 +110,8 @@ export class MediaControlsApp {
 
         this._bar = new ControlBar();
         this._bar.connect('action', (_bar, action) => this.perform(action));
+        this._bar.connect('toggle-length', () =>
+            this._settings.set_boolean('show-length', !this._settings.get_boolean('show-length')));
         this._bar.panel.connect('notify::hover', () => this._armHide());
         this._bar.tracksMenu.connect('open-state-changed', () => this._armHide());
         this._bar.setScale(this._settings.get_int('bar-scale'));
@@ -151,6 +153,7 @@ export class MediaControlsApp {
             'changed::previous-next', () => this._syncButtons(),
             'changed::hidden-buttons', () => this._syncButtons(),
             'changed::show-clock', () => this._syncClock(),
+            'changed::show-length', () => this._syncLength(),
             'changed::sleep-timer', () => this._syncSleep(),
             'changed::sleep-timer-mode', () => {
                 this._setSleep(null);
@@ -158,6 +161,7 @@ export class MediaControlsApp {
             },
             this);
         this._syncClock();
+        this._syncLength();
         this._syncSleep();
 
         Main.wm.addKeybinding('toggle-bar', this._settings, Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
@@ -374,6 +378,10 @@ export class MediaControlsApp {
                 return;
         }
         this._reveal();
+    }
+
+    _syncLength() {
+        this._bar.setShowLength(this._settings.get_boolean('show-length'));
     }
 
     _syncPosition() {

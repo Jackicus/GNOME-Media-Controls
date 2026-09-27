@@ -169,7 +169,11 @@ function volumeIcon(volume) {
 }
 
 export const ControlBar = GObject.registerClass({
-    Signals: {'action': {param_types: [GObject.TYPE_STRING]}},
+    Signals: {
+        'action': {param_types: [GObject.TYPE_STRING]},
+        // The time at the end of the seek row was clicked (setShowLength).
+        'toggle-length': {},
+    },
 }, class ControlBar extends Clutter.Actor {
     // The actor itself only places the panel: the constraint sizes it to the
     // monitor, and the alignment shrinks it back around the panel at the
@@ -200,6 +204,7 @@ export const ControlBar = GObject.registerClass({
         this._top = false;
         this._monitorIndex = 0;
         this._showClock = false;
+        this._showLength = false;
         this._sleepText = null;         // null: no sleep button
         this._previousNext = 'always';  // 'always', 'playlist' or 'never'
         this._hidden = [];              // actions.js BAR_BUTTONS ids
@@ -285,7 +290,16 @@ export const ControlBar = GObject.registerClass({
         this._seek = new Slider(0);
         this._seek.add_style_class_name('mc-seek');
         this._seek.accessible_name = 'Position';
-        this._remaining = new St.Label({style_class: 'mc-time mc-remaining', y_align: Clutter.ActorAlign.CENTER});
+        // A click switches it between the time left and the whole length.
+        // Out of the arrows' way: the slider's Left and Right skip, and Up
+        // and Down leave the row.
+        this._remaining = new St.Button({
+            style_class: 'mc-time mc-remaining',
+            label: '',
+            can_focus: false,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this._remaining.connect('clicked', () => this.emit('toggle-length'));
         row.add_child(this._elapsed);
         row.add_child(this._seek);
         row.add_child(this._remaining);
@@ -520,6 +534,12 @@ export const ControlBar = GObject.registerClass({
         this.sync();
     }
 
+    // The end of the seek row: the time left, or the whole length.
+    setShowLength(show) {
+        this._showLength = show;
+        this._tick();
+    }
+
     // The clock line under the title, or not.
     setClock(show) {
         this._showClock = show;
@@ -581,7 +601,12 @@ export const ControlBar = GObject.registerClass({
             return;
         const at = this._seeking ? this._seek.value * p.length : p.now;
         this._elapsed.text = formatTime(at);
-        this._remaining.text = p.length ? `−${formatTime(p.length - at)}` : '';
+        if (!p.length)
+            this._remaining.label = '';
+        else if (this._showLength)
+            this._remaining.label = formatTime(p.length);
+        else
+            this._remaining.label = `−${formatTime(p.length - at)}`;
         if (this._showClock) {
             const now = GLib.DateTime.new_now_local();
             const left = p.length ? (p.length - at) / (p.rate || 1) : 0;

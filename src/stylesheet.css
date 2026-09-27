@@ -59,6 +59,11 @@
     text-align: left;
 }
 
+/* A button: a click switches it between the time left and the length. */
+.mc-remaining:hover {
+    color: #ffffff;
+}
+
 .mc-bar .slider {
     color: #ffffff;
     -barlevel-height: 0.273em;

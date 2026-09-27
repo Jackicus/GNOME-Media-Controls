@@ -222,6 +222,9 @@ set on another player replaces it). `bar-scale`
 every em in the stylesheet follows, plus the icon sizes, which `bar.js` sets
 itself (see Gotchas).
 
+The time at the end of the seek row is a button (kept out of the focus chain):
+a click flips `show-length`, the time left or the whole length.
+
 **Which buttons** are on the bar is two settings: `previous-next` (`always`,
 greyed out with nowhere to go; `playlist`, only while `Player.hasPlaylist`;
 `never`) and `hidden-buttons` (`BAR_BUTTONS` in `actions.js`: skip, volume,

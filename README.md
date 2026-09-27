@@ -41,7 +41,8 @@ with `--no-osc`.
 
 ![The bar close up: running time, seek slider and remaining time on top; title, previous, skip back, play/pause, skip forward and next, the audio-and-subtitles button, volume, speed and close below](docs/screenshots/bar-closeup.png)
 
-Play something full screen and move the mouse.
+Play something full screen and move the mouse. Click the time on the right
+of the seek bar to switch between the time left and the full length.
 
 - **Keyboard:** Super+C opens the bar. The arrow keys move around it, Enter
   presses and Escape closes it.
