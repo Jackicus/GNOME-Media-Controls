@@ -111,6 +111,7 @@ export class MediaControlsApp {
         this._bar.tracksMenu.connect('open-state-changed', () => this._armHide());
         this._bar.setScale(this._settings.get_int('bar-scale'));
         this._syncPosition();
+        this._syncButtons();
         // No params: trackFullscreen is off by default, which is the point,
         // and 48's affectsInputRegion (default on) is gone by 50.
         Main.layoutManager.addChrome(this._bar);
@@ -144,6 +145,8 @@ export class MediaControlsApp {
             'changed::gamepads', () => this._syncGamepads(),
             'changed::bar-scale', () => this._bar.setScale(this._settings.get_int('bar-scale')),
             'changed::bar-position', () => this._syncPosition(),
+            'changed::previous-next', () => this._syncButtons(),
+            'changed::hidden-buttons', () => this._syncButtons(),
             'changed::show-clock', () => this._syncClock(),
             'changed::sleep-timer', () => this._syncSleep(),
             this);
@@ -368,6 +371,10 @@ export class MediaControlsApp {
 
     _syncPosition() {
         this._bar.setTop(this._settings.get_string('bar-position') === 'top');
+    }
+
+    _syncButtons() {
+        this._bar.setButtons(this._settings.get_string('previous-next'), this._settings.get_strv('hidden-buttons'));
     }
 
     // The key (and the pad's `navigate`) opens the bar holding the keyboard,

@@ -48,6 +48,15 @@ export const NAVIGATION = {
     'east': 'Escape',
 };
 
+// The bar's buttons that can be left off it (`hidden-buttons`); Previous and
+// Next have a setting of their own (`previous-next`), and play never goes.
+export const BAR_BUTTONS = [
+    {id: 'skip', title: 'Skip back and forward'},
+    {id: 'volume', title: 'Volume'},
+    {id: 'rate', title: 'Speed'},
+    {id: 'close', title: 'Close the player'},
+];
+
 // The sleep timer's steps, in minutes, and then the end of the file; one more
 // press turns it off.
 export const SLEEP_STEPS = [15, 30, 45, 60, 90, 120, 'end'];

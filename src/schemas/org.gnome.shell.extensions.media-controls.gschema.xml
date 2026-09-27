@@ -10,6 +10,12 @@
         <value nick="top" value="1"/>
     </enum>
 
+    <enum id="org.gnome.shell.extensions.media-controls.previous-next">
+        <value nick="always" value="0"/>
+        <value nick="playlist" value="1"/>
+        <value nick="never" value="2"/>
+    </enum>
+
     <schema path="/org/gnome/shell/extensions/media-controls/" id="org.gnome.shell.extensions.media-controls">
 
         <!-- The bar -->
@@ -48,6 +54,16 @@
             <default>100</default>
             <summary>Size of the bar, in percent</summary>
             <description>Scales the whole bar and its pop-out together, for a screen seen from across a room.</description>
+        </key>
+        <key name="previous-next" enum="org.gnome.shell.extensions.media-controls.previous-next">
+            <default>'always'</default>
+            <summary>When the Previous and Next buttons are on the bar</summary>
+            <description>"always" (greyed out when there is nothing to go to), "playlist": only while the player says it can go back or on, or "never".</description>
+        </key>
+        <key name="hidden-buttons" type="as">
+            <default>[]</default>
+            <summary>Buttons left off the bar</summary>
+            <description>Any of "skip" (Skip back and forward), "volume" (mute and the volume slider), "rate" (the speed) and "close". What they do is still there for the keyboard and the controllers.</description>
         </key>
         <key name="show-clock" type="b">
             <default>false</default>

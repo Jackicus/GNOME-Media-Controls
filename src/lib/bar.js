@@ -1,6 +1,7 @@
 // The bar itself: a panel at the foot of the player's monitor (or its head,
 // with `bar-position` `top`), holding the
-// position, the transport buttons, the volume and the rate — and, where the
+// position, the transport buttons, the volume and the rate (any of which but
+// play can be left off: setButtons) — and, where the
 // player allows it, the audio-and-subtitles pop-out (tracksmenu.js), and the
 // clock and sleep timer when they are switched on. It knows how to show a
 // player and how to ask it for things; when to be seen is app.js's.
@@ -200,6 +201,8 @@ export const ControlBar = GObject.registerClass({
         this._monitorIndex = 0;
         this._showClock = false;
         this._sleepText = null;         // null: no sleep button
+        this._previousNext = 'always';  // 'always', 'playlist' or 'never'
+        this._hidden = [];              // actions.js BAR_BUTTONS ids
 
         this.panel = new St.BoxLayout({
             style_class: 'mc-bar',
@@ -502,6 +505,21 @@ export const ControlBar = GObject.registerClass({
             this.tracksMenu.openFresh({focus});
     }
 
+    // Which buttons are on the bar: `previousNext` 'always' (greyed out with
+    // nowhere to go), 'playlist' (only while the player can go back or on)
+    // or 'never'; `hidden`, the BAR_BUTTONS left off. Play is always there.
+    setButtons(previousNext, hidden) {
+        this._previousNext = previousNext;
+        this._hidden = hidden;
+        const shown = id => !hidden.includes(id);
+        this._back.visible = shown('skip');
+        this._forward.visible = shown('skip');
+        this._mute.visible = shown('volume');
+        this._volume.visible = shown('volume');
+        this._close.visible = shown('close');
+        this.sync();
+    }
+
     // The clock line under the title, or not.
     setClock(show) {
         this._showClock = show;
@@ -534,6 +552,11 @@ export const ControlBar = GObject.registerClass({
             this._play.accessible_name = p.playing ? 'Pause' : 'Play';
             setSensitive(this._previous, p.canGoPrevious);
             setSensitive(this._next, p.canGoNext);
+            // Both or neither, so play stays in the middle of the transport.
+            const previousNext = this._previousNext === 'always' ||
+                (this._previousNext === 'playlist' && p.hasPlaylist);
+            this._previous.visible = previousNext;
+            this._next.visible = previousNext;
             setSensitive(this._back, p.canSeek);
             setSensitive(this._forward, p.canSeek);
             setSensitive(this._seek, p.canSeek && p.length > 0);
@@ -543,7 +566,7 @@ export const ControlBar = GObject.registerClass({
             this._mute.icon_name = volumeIcon(p.volume);
             this._mute.accessible_name = p.muted ? 'Unmute' : 'Mute';
 
-            this._rate.visible = p.hasRate;
+            this._rate.visible = p.hasRate && !this._hidden.includes('rate');
             this._rate.label = rateLabel(p.rate);
         } finally {
             this._syncing = false;

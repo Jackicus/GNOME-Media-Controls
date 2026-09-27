@@ -165,7 +165,7 @@ the player names its track, relative `Seek` where it does not. **Nothing blocks 
 call is asynchronous with a timeout and a cancellable that `disable()` cancels;
 players are found with `NameOwnerChanged` (arg0 namespace
 `org.mpris.MediaPlayer2`) plus one `ListNames` at enable, and followed with
-`PropertiesChanged` and `Seeked`.
+`PropertiesChanged`, `Seeked` and the `TrackList` interface's signals.
 
 **Tracks** are VLC's alone: MPRIS has no audio or subtitle tracks, no subtitle
 timing and no chapters. VLC's C remote-control interface (`oldrc`) can listen on
@@ -214,6 +214,11 @@ that player's bar alone, and one set on another player replaces it). `bar-scale`
 (75–200 %) is one `font-size` percentage on the panel and the pop-out, which
 every em in the stylesheet follows, plus the icon sizes, which `bar.js` sets
 itself (see Gotchas).
+
+**Which buttons** are on the bar is two settings: `previous-next` (`always`,
+greyed out with nowhere to go; `playlist`, only while `Player.hasPlaylist`;
+`never`) and `hidden-buttons` (`BAR_BUTTONS` in `actions.js`: skip, volume,
+rate, close). A hidden button's action still works from the keys and pads.
 
 ## Design rules
 
@@ -319,6 +324,13 @@ The extension:
   the shell's popup menu items do. A focused slider takes Left/Right first (the
   seek slider skips by `seek-step` instead of the Slider's 10%-of-the-film
   step); Up/Down leave it.
+- **A player's `CanGoNext` says nothing about a playlist**: VLC and mpv say
+  true with a single file open (VLC certainly under `--loop`, which the nested
+  `player` passes). `hasPlaylist` counts the MPRIS `TrackList`'s `Tracks`
+  instead, which VLC serves (and announces, with `Tracks` invalidated)
+  although its `HasTrackList` says false; a player that keeps no list falls
+  back on `CanGo*`. VLC's list is what it started playing with: a file added
+  while it plays is announced but not listed.
 - **`extension.js` and `metadata.json` are cached for the life of the shell**;
   `reload` picks up `lib/`, the stylesheet and the schema only. An older
   `make link` install may be a symlink to `src/` rather than a directory of

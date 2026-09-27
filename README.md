@@ -66,7 +66,7 @@ then use − and + to move the subtitles by 0.1 s until they line up.
   </tr>
   <tr>
     <td valign="top"><b>Bar</b>: when it shows, how long it stays, where it
-    sits, its size, the clock and the sleep timer.</td>
+    sits, its size, which buttons it has, the clock and the sleep timer.</td>
     <td valign="top"><b>Players</b>: which players get the bar, and the two VLC
     switches.</td>
     <td valign="top"><b>Controllers</b>: every pad plugged in. Press a button

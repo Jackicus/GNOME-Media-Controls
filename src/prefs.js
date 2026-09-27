@@ -5,7 +5,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 
-import {ACTIONS, BUTTONS, buttonForCode, playerNames} from './lib/actions.js';
+import {ACTIONS, BAR_BUTTONS, BUTTONS, buttonForCode, playerNames} from './lib/actions.js';
 import {readVlcState, vlcrcPath, writeVlcState} from './lib/vlcconfig.js';
 
 const MPRIS_NAMESPACE = 'org.mpris.MediaPlayer2';
@@ -17,6 +17,12 @@ const FLASH_MS = 1200;
 const POSITIONS = [
     {id: 'bottom', title: 'Bottom'},
     {id: 'top', title: 'Top'},
+];
+
+const PREVIOUS_NEXT = [
+    {id: 'always', title: 'Always'},
+    {id: 'playlist', title: 'Only with a playlist'},
+    {id: 'never', title: 'Never'},
 ];
 
 const REVEALS = [
@@ -103,6 +109,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         look.add(this._choiceRow(settings, cleanup, 'bar-position', POSITIONS,
             'Position', 'At the top, it stays clear of subtitles'));
         look.add(this._scaleRow(settings));
+        look.add(this._buttonsRow(settings, cleanup));
         const clockRow = new Adw.SwitchRow({
             title: 'Show the time and when it ends',
             subtitle: 'A line under the title: the time now, and when the video will finish',
@@ -144,6 +151,34 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             scale.add_mark(mark, Gtk.PositionType.BOTTOM, null);
         settings.bind('bar-scale', scale.adjustment, 'value', Gio.SettingsBindFlags.DEFAULT);
         row.add_suffix(scale);
+        return row;
+    }
+
+    // Which buttons are on the bar, folded away: most people keep them all.
+    _buttonsRow(settings, cleanup) {
+        const row = new Adw.ExpanderRow({
+            title: 'Buttons',
+            subtitle: 'Leave off the ones you never use',
+        });
+        row.add_row(this._choiceRow(settings, cleanup, 'previous-next', PREVIOUS_NEXT,
+            'Previous and next', 'With a playlist, they move between its files'));
+        for (const button of BAR_BUTTONS) {
+            const toggle = new Adw.SwitchRow({title: button.title});
+            const sync = () => {
+                toggle.active = !settings.get_strv('hidden-buttons').includes(button.id);
+            };
+            sync();
+            cleanup.connect(settings, 'changed::hidden-buttons', sync);
+            toggle.connect('notify::active', () => {
+                const hidden = settings.get_strv('hidden-buttons');
+                if (toggle.active !== hidden.includes(button.id))
+                    return;
+                settings.set_strv('hidden-buttons', toggle.active
+                    ? hidden.filter(id => id !== button.id)
+                    : [...hidden, button.id]);
+            });
+            row.add_row(toggle);
+        }
         return row;
     }
 

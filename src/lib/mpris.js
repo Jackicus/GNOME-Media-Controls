@@ -5,7 +5,9 @@
 // mpv-mpris), Celluloid, Showtime and the browsers speak, and what the shell's
 // own media controls read. It says when a player comes and goes, what it has
 // open, how long that is, whether it is playing, its volume and rate, and when
-// it seeks. It never says where playback has got to unless asked. So the
+// it seeks — and, from a player that keeps its playlist on the bus (VLC does,
+// whatever its HasTrackList says), how many files that playlist holds. It
+// never says where playback has got to unless asked. So the
 // position is read, and the clock reading it was taken at kept beside it;
 // where playback is at any moment is that position moved on by the clock
 // while playing (`Player.now`). A reading is taken when the bar comes up,
@@ -25,6 +27,7 @@ import {EventEmitter} from 'resource:///org/gnome/shell/misc/signals.js';
 const ROOT = 'org.mpris.MediaPlayer2';
 const MPRIS_PATH = '/org/mpris/MediaPlayer2';
 const PLAYER = 'org.mpris.MediaPlayer2.Player';
+const TRACKLIST = 'org.mpris.MediaPlayer2.TrackList';
 const PROPERTIES = 'org.freedesktop.DBus.Properties';
 const NO_TRACK = '/org/mpris/MediaPlayer2/TrackList/NoTrack';
 // Long enough for a busy player, short enough that a hung one is given up on
@@ -78,6 +81,9 @@ export class Player extends EventEmitter {
         this.canSeek = false;
         this.canGoNext = false;
         this.canGoPrevious = false;
+        // org.mpris.MediaPlayer2.TrackList: how many files the playlist
+        // holds, or null from a player that does not list them.
+        this.playlistLength = null;
         this.position = 0;
         this.readAt = clock();
         // What Mute puts back: MPRIS has a volume but no mute.
@@ -94,6 +100,15 @@ export class Player extends EventEmitter {
         if (this.playing)
             position += (clock() - this.readAt) * this.rate;
         return this.length ? Math.min(position, this.length) : position;
+    }
+
+    // Whether there is a playlist to move through. A player's CanGoNext and
+    // CanGoPrevious are no guide (VLC and mpv say true with one file open),
+    // so its track list is, where it keeps one.
+    get hasPlaylist() {
+        if (this.playlistLength)
+            return this.playlistLength > 1;
+        return this.canGoNext || this.canGoPrevious;
     }
 
     get hasRate() {
@@ -276,6 +291,11 @@ export class Player extends EventEmitter {
                 this[field] = !!props[key];
         }
     }
+
+    applyTrackList(props) {
+        if (Array.isArray(props.Tracks))
+            this.playlistLength = props.Tracks.length;
+    }
 }
 
 // Every player on the bus. Emits 'added' and 'removed' with the Player, and
@@ -320,6 +340,8 @@ export class PlayerRegistry extends EventEmitter {
                         player.applyPlayer(changed);
                     else if (iface === ROOT)
                         player.applyRoot(changed);
+                    else if (iface === TRACKLIST)
+                        player.applyTrackList(changed);
                     else
                         return;
                     // A player that only says a property changed, not what
@@ -336,6 +358,13 @@ export class PlayerRegistry extends EventEmitter {
                     player.read(params.recursiveUnpack()[0] / 1e6);
                     this._changed(player);
                     player.emit('seeked');
+                }),
+            // A file added to the playlist, or taken off it, or a new list.
+            bus.signal_subscribe(null, TRACKLIST, null, MPRIS_PATH, null, Gio.DBusSignalFlags.NONE,
+                (_bus, sender) => {
+                    const player = this._players.get(sender);
+                    if (player)
+                        this._readAll(player, TRACKLIST);
                 }),
         ];
 
@@ -419,6 +448,8 @@ export class PlayerRegistry extends EventEmitter {
         this._players.set(owner, player);
         this._readAll(player, ROOT);
         this._readAll(player, PLAYER);
+        // A player without one answers with an error, which is dropped.
+        this._readAll(player, TRACKLIST);
         // Which process it is, to find its window by (app.js `_playerFor`).
         this._bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
             'GetConnectionUnixProcessID', new GLib.Variant('(s)', [owner]), new GLib.VariantType('(u)'),
@@ -441,6 +472,8 @@ export class PlayerRegistry extends EventEmitter {
                 return;
             if (iface === ROOT)
                 player.applyRoot(props);
+            else if (iface === TRACKLIST)
+                player.applyTrackList(props);
             else
                 player.applyPlayer(props);
             this._changed(player);
