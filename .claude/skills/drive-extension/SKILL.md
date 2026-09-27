@@ -48,7 +48,7 @@ showing a pause is not the player pausing.
 | `mpris` | The first player's PlaybackStatus, Position (µs), Volume, Rate, title |
 | `mpris get PROP` / `set PROP '<VALUE>'` / `METHOD [ARGS]` / `Quit` | Poke it directly (`set Volume '<0.8>'`, `PlayPause`, `Quit`) |
 | `pad [HOLD] BUTTON...` | Plug in a virtual Xbox 360 pad, wait HOLD s (default 1.5) for libmanette to open it, press each BUTTON, unplug. Buttons are the `gamepad-buttons` ids: `south` `east` `west` `north` `dpad-left` `dpad-right` `dpad-up` `dpad-down` `left-shoulder` `right-shoulder` `left-trigger` `right-trigger` `select` `start` `mode` `left-stick` `right-stick`, plus `wait:SECS`. |
-| `do "STEP"...` | A batch over one connection: `say TEXT`, `move X Y`, `click X Y`, `key KEYSYM` (`Super+c`, `Escape`, `Right`, `Return`, `f`), `wait SECS`, `shot [FILE [X Y W H]]`, `window FILE` (the focused window alone, corners transparent — for the preferences), `overview on\|off` |
+| `do "STEP"...` | A batch over one connection: `say TEXT`, `move X Y`, `click X Y`, `scroll X Y up\|down [N]` (wheel notches), `key KEYSYM` (`Super+c`, `Escape`, `Right`, `Return`, `f`), `wait SECS`, `shot [FILE [X Y W H]]`, `window FILE` (the focused window alone, corners transparent — for the preferences), `overview on\|off` |
 | `run CMD...` | Run against the nested bus **and displays** (never the real desktop's): `run gnome-extensions prefs media-controls@jackicus` opens the preferences inside it |
 | `reload`, `logs [N] [--all]`, `status`, `mirror on\|off` | As named. `[Media Controls]` lines are ours; `Attached to <player> (pid N)` says which player the bar belongs to. |
 

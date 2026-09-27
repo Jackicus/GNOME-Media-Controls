@@ -31,6 +31,7 @@
 #   ./scripts/nested.sh do "STEP" "STEP"...
 #                                     run several steps in one go (one connection):
 #                                     say TEXT | click X Y | move X Y | key KEYSYM |
+#                                     scroll X Y up|down [N] |
 #                                     wait SECS | shot [FILE [X Y W H]] | window FILE |
 #                                     overview on|off
 #   ./scripts/nested.sh say TEXT      flash TEXT as an on-screen banner in the nested

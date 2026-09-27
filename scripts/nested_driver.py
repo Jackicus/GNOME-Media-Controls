@@ -16,6 +16,7 @@ Steps:
     say TEXT...            flash TEXT as an on-screen banner
     click X Y              click at desktop coordinates
     move X Y               move the pointer there without clicking (hover)
+    scroll X Y up|down [N] N wheel notches (default 1) with the pointer there
     key KEYSYM             Escape, Return, a character, or a chord: Super+Page_Down
     wait SECONDS           pause, e.g. for a workspace slide to finish
     shot [FILE [X Y W H]]  screenshot, optionally of one region only
@@ -244,6 +245,17 @@ class Driver:
     def click(self, x, y):
         return self.move(x, y, press=True)
 
+    def scroll(self, x, y, direction, notches="1"):
+        if direction not in ("up", "down"):
+            raise StepError("scroll X Y up|down [NOTCHES]")
+        self.move(x, y)
+        step = -1 if direction == "up" else 1
+        for _ in range(int(notches)):
+            # Axis 0 is vertical; a discrete step is one wheel notch, down positive.
+            self._notify("NotifyPointerAxisDiscrete", "(ui)", 0, step)
+            time.sleep(0.1)
+        return f"scrolled {direction} {notches} at ({x}, {y})"
+
     def key(self, combo):
         parts = combo.split("+") if combo != "+" else ["+"]
         keysyms = [_keysym(p) for p in parts]
@@ -317,7 +329,7 @@ class Driver:
             time.sleep(OVERVIEW_SETTLE)
         return f"overview {state}"
 
-    STEPS = {"say", "click", "move", "key", "wait", "shot", "window", "overview"}
+    STEPS = {"say", "click", "move", "scroll", "key", "wait", "shot", "window", "overview"}
 
     def run(self, argv):
         if not argv or argv[0] not in self.STEPS:
