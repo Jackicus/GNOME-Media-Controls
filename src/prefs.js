@@ -20,8 +20,8 @@ const POSITIONS = [
 ];
 
 const SLEEP_MODES = [
-    {id: 'minutes', title: '15 minutes to 2 hours'},
-    {id: 'episodes', title: '1 to 5 episodes'},
+    {id: 'minutes', title: 'Minutes'},
+    {id: 'episodes', title: 'Episodes'},
 ];
 
 const PREVIOUS_NEXT = [
@@ -128,7 +128,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         });
         settings.bind('sleep-timer', sleepRow, 'enable-expansion', Gio.SettingsBindFlags.DEFAULT);
         sleepRow.add_row(this._choiceRow(settings, cleanup, 'sleep-timer-mode', SLEEP_MODES,
-            'Pause after', 'Each press of the button goes a step further; one more turns it off'));
+            'Pause after', '15 minutes to 2 hours, or 1 to 5 episodes'));
         look.add(sleepRow);
 
         const steps = new Adw.PreferencesGroup({title: 'Steps'});
