@@ -1,5 +1,6 @@
 // The audio-and-subtitles pop-out: the shell's own PopupMenu, standing on the
-// bar and pointing down at its tracks button, holding the player's audio and
+// bar and pointing down at its tracks button (hanging from it and pointing
+// up, with the bar at the top — bar.js setTop), holding the player's audio and
 // subtitle tracks as radio lists, the subtitle timing as a − / + row, and the
 // chapters when the file has any. Everything in it comes from, and goes to,
 // a VlcRemote (vlcremote.js).
@@ -76,7 +77,8 @@ class ButtonRow extends PopupMenu.PopupBaseMenuItem {
 
 export class TracksMenu extends PopupMenu.PopupMenu {
     // The menu's source is the whole panel, so it stands above the bar rather
-    // than over its top row; the arrow is aimed at `button` as it opens.
+    // than over its top row (or hangs below it, rather than over its bottom
+    // row); the arrow is aimed at `button` as it opens.
     constructor(panel, button) {
         super(panel, 0.5, St.Side.BOTTOM);
         this._button = button;

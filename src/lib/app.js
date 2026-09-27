@@ -13,8 +13,8 @@
 //   their own controls) are never matched.
 //
 // When is it seen?  When the pointer moves over the player (`pointer-reveal`
-//   `anywhere`, as VLC's own fullscreen controller does) or near its bottom
-//   edge (`bottom-edge`); when the `toggle-bar` key is pressed, which also
+//   `anywhere`, as VLC's own fullscreen controller does) or near the edge the
+//   bar is on (`edge`); when the `toggle-bar` key is pressed, which also
 //   gives it the keyboard; when a pad button does something; and when the
 //   player pauses, seeks or changes file by itself. It goes after
 //   `hide-delay` seconds unless the pointer is on it, it has the keyboard, its
@@ -56,7 +56,7 @@ import {VlcRemote} from './vlcremote.js';
 
 // How often the pointer is looked at while the user is active, in ms.
 const POINTER_INTERVAL = 100;
-// `bottom-edge` counts this much of the monitor's height as the edge.
+// `edge` counts this much of the monitor's height as the edge.
 const EDGE_FRACTION = 0.2;
 // A VLC without its socket is asked again at most this often, in seconds, as
 // the bar comes up: it may have been set up since, or still be starting.
@@ -110,6 +110,7 @@ export class MediaControlsApp {
         this._bar.panel.connect('notify::hover', () => this._armHide());
         this._bar.tracksMenu.connect('open-state-changed', () => this._armHide());
         this._bar.setScale(this._settings.get_int('bar-scale'));
+        this._syncPosition();
         // No params: trackFullscreen is off by default, which is the point,
         // and 48's affectsInputRegion (default on) is gone by 50.
         Main.layoutManager.addChrome(this._bar);
@@ -142,6 +143,7 @@ export class MediaControlsApp {
             'changed::pointer-reveal', () => this._syncPointerWatch(),
             'changed::gamepads', () => this._syncGamepads(),
             'changed::bar-scale', () => this._bar.setScale(this._settings.get_int('bar-scale')),
+            'changed::bar-position', () => this._syncPosition(),
             'changed::show-clock', () => this._syncClock(),
             'changed::sleep-timer', () => this._syncSleep(),
             this);
@@ -355,10 +357,17 @@ export class MediaControlsApp {
         if (!monitor || x < monitor.x || x >= monitor.x + monitor.width ||
             y < monitor.y || y >= monitor.y + monitor.height)
             return;
-        if (this._settings.get_string('pointer-reveal') === 'bottom-edge' &&
-            y < monitor.y + monitor.height * (1 - EDGE_FRACTION) && !this._bar.hovered)
-            return;
+        if (this._settings.get_string('pointer-reveal') === 'edge' && !this._bar.hovered) {
+            const top = this._settings.get_string('bar-position') === 'top';
+            const edge = monitor.height * EDGE_FRACTION;
+            if (top ? y >= monitor.y + edge : y < monitor.y + monitor.height - edge)
+                return;
+        }
         this._reveal();
+    }
+
+    _syncPosition() {
+        this._bar.setTop(this._settings.get_string('bar-position') === 'top');
     }
 
     // The key (and the pad's `navigate`) opens the bar holding the keyboard,

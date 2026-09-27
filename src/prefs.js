@@ -14,9 +14,14 @@ const PROPERTIES = 'org.freedesktop.DBus.Properties';
 // How long a pressed button stays lit on the Controllers page.
 const FLASH_MS = 1200;
 
+const POSITIONS = [
+    {id: 'bottom', title: 'Bottom'},
+    {id: 'top', title: 'Top'},
+];
+
 const REVEALS = [
     {id: 'anywhere', title: 'Anywhere'},
-    {id: 'bottom-edge', title: 'Near the bottom'},
+    {id: 'edge', title: 'Near the bar'},
     {id: 'never', title: 'Never'},
 ];
 
@@ -78,22 +83,9 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         });
         page.add(showing);
 
-        const reveal = new Adw.ComboRow({
-            title: 'Show it when the pointer moves',
-            subtitle: 'Anywhere over the player, or only near the bottom of its screen',
-            model: Gtk.StringList.new(REVEALS.map(r => r.title)),
-        });
-        const syncReveal = () => {
-            reveal.selected = Math.max(0, REVEALS.findIndex(r => r.id === settings.get_string('pointer-reveal')));
-        };
-        syncReveal();
-        cleanup.connect(settings, 'changed::pointer-reveal', syncReveal);
-        reveal.connect('notify::selected', () => {
-            const id = REVEALS[reveal.selected]?.id;
-            if (id && id !== settings.get_string('pointer-reveal'))
-                settings.set_string('pointer-reveal', id);
-        });
-        showing.add(reveal);
+        showing.add(this._choiceRow(settings, cleanup, 'pointer-reveal', REVEALS,
+            'Show it when the pointer moves',
+            'Anywhere over the player, or only near the edge of the screen the bar is on'));
 
         showing.add(this._spinRow(settings, 'hide-delay', 'Hide it after', 'seconds without movement', 1, 15));
 
@@ -108,6 +100,8 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
 
         const look = new Adw.PreferencesGroup({title: 'On the bar'});
         page.add(look);
+        look.add(this._choiceRow(settings, cleanup, 'bar-position', POSITIONS,
+            'Position', 'At the top, it stays clear of subtitles'));
         look.add(this._scaleRow(settings));
         const clockRow = new Adw.SwitchRow({
             title: 'Show the time and when it ends',
@@ -150,6 +144,22 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             scale.add_mark(mark, Gtk.PositionType.BOTTOM, null);
         settings.bind('bar-scale', scale.adjustment, 'value', Gio.SettingsBindFlags.DEFAULT);
         row.add_suffix(scale);
+        return row;
+    }
+
+    // A string setting with a few choices ({id, title}), as a drop-down.
+    _choiceRow(settings, cleanup, key, choices, title, subtitle) {
+        const row = new Adw.ComboRow({title, subtitle, model: Gtk.StringList.new(choices.map(c => c.title))});
+        const sync = () => {
+            row.selected = Math.max(0, choices.findIndex(c => c.id === settings.get_string(key)));
+        };
+        sync();
+        cleanup.connect(settings, `changed::${key}`, sync);
+        row.connect('notify::selected', () => {
+            const id = choices[row.selected]?.id;
+            if (id && id !== settings.get_string(key))
+                settings.set_string(key, id);
+        });
         return row;
     }
 

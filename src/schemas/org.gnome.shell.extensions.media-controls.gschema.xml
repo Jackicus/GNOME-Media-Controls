@@ -2,8 +2,12 @@
 <schemalist>
     <enum id="org.gnome.shell.extensions.media-controls.pointer-reveal">
         <value nick="anywhere" value="0"/>
-        <value nick="bottom-edge" value="1"/>
+        <value nick="edge" value="1"/>
         <value nick="never" value="2"/>
+    </enum>
+    <enum id="org.gnome.shell.extensions.media-controls.bar-position">
+        <value nick="bottom" value="0"/>
+        <value nick="top" value="1"/>
     </enum>
 
     <schema path="/org/gnome/shell/extensions/media-controls/" id="org.gnome.shell.extensions.media-controls">
@@ -12,7 +16,12 @@
         <key name="pointer-reveal" enum="org.gnome.shell.extensions.media-controls.pointer-reveal">
             <default>'anywhere'</default>
             <summary>When moving the pointer shows the bar</summary>
-            <description>"anywhere": any movement over the fullscreen player, as VLC's own controller does. "bottom-edge": only near the bottom of its monitor. "never": only the keyboard shortcut, a controller or the player pausing shows it.</description>
+            <description>"anywhere": any movement over the fullscreen player, as VLC's own controller does. "edge": only near the edge of its monitor the bar is on (bar-position). "never": only the keyboard shortcut, a controller or the player pausing shows it.</description>
+        </key>
+        <key name="bar-position" enum="org.gnome.shell.extensions.media-controls.bar-position">
+            <default>'bottom'</default>
+            <summary>Which edge of the screen the bar is on</summary>
+            <description>"bottom", where the shell's own pop-ups sit, or "top", which keeps it clear of subtitles along the foot of the picture.</description>
         </key>
         <key name="hide-delay" type="i">
             <range min="1" max="15"/>

@@ -1,4 +1,5 @@
-// The bar itself: a panel at the foot of the player's monitor, holding the
+// The bar itself: a panel at the foot of the player's monitor (or its head,
+// with `bar-position` `top`), holding the
 // position, the transport buttons, the volume and the rate — and, where the
 // player allows it, the audio-and-subtitles pop-out (tracksmenu.js), and the
 // clock and sleep timer when they are switched on. It knows how to show a
@@ -171,7 +172,8 @@ export const ControlBar = GObject.registerClass({
 }, class ControlBar extends Clutter.Actor {
     // The actor itself only places the panel: the constraint sizes it to the
     // monitor, and the alignment shrinks it back around the panel at the
-    // bottom centre — the OSD's arrangement (osdWindow.js).
+    // bottom centre — the OSD's arrangement (osdWindow.js) — or the top
+    // centre (setTop).
     constructor() {
         super({
             x_expand: true,
@@ -194,6 +196,7 @@ export const ControlBar = GObject.registerClass({
         this._shown = false;            // arriving or here, not leaving
         this._unredirectOff = false;
         this._scale = 1;
+        this._top = false;
         this._monitorIndex = 0;
         this._showClock = false;
         this._sleepText = null;         // null: no sleep button
@@ -221,10 +224,11 @@ export const ControlBar = GObject.registerClass({
             if (global.focus_manager.navigate_from_event(event))
                 return Clutter.EVENT_STOP;
             // The pop-out's menu has the panel for its source, and a menu
-            // toggles on Return, Space or the arrow towards it (Up) reaching
-            // its source. A button has taken Return already; what gets here
-            // is a slider's, or an arrow with nowhere to go — Up from the
-            // top row — and it stops, or the pop-out would open unfilled.
+            // toggles on Return, Space or the arrow towards it (Up, or Down
+            // with the bar at the top) reaching its source. A button has
+            // taken Return already; what gets here is a slider's, or an
+            // arrow with nowhere to go — Up from the top row — and it stops,
+            // or the pop-out would open unfilled.
             switch (key) {
             case Clutter.KEY_Up:
             case Clutter.KEY_Down:
@@ -468,6 +472,20 @@ export const ControlBar = GObject.registerClass({
         this.setMonitor(this._monitorIndex);
     }
 
+    // At the top of the monitor rather than the foot: out of the way of
+    // subtitles, which are drawn along the foot of the picture. The pop-out
+    // hangs below it then, and it arrives dropping rather than rising.
+    setTop(top) {
+        this._top = top;
+        this.y_align = top ? Clutter.ActorAlign.START : Clutter.ActorAlign.END;
+        if (top)
+            this.panel.add_style_class_name('mc-top');
+        else
+            this.panel.remove_style_class_name('mc-top');
+        this.tracksMenu.close();
+        this.tracksMenu.actor.updateArrowSide(top ? St.Side.TOP : St.Side.BOTTOM);
+    }
+
     // The tracks button and its pop-out, for a player that can be asked
     // (a VlcRemote), or neither.
     setRemote(remote) {
@@ -616,7 +634,7 @@ export const ControlBar = GObject.registerClass({
         }
         this.remove_all_transitions();
         if (!this.visible) {
-            this.translation_y = RISE * scaleFactor();
+            this.translation_y = (this._top ? -RISE : RISE) * scaleFactor();
             this.show();
         }
         // Above whatever chrome came after it, as the OSD raises itself.

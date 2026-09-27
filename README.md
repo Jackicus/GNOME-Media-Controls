@@ -12,7 +12,8 @@ the mouse, the keyboard or a game controller.
   out-of-sync subtitles until they line up. Chapters too. (VLC only.)
 - **Any controller.** Xbox, PlayStation, Switch, 8BitDo, Steam Deck. Buttons go
   by where they sit, so every pad works the same.
-- **Sized for the room.** One slider makes the whole bar bigger for a TV.
+- **Sized for the room.** One slider makes the whole bar bigger for a TV. Put
+  it at the top of the screen to keep it clear of subtitles.
 - **Clock and sleep timer.** See when the film will end, or have it pause after
   15 minutes to 2 hours. Both are optional.
 - **Only where you're looking.** Just the focused fullscreen player gets the
@@ -64,8 +65,8 @@ then use − and + to move the subtitles by 0.1 s until they line up.
     <td width="33%"><img src="docs/screenshots/prefs-controllers.png" alt="The Controllers page: an Xbox 360 pad listed as connected, its row lit with 'Pressed: Bottom face button', and below it the list of what each button does, with the bottom face button's row lit too"></td>
   </tr>
   <tr>
-    <td valign="top"><b>Bar</b>: when it shows, how long it stays, its size,
-    the clock and the sleep timer.</td>
+    <td valign="top"><b>Bar</b>: when it shows, how long it stays, where it
+    sits, its size, the clock and the sleep timer.</td>
     <td valign="top"><b>Players</b>: which players get the bar, and the two VLC
     switches.</td>
     <td valign="top"><b>Controllers</b>: every pad plugged in. Press a button

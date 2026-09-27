@@ -61,7 +61,8 @@ showing a pause is not the player pausing.
   --aout=dummy --no-dbus FILE`, and kill it by pid).
 - **Showing the bar:** two `move`s to different points over the player
   (`pointer-reveal` `anywhere`) — the pointer watcher only reacts to a change.
-  With `bottom-edge`, the moves must land below y ≈ 720. It hides
+  With `edge`, the moves must land below y ≈ 720 (above y ≈ 180 with
+  `bar-position` `top`, where the panel is `320,28` to `1280,120`). It hides
   `hide-delay` (3) s after the last movement unless paused.
 - **The bar:** panel `320,780` to `1280,872`; crop shots to `300 760 1000 140`.
   Seek slider on y ≈ 803 from x ≈ 405 to 1195 — `click 800 803` is the middle

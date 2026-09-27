@@ -125,14 +125,15 @@ Browsers are ignored by default: a fullscreen video in one draws its own
 controls.
 
 **When is it seen?** Pointer motion over the player (`pointer-reveal`:
-`anywhere` like VLC's controller, `bottom-edge` for the lower fifth of the
-monitor, or `never`), watched with the shell's `PointerWatcher` — which polls
+`anywhere` like VLC's controller, `edge` for the fifth of the monitor at the
+edge the bar is on, or `never`), watched with the shell's `PointerWatcher` — which polls
 `global.get_pointer()` only while the user is active, and takes no input away
 from the video, which a reactive hot strip would. The `toggle-bar` key (default
 Super+C) or the pad's `navigate` (Start) opens it **holding the focus**
 (`Main.pushModal`, `POPUP` tier); Escape, a click outside, or the key again puts
 it away. A pad button performs its action and flashes the bar — except the
-subtitle actions, which leave it down so the subtitles under it stay visible.
+subtitle actions, which leave it down so the subtitles under it stay visible
+(at the bottom, where it is by default).
 And the player's own changes show it: a pause (from a remote's media key, say —
 gsd-media-keys already sends those to the player), a seek, a new file. It hides
 after `hide-delay` seconds unless the pointer is on it, it holds the focus, the
@@ -145,7 +146,10 @@ chrome that asks for `trackFullscreen` (the top bar) hides over a fullscreen
 window; the default is off. It places itself with the OSD's own arrangement — a
 `Layout.MonitorConstraint` sizes the actor to the monitor and `x_align CENTER`
 / `y_align END` shrink it back around the panel — and raises itself above later
-chrome when shown, as `osdWindow.js` does. While shown it disables
+chrome when shown, as `osdWindow.js` does. `bar-position` `top` is `y_align
+START`, the panel's margin moved to its top (`.mc-top`), the arrival a drop
+rather than a rise, and the pop-out's `BoxPointer` turned to hang below it
+(`updateArrowSide`, public on `menu.actor`). While shown it disables
 unredirection, as the OSD does, so a fullscreen window being scanned out
 directly cannot hide it.
 
@@ -240,7 +244,8 @@ itself (see Gotchas).
   logical.
 - **No private shell API.** There is none today — no underscore field is read or
   written (`TracksMenu` uses `PopupMenu`'s public `sourceActor`,
-  `setSourceAlignment` and `itemActivated`). Keep it that way; if one becomes
+  `setSourceAlignment` and `itemActivated`, and `ControlBar.setTop` its
+  `BoxPointer`'s `updateArrowSide`). Keep it that way; if one becomes
   unavoidable, list it here with what breaks when it moves.
 
 ## Gotchas
@@ -275,7 +280,8 @@ VLC's remote-control socket:
   time it comes up.
 - **A subtitle that already started is not drawn after a track switch**; the
   next one is. Not a failed switch.
-- **Subtitles are drawn along the foot of the picture, under the bar.** Hence
+- **Subtitles are drawn along the foot of the picture, under the bar** (unless
+  `bar-position` is `top`, which is what that setting is for). Hence
   the subtitle actions leaving the bar down.
 
 The extension:
@@ -377,7 +383,8 @@ Everywhere:
   `St.BoxLayout({orientation})`, `-st-accent-color`, `Slider` with
   `drag-begin`/`drag-end`, `global.stage.get_event_actor()`,
   `global.focus_manager.navigate_from_event()`, `EventEmitter` in
-  `misc/signals.js`, `PopupMenu.setSourceAlignment`, Clutter virtual input
-  devices. `Ornament.NO_DOT` falls back to `NONE` where missing. Unredirection's
+  `misc/signals.js`, `PopupMenu.setSourceAlignment`,
+  `BoxPointer.updateArrowSide`, Clutter virtual input devices.
+  `Ornament.NO_DOT` falls back to `NONE` where missing. Unredirection's
   API differs by version (`Meta.*_unredirect_for_display` vs.
   `global.compositor`); `bar.js` `setUnredirect` uses whichever exists.
