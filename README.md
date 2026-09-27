@@ -61,7 +61,7 @@ then use − and + to move the subtitles by 0.1 s until they line up.
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/screenshots/prefs-bar.png" alt="The Bar page: when the pointer shows the bar, how long before it hides, whether it stays while paused, the keyboard shortcut, the size slider, the clock and sleep-timer switches, and how far skip and volume steps go"></td>
+    <td width="33%"><img src="docs/screenshots/prefs-bar.png" alt="The Bar page: when the pointer shows the bar, how long before it hides, whether it stays while paused, the keyboard shortcut, then the bar's position, the size slider, a folded list of its buttons, and the clock and sleep-timer switches"></td>
     <td width="33%"><img src="docs/screenshots/prefs-players.png" alt="The Players page: VLC media player listed as running with its switch on, the VLC group with switches to hide VLC's own fullscreen controls and to allow audio and subtitle tracks, and a folded list of ignored players"></td>
     <td width="33%"><img src="docs/screenshots/prefs-controllers.png" alt="The Controllers page: an Xbox 360 pad listed as connected, its row lit with 'Pressed: Bottom face button', and below it the list of what each button does, with the bottom face button's row lit too"></td>
   </tr>
