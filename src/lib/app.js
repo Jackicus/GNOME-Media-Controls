@@ -48,7 +48,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {getPointerWatcher} from 'resource:///org/gnome/shell/ui/pointerWatcher.js';
 
 import {
-    NAVIGATION, SLEEP_EPISODES, SLEEP_MINUTES, SUBTITLE_SHIFT_MS, isIgnored, normaliseName, playerNames, stepRate,
+    NAVIGATION, SLEEP_EPISODES, SLEEP_MINUTES, SUBTITLE_SHIFT_MS, isIgnored, normaliseName, playerNames, repeats,
+    stepRate,
 } from './actions.js';
 import {ControlBar} from './bar.js';
 import {Gamepads} from './gamepads.js';
@@ -550,18 +551,20 @@ export class MediaControlsApp {
     // ------------------------------------------------------------------
     // The pad
     // ------------------------------------------------------------------
+    // Returns whether what the button did goes on while it is held
+    // (gamepads.js repeats it): a skip, a volume step, an arrow key.
     _onPadButton(button, action) {
         if (!this._player)
-            return;
+            return false;
         const key = NAVIGATION[button];
         if (key && (this._grab || this._bar.menuOpen)) {
             this._pressKey(Clutter[`KEY_${key}`]);
-            return;
+            return key !== 'Return' && key !== 'Escape';
         }
         // The pop-out from the pad is walked with the pad.
         if (action === 'tracks' && this._remote)
             this._enterFocus();
-        this.perform(action);
+        return this.perform(action) && repeats(action);
     }
 
     // The on-screen keyboard's way of pressing a key. Only called while the

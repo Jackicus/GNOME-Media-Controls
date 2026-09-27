@@ -8,8 +8,9 @@ whatever watches for pads (libmanette, in the shell and in the preferences)
 has opened it. A BUTTON is one of the ids the `gamepad-buttons` setting uses
 (src/lib/actions.js BUTTONS) -- south, east, west, north, dpad-left,
 dpad-right, dpad-up, dpad-down, left-shoulder, right-shoulder, left-trigger,
-right-trigger, select, start, mode, left-stick, right-stick -- or `wait:SECS`
-to pause between presses.
+right-trigger, select, start, mode, left-stick, right-stick -- optionally with
+`:SECS` to hold it down that long (`dpad-right:2`), or `wait:SECS` to pause
+between presses.
 
 Each is sent the way the kernel's xpad driver reports that button, which is
 not always the code of the same name: on an Xbox pad the left face button is
@@ -66,15 +67,16 @@ def press(ui, name):
     if name.startswith('wait:'):
         time.sleep(float(name[5:]))
         return
+    name, _, hold = name.partition(':')
     if name not in XPAD:
         sys.exit(f'Unknown button {name!r}; known: {", ".join(XPAD)}')
     kind, code, value = XPAD[name]
     ui.write(kind, code, value)
     ui.syn()
-    time.sleep(0.06)
+    time.sleep(float(hold) if hold else 0.06)
     ui.write(kind, code, 0)
     ui.syn()
-    print(f'pressed {name}', flush=True)
+    print(f'pressed {name}' + (f' for {hold}s' if hold else ''), flush=True)
     time.sleep(0.35)
 
 

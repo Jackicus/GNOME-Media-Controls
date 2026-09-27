@@ -10,15 +10,17 @@
 // buttons are compass points because the letters on them disagree: the one at
 // the bottom is A on an Xbox pad, Cross on a PlayStation and B on a Nintendo.
 
+// `repeats`: a pad button held down does it again and again, as a held key
+// would (gamepads.js).
 export const ACTIONS = [
     {id: 'none', title: 'Nothing'},
     {id: 'play-pause', title: 'Play or pause'},
-    {id: 'seek-back', title: 'Skip back'},
-    {id: 'seek-forward', title: 'Skip forward'},
+    {id: 'seek-back', title: 'Skip back', repeats: true},
+    {id: 'seek-forward', title: 'Skip forward', repeats: true},
     {id: 'previous', title: 'Previous'},
     {id: 'next', title: 'Next'},
-    {id: 'volume-up', title: 'Volume up'},
-    {id: 'volume-down', title: 'Volume down'},
+    {id: 'volume-up', title: 'Volume up', repeats: true},
+    {id: 'volume-down', title: 'Volume down', repeats: true},
     {id: 'mute', title: 'Mute'},
     {id: 'slower', title: 'Slower'},
     {id: 'faster', title: 'Faster'},
@@ -30,15 +32,17 @@ export const ACTIONS = [
     {id: 'tracks', title: 'Audio and subtitles'},
     {id: 'cycle-audio', title: 'Next audio track'},
     {id: 'cycle-subtitles', title: 'Next subtitle track'},
-    {id: 'subtitles-earlier', title: 'Subtitles earlier'},
-    {id: 'subtitles-later', title: 'Subtitles later'},
+    {id: 'subtitles-earlier', title: 'Subtitles earlier', repeats: true},
+    {id: 'subtitles-later', title: 'Subtitles later', repeats: true},
     {id: 'sleep-timer', title: 'Sleep timer'},
     {id: 'quit', title: 'Close the player'},
 ];
 
+export const repeats = action => !!ACTIONS.find(a => a.id === action)?.repeats;
+
 // While the bar holds the focus, these buttons move around it instead of
 // doing what they are set to — the keys they stand for are what a keyboard
-// would press.
+// would press. The arrows repeat while held; Return and Escape do not.
 export const NAVIGATION = {
     'dpad-up': 'Up',
     'dpad-down': 'Down',

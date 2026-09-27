@@ -45,8 +45,8 @@ Play something full screen and move the mouse.
 
 - **Keyboard:** Super+C opens the bar. The arrow keys move around it, Enter
   presses and Escape closes it.
-- **Controller:** A plays or pauses. The d-pad skips and changes the volume.
-  Start opens the bar so you can move around it. You can remap every button in
+- **Controller:** A plays or pauses. The d-pad skips and changes the volume;
+  hold it to keep going. Start opens the bar so you can move around it. You can remap every button in
   the preferences.
 
 ### Audio and subtitles

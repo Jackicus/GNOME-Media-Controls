@@ -27,7 +27,7 @@
 #                                     plug in a virtual Xbox 360 pad, wait HOLD seconds
 #                                     (default 1.5) for it to be picked up, press each
 #                                     BUTTON (south, west, dpad-up, left-trigger, ...: the
-#                                     gamepad-buttons ids), unplug it
+#                                     gamepad-buttons ids; BUTTON:SECS holds it), unplug it
 #   ./scripts/nested.sh do "STEP" "STEP"...
 #                                     run several steps in one go (one connection):
 #                                     say TEXT | click X Y | move X Y | key KEYSYM |

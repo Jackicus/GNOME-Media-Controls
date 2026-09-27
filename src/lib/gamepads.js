@@ -8,6 +8,11 @@
 // button is handed on with its id as well, since while the bar holds the
 // focus the d-pad and the face buttons move around it instead (app.js).
 //
+// A button held down goes on doing what it did, as a held key does: after
+// REPEAT_DELAY, every REPEAT_INTERVAL until it is let go — when the handler
+// says what it did repeats (app.js: a skip, a volume step, an arrow key; not
+// play or pause). One button repeats at a time: another press ends it.
+//
 // Pads are never grabbed: a game running beside the player still sees every
 // press. The actions only reach a player when app.js has one attached — a
 // focused, fullscreen window of a player — so a pad in a game does nothing
@@ -16,8 +21,15 @@
 // libmanette is imported when enabled rather than at the top, so a system
 // without it loses the pads and keeps the bar.
 
+import GLib from 'gi://GLib';
+
 import {buttonForCode} from './actions.js';
 import {note} from './log.js';
+
+// ms: the keyboard's feel, a little slower, since each repeat is a call to
+// the player.
+const REPEAT_DELAY = 400;
+const REPEAT_INTERVAL = 150;
 
 export class Gamepads {
     constructor(settings, onButton) {
@@ -26,6 +38,7 @@ export class Gamepads {
         this._monitor = null;
         this._devices = new Set();
         this._generation = 0;
+        this._held = null;              // {device, id, source}: repeating
     }
 
     async enable() {
@@ -52,6 +65,7 @@ export class Gamepads {
 
     disable() {
         this._generation++;
+        this._stopRepeat();
         for (const device of this._devices)
             device.disconnectObject(this);
         this._devices.clear();
@@ -69,12 +83,17 @@ export class Gamepads {
             return;
         this._devices.add(device);
         note(`Controller connected: ${device.get_name()}`);
-        device.connectObject('button-press-event', (_device, event) => this._pressed(device, event), this);
+        device.connectObject(
+            'button-press-event', (_device, event) => this._pressed(device, event),
+            'button-release-event', (_device, event) => this._released(device, event),
+            this);
     }
 
     _unwatch(device) {
         if (!this._devices.delete(device))
             return;
+        if (this._held?.device === device)
+            this._stopRepeat();
         device.disconnectObject(this);
         note(`Controller disconnected: ${device.get_name()}`);
     }
@@ -86,7 +105,45 @@ export class Gamepads {
         const button = ok ? buttonForCode(code) : null;
         if (!button)
             return;
+        this._stopRepeat();
         const action = this._settings.get_value('gamepad-buttons').deep_unpack()[button.id] ?? 'none';
-        this._onButton(button.id, action);
+        if (this._onButton(button.id, action))
+            this._startRepeat(device, button.id, action);
+    }
+
+    _released(device, event) {
+        const [ok, code] = event.get_button();
+        if (ok && this._held?.device === device && this._held.id === buttonForCode(code)?.id)
+            this._stopRepeat();
+    }
+
+    // Again after the delay, then at the interval, for as long as the
+    // handler still says it repeats (the player may have gone).
+    _startRepeat(device, id, action) {
+        const held = {device, id, source: 0};
+        this._held = held;
+        const again = () => {
+            if (this._onButton(id, action))
+                return true;
+            // The source that asked ends itself.
+            held.source = 0;
+            this._held = null;
+            return false;
+        };
+        held.source = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REPEAT_DELAY, () => {
+            if (again()) {
+                held.source = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REPEAT_INTERVAL,
+                    () => again() ? GLib.SOURCE_CONTINUE : GLib.SOURCE_REMOVE);
+                GLib.Source.set_name_by_id(held.source, '[media-controls] pad repeat');
+            }
+            return GLib.SOURCE_REMOVE;
+        });
+        GLib.Source.set_name_by_id(held.source, '[media-controls] pad repeat');
+    }
+
+    _stopRepeat() {
+        if (this._held?.source)
+            GLib.source_remove(this._held.source);
+        this._held = null;
     }
 }
