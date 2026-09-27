@@ -187,7 +187,7 @@ export const ControlBar = GObject.registerClass({
         this._player = null;
         this._syncing = false;
         this._seeking = false;
-        this._scrolled = 0;             // touchpad scroll on the seek slider, in notches
+        this._scrolled = 0;             // touchpad scroll on the panel, in notches
         this._volumeDragging = false;
         this._tickId = 0;
         this._tickMode = null;          // 'playing', 'idle' or null
@@ -238,6 +238,7 @@ export const ControlBar = GObject.registerClass({
                 return Clutter.EVENT_PROPAGATE;
             }
         });
+        this.panel.connect('scroll-event', (_actor, event) => this._onScroll(event));
 
         this._buildSeekRow();
         this._buildControlRow();
@@ -297,38 +298,43 @@ export const ControlBar = GObject.registerClass({
                 this._tick();
         });
         // The slider's own steps are a fraction of the whole — minutes, on a
-        // film. A scroll skips the way the buttons do: a wheel's notch once,
-        // a touchpad's fractions of a notch added up until one is due (as
-        // the Slider reads them, skipping the copy a wheel sends in the
-        // other form). The arrow keys likewise (arrowKeys).
-        this._seek.connect('scroll-event', (_actor, event) => {
-            if (event.is_pointer_emulated())
-                return Clutter.EVENT_STOP;
-            let notches = 0;
-            switch (event.get_scroll_direction()) {
-            case Clutter.ScrollDirection.UP:
-            case Clutter.ScrollDirection.RIGHT:
-                notches = 1;
-                break;
-            case Clutter.ScrollDirection.DOWN:
-            case Clutter.ScrollDirection.LEFT:
-                notches = -1;
-                break;
-            case Clutter.ScrollDirection.SMOOTH: {
-                const [, dy] = event.get_scroll_delta();
-                this._scrolled -= dy;
-                notches = Math.trunc(this._scrolled);
-                this._scrolled -= notches;
-                break;
-            }
-            default:
-                break;
-            }
-            for (let i = 0; i < Math.abs(notches); i++)
-                this.emit('action', notches > 0 ? 'seek-forward' : 'seek-back');
-            return Clutter.EVENT_STOP;
-        });
+        // film — so it skips the way the rest of the panel does (_onScroll).
+        // The arrow keys likewise (arrowKeys).
+        this._seek.connect('scroll-event', (_actor, event) => this._onScroll(event));
         arrowKeys(this._seek, 'seek-forward', 'seek-back');
+    }
+
+    // A scroll anywhere on the panel skips the way the buttons do: a wheel's
+    // notch once, a touchpad's fractions of a notch added up until one is
+    // due (as the Slider reads them, skipping the copy a wheel sends in the
+    // other form). The volume slider keeps its scroll: it stops the event
+    // before it reaches the panel.
+    _onScroll(event) {
+        if (event.is_pointer_emulated())
+            return Clutter.EVENT_STOP;
+        let notches = 0;
+        switch (event.get_scroll_direction()) {
+        case Clutter.ScrollDirection.UP:
+        case Clutter.ScrollDirection.RIGHT:
+            notches = 1;
+            break;
+        case Clutter.ScrollDirection.DOWN:
+        case Clutter.ScrollDirection.LEFT:
+            notches = -1;
+            break;
+        case Clutter.ScrollDirection.SMOOTH: {
+            const [, dy] = event.get_scroll_delta();
+            this._scrolled -= dy;
+            notches = Math.trunc(this._scrolled);
+            this._scrolled -= notches;
+            break;
+        }
+        default:
+            break;
+        }
+        for (let i = 0; i < Math.abs(notches); i++)
+            this.emit('action', notches > 0 ? 'seek-forward' : 'seek-back');
+        return Clutter.EVENT_STOP;
     }
 
     _buildControlRow() {
