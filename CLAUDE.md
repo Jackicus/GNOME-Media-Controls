@@ -205,12 +205,15 @@ grabbed. `ignored-gamepads` holds SDL GUIDs (a model, not a unit).
 **Settings that are off by default**: `show-clock` (a line under the title, "21∶40
 · ends at 23∶12", formatted by the shell's own `dateUtils.formatTime`, so
 12/24-hour as the top bar's clock is set) and `sleep-timer` (a
-button cycling 15–120 minutes, then the end of the file, then off; it pauses the
+button cycling 15–120 minutes, then the end of the file, then off — or, with
+`sleep-timer-mode` `episodes`, 1–5 files, this one counted; it pauses the
 player, the pause brings the bar up, and GNOME's own screen blank follows once
-the player stops holding it off — the end-of-file step pauses half a second
-before the end so a player set to exit at the end stays open. The timer belongs
-to the player it was set on: it survives a moment's change of focus, shows on
-that player's bar alone, and one set on another player replaces it). `bar-scale`
+the player stops holding it off. The last file counted pauses half a second
+before its end, so a player set to exit at the end stays open; each new `url`
+the player moves to counts one, and should the end be missed, the next file
+pauses as it begins. The timer belongs to the player it was set on: it
+survives a moment's change of focus, shows on that player's bar alone, and one
+set on another player replaces it). `bar-scale`
 (75–200 %) is one `font-size` percentage on the panel and the pop-out, which
 every em in the stylesheet follows, plus the icon sizes, which `bar.js` sets
 itself (see Gotchas).

@@ -10,6 +10,10 @@
         <value nick="top" value="1"/>
     </enum>
 
+    <enum id="org.gnome.shell.extensions.media-controls.sleep-timer-mode">
+        <value nick="minutes" value="0"/>
+        <value nick="episodes" value="1"/>
+    </enum>
     <enum id="org.gnome.shell.extensions.media-controls.previous-next">
         <value nick="always" value="0"/>
         <value nick="playlist" value="1"/>
@@ -73,7 +77,12 @@
         <key name="sleep-timer" type="b">
             <default>false</default>
             <summary>Show a sleep timer on the bar</summary>
-            <description>A button that pauses the player after 15, 30, 45, 60, 90 or 120 minutes, or at the end of the file; each press moves to the next, and one more turns it off.</description>
+            <description>A button that pauses the player after a while (sleep-timer-mode); each press moves to the next step, and one more turns it off.</description>
+        </key>
+        <key name="sleep-timer-mode" enum="org.gnome.shell.extensions.media-controls.sleep-timer-mode">
+            <default>'minutes'</default>
+            <summary>What the sleep timer counts</summary>
+            <description>"minutes": 15, 30, 45, 60, 90 or 120 of them, then the end of the file. "episodes": 1 to 5 files, pausing at the end of the last; each new file the player moves on to is one.</description>
         </key>
         <key name="toggle-bar" type="as">
             <default><![CDATA[['<Super>c']]]></default>

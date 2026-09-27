@@ -15,7 +15,7 @@ the mouse, the keyboard or a game controller.
 - **Sized for the room.** One slider makes the whole bar bigger for a TV. Put
   it at the top of the screen to keep it clear of subtitles.
 - **Clock and sleep timer.** See when the film will end, or have it pause after
-  15 minutes to 2 hours. Both are optional.
+  15 minutes to 2 hours, or after a few episodes. Both are optional.
 - **Only where you're looking.** Just the focused fullscreen player gets the
   bar, so a controller in a game never pauses your film.
 

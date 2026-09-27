@@ -47,7 +47,9 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {getPointerWatcher} from 'resource:///org/gnome/shell/ui/pointerWatcher.js';
 
-import {NAVIGATION, SLEEP_STEPS, SUBTITLE_SHIFT_MS, isIgnored, normaliseName, playerNames, stepRate} from './actions.js';
+import {
+    NAVIGATION, SLEEP_EPISODES, SLEEP_MINUTES, SUBTITLE_SHIFT_MS, isIgnored, normaliseName, playerNames, stepRate,
+} from './actions.js';
 import {ControlBar} from './bar.js';
 import {Gamepads} from './gamepads.js';
 import {note} from './log.js';
@@ -61,8 +63,8 @@ const EDGE_FRACTION = 0.2;
 // A VLC without its socket is asked again at most this often, in seconds, as
 // the bar comes up: it may have been set up since, or still be starting.
 const REMOTE_RETRY = 10;
-// The sleep timer's end-of-file step pauses this far before the end, so a
-// player that exits at the end of its file stays open, paused.
+// The sleep timer pauses this far before the end of the last file it counts,
+// so a player that exits at the end of its file stays open, paused.
 const SLEEP_END_MARGIN = 0.5;
 
 const clock = () => GLib.get_monotonic_time() / 1e6;
@@ -149,6 +151,10 @@ export class MediaControlsApp {
             'changed::hidden-buttons', () => this._syncButtons(),
             'changed::show-clock', () => this._syncClock(),
             'changed::sleep-timer', () => this._syncSleep(),
+            'changed::sleep-timer-mode', () => {
+                this._setSleep(null);
+                this._syncSleep();
+            },
             this);
         this._syncClock();
         this._syncSleep();
@@ -586,27 +592,43 @@ export class MediaControlsApp {
     }
 
     // The timer belongs to the player it was set on: it outlives a moment's
-    // change of focus, and shows on that player's bar alone.
+    // change of focus, and shows on that player's bar alone. It runs either
+    // for `minutes`, or for `episodes`: files, this one counted, of which
+    // the minutes' end-of-file step is one.
     _sleepText() {
-        if (!this._sleep || this._sleep.player !== this._player)
+        const sleep = this._sleep;
+        if (!sleep || sleep.player !== this._player)
             return '';
-        if (this._sleep.step === 'end')
+        if (sleep.episodes === 1)
             return 'End';
-        return `${Math.max(1, Math.ceil((this._sleep.until - clock()) / 60))} min`;
+        if (sleep.episodes)
+            return `${sleep.episodes} eps`;
+        return `${Math.max(1, Math.ceil((sleep.until - clock()) / 60))} min`;
     }
 
-    // Off, then each of SLEEP_STEPS in turn, then off again. A timer set on
-    // another player counts as off here, and is replaced. The end of the
-    // file is no step for a stream, which has none.
+    // Off, then each step in turn, then off again. A timer set on another
+    // player counts as off here, and is replaced. The end of the file is no
+    // step for a stream, which has none; the episodes go up from however
+    // many are left.
     _cycleSleep() {
-        const at = this._sleep?.player === this._player ? SLEEP_STEPS.indexOf(this._sleep.step) : -1;
-        let step = SLEEP_STEPS[at + 1] ?? null;
-        if (step === 'end' && !this._player.length)
-            step = null;
-        this._setSleep(step);
+        const mine = this._sleep?.player === this._player ? this._sleep : null;
+        if (this._settings.get_string('sleep-timer-mode') === 'episodes') {
+            const episodes = SLEEP_EPISODES.find(n => n > (mine?.episodes ?? 0));
+            this._setSleep(episodes ? {episodes} : null);
+            return;
+        }
+        let at = -1;
+        if (mine)
+            at = SLEEP_MINUTES.indexOf(mine.episodes ? 'end' : mine.minutes);
+        const step = SLEEP_MINUTES[at + 1];
+        if (step === undefined || (step === 'end' && !this._player.length))
+            this._setSleep(null);
+        else
+            this._setSleep(step === 'end' ? {episodes: 1} : {minutes: step});
     }
 
-    _setSleep(step) {
+    // `{minutes}`, `{episodes}`, or null for off.
+    _setSleep(timer) {
         if (this._sleepId) {
             GLib.source_remove(this._sleepId);
             this._sleepId = 0;
@@ -614,25 +636,44 @@ export class MediaControlsApp {
         for (const id of this._sleep?.signals ?? [])
             this._sleep.player.disconnect(id);
         this._sleep = null;
-        if (step === null || !this._player)
+        if (!timer || !this._player)
             return;
         const player = this._player;
-        this._sleep = {step, player, signals: []};
-        if (step === 'end') {
-            // Wherever the end moves to: a seek, a pause, another rate.
+        this._sleep = {...timer, player, url: player.url, signals: []};
+        if (timer.episodes) {
+            // Wherever the end moves to: a seek, a pause, another rate, the
+            // next file.
             this._sleep.signals = [
-                player.connect('changed', () => this._armSleepEnd()),
+                player.connect('changed', () => this._sleepPlayerChanged()),
                 player.connect('seeked', () => this._armSleepEnd()),
             ];
             this._armSleepEnd();
         } else {
-            this._sleep.until = clock() + step * 60;
-            this._sleepId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, step * 60, () => {
+            this._sleep.until = clock() + timer.minutes * 60;
+            this._sleepId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, timer.minutes * 60, () => {
                 this._sleepId = 0;
                 this._sleepEnded();
                 return GLib.SOURCE_REMOVE;
             });
         }
+    }
+
+    // Another file is one episode done. The last one pauses just before it
+    // ends (_armSleepEnd); should that be missed — a player running ahead of
+    // the reckoning, a file with no length — the file after it pauses as it
+    // begins, rather than play on. A player between files may name none for
+    // a moment, which is no file.
+    _sleepPlayerChanged() {
+        const sleep = this._sleep;
+        const url = sleep.player.url;
+        if (url && url !== sleep.url) {
+            sleep.url = url;
+            if (--sleep.episodes < 1) {
+                this._sleepEnded();
+                return;
+            }
+        }
+        this._armSleepEnd();
     }
 
     _armSleepEnd() {
@@ -641,7 +682,7 @@ export class MediaControlsApp {
             this._sleepId = 0;
         }
         const p = this._sleep?.player;
-        if (!p?.playing || !p.length)
+        if (this._sleep?.episodes !== 1 || !p.playing || !p.length)
             return;
         const left = Math.max(0, (p.length - p.now) / (p.rate || 1) - SLEEP_END_MARGIN);
         this._sleepId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, Math.round(left * 1000), () => {

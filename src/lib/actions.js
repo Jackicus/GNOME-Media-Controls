@@ -57,9 +57,11 @@ export const BAR_BUTTONS = [
     {id: 'close', title: 'Close the player'},
 ];
 
-// The sleep timer's steps, in minutes, and then the end of the file; one more
-// press turns it off.
-export const SLEEP_STEPS = [15, 30, 45, 60, 90, 120, 'end'];
+// The sleep timer's steps (`sleep-timer-mode`): minutes, then the end of the
+// file; or a number of files, this one counted, pausing at the end of the
+// last. One more press turns it off.
+export const SLEEP_MINUTES = [15, 30, 45, 60, 90, 120, 'end'];
+export const SLEEP_EPISODES = [1, 2, 3, 4, 5];
 
 // How far one press of Subtitles earlier/later moves them, in ms.
 export const SUBTITLE_SHIFT_MS = 100;

@@ -19,6 +19,11 @@ const POSITIONS = [
     {id: 'top', title: 'Top'},
 ];
 
+const SLEEP_MODES = [
+    {id: 'minutes', title: '15 minutes to 2 hours'},
+    {id: 'episodes', title: '1 to 5 episodes'},
+];
+
 const PREVIOUS_NEXT = [
     {id: 'always', title: 'Always'},
     {id: 'playlist', title: 'Only with a playlist'},
@@ -116,11 +121,14 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         });
         settings.bind('show-clock', clockRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         look.add(clockRow);
-        const sleepRow = new Adw.SwitchRow({
+        const sleepRow = new Adw.ExpanderRow({
             title: 'Sleep timer',
-            subtitle: 'A button that pauses after 15 minutes to 2 hours, or at the end of the file',
+            subtitle: 'A button that pauses the player after a while',
+            show_enable_switch: true,
         });
-        settings.bind('sleep-timer', sleepRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('sleep-timer', sleepRow, 'enable-expansion', Gio.SettingsBindFlags.DEFAULT);
+        sleepRow.add_row(this._choiceRow(settings, cleanup, 'sleep-timer-mode', SLEEP_MODES,
+            'Pause after', 'Each press of the button goes a step further; one more turns it off'));
         look.add(sleepRow);
 
         const steps = new Adw.PreferencesGroup({title: 'Steps'});
