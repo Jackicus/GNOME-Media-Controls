@@ -62,7 +62,7 @@
         <key name="previous-next" enum="org.gnome.shell.extensions.media-controls.previous-next">
             <default>'always'</default>
             <summary>When the Previous and Next buttons are on the bar</summary>
-            <description>"always" (greyed out when there is nothing to go to), "playlist": only while the player says it can go back or on, or "never".</description>
+            <description>"always" (greyed out when there is nothing to go to), "playlist": only while the player has more than one file open — counted from its MPRIS track list where it keeps one, and otherwise taken from whether it says it can go back or on — or "never".</description>
         </key>
         <key name="hidden-buttons" type="as">
             <default>[]</default>

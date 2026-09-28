@@ -167,7 +167,8 @@ the player names its track, relative `Seek` where it does not. **Nothing blocks 
 call is asynchronous with a timeout and a cancellable that `disable()` cancels;
 players are found with `NameOwnerChanged` (arg0 namespace
 `org.mpris.MediaPlayer2`) plus one `ListNames` at enable, and followed with
-`PropertiesChanged`, `Seeked` and the `TrackList` interface's signals.
+`PropertiesChanged` (the track list's `Tracks` included, which is announced
+as invalidated) and `Seeked`.
 
 **Tracks** are VLC's alone: MPRIS has no audio or subtitle tracks, no subtitle
 timing and no chapters. VLC's C remote-control interface (`oldrc`) can listen on
@@ -354,8 +355,10 @@ The extension:
   `player` passes). `hasPlaylist` counts the MPRIS `TrackList`'s `Tracks`
   instead, which VLC serves (and announces, with `Tracks` invalidated)
   although its `HasTrackList` says false; a player that keeps no list falls
-  back on `CanGo*`. VLC's list is what it started playing with: a file added
-  while it plays is announced but not listed.
+  back on `CanGo*`. VLC's list is what it started playing with: it is
+  **empty until playback begins**, announced only as it was made, and a file
+  added while it plays is announced but not listed — so `Tracks` is read
+  again whenever the bar comes up from hidden (`refreshTrackList`).
 - **`extension.js` and `metadata.json` are cached for the life of the shell**;
   `reload` picks up `lib/`, the stylesheet and the schema only. An older
   `make link` install may be a symlink to `src/` rather than a directory of

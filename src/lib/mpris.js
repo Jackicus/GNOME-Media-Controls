@@ -242,6 +242,19 @@ export class Player extends EventEmitter {
             });
     }
 
+    // The track list's length again, from a player that keeps one: VLC's is
+    // empty until playback has begun, and it announces the list as it was
+    // made, not as it fills.
+    refreshTrackList() {
+        if (this.playlistLength === null)
+            return;
+        this._registry.call(this.owner, PROPERTIES, 'Get',
+            new GLib.Variant('(ss)', [TRACKLIST, 'Tracks']), '(v)', reply => {
+                this.applyTrackList({Tracks: reply.recursiveUnpack()[0]});
+                this.emit('changed');
+            });
+    }
+
     _call(iface, method, args = null) {
         this._registry.call(this.owner, iface, method, args, null, null,
             e => console.warn(`[Media Controls] ${this.identity || this.owner} refused ${method}: ${e.message}`));
@@ -373,7 +386,10 @@ export class PlayerRegistry extends EventEmitter {
                     else
                         return;
                     // A player that only says a property changed, not what
-                    // to, is asked for the lot.
+                    // to, is asked for the lot. The track list's Tracks is
+                    // always announced that way (MPRIS: "invalidates"), and
+                    // only the count is kept; TrackList's own signals, which
+                    // come with it, are not followed.
                     if (invalidated.length)
                         this._readAll(player, iface);
                     this._changed(player);
@@ -385,13 +401,6 @@ export class PlayerRegistry extends EventEmitter {
                         return;
                     this._changed(player);
                     player.emit('seeked');
-                }),
-            // A file added to the playlist, or taken off it, or a new list.
-            bus.signal_subscribe(null, TRACKLIST, null, MPRIS_PATH, null, Gio.DBusSignalFlags.NONE,
-                (_bus, sender) => {
-                    const player = this._players.get(sender);
-                    if (player)
-                        this._readAll(player, TRACKLIST);
                 }),
         ];
 

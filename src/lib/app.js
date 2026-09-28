@@ -313,6 +313,7 @@ export class MediaControlsApp {
             return;
         if (!this._bar.visible) {
             this._player.refreshPosition();
+            this._player.refreshTrackList();
             this._readTracks();
             if (!this._remote && clock() - this._remoteTriedAt > REMOTE_RETRY)
                 this._connectRemote(this._player);

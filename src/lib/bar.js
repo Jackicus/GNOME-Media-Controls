@@ -518,7 +518,7 @@ export const ControlBar = GObject.registerClass({
     }
 
     // Which buttons are on the bar: `previousNext` 'always' (greyed out with
-    // nowhere to go), 'playlist' (only while the player can go back or on)
+    // nowhere to go), 'playlist' (only while it has one: Player.hasPlaylist)
     // or 'never'; `hidden`, the BAR_BUTTONS left off. Play is always there.
     setButtons(previousNext, hidden) {
         this._previousNext = previousNext;
