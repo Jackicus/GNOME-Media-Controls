@@ -95,6 +95,9 @@ export class Player extends EventEmitter {
         // The last seek of ours, {from, to, at}, while a reading may still
         // be from before it.
         this._seek = null;
+        // How far the file before this one got, {length, reached}: for the
+        // sleep timer, to tell one watched to its end from one skipped.
+        this.lastFile = null;
         // What Mute puts back: MPRIS has a volume but no mute.
         this._unmuted = null;
     }
@@ -280,6 +283,8 @@ export class Player extends EventEmitter {
             const meta = props.Metadata ?? {};
             const url = meta['xesam:url'] ?? '';
             if (url !== this.url) {
+                if (this.url)
+                    this.lastFile = {length: this.length, reached: this.now};
                 this.read(0);
                 this._seek = null;
                 refresh = true;

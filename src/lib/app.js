@@ -67,6 +67,11 @@ const REMOTE_RETRY = 10;
 // The sleep timer pauses this far before the end of the last file it counts,
 // so a player that exits at the end of its file stays open, paused.
 const SLEEP_END_MARGIN = 0.5;
+// A file left this near its end, or nearer, was watched — one of the sleep
+// timer's episodes; one left further back was skipped. Wide enough for the
+// reckoning to have fallen behind a player that ran fast, and for the
+// credits.
+const SLEEP_WATCHED_MARGIN = 30;
 
 const clock = () => GLib.get_monotonic_time() / 1e6;
 
@@ -620,11 +625,13 @@ export class MediaControlsApp {
     // Off, then each step in turn, then off again. A timer set on another
     // player counts as off here, and is replaced. The end of the file is no
     // step for a stream, which has none; the episodes go up from however
-    // many are left.
+    // many are left, and are no step either for a stream, or a player that
+    // names no file (no url) to count by.
     _cycleSleep() {
         const mine = this._sleep?.player === this._player ? this._sleep : null;
         if (this._settings.get_string('sleep-timer-mode') === 'episodes') {
-            const episodes = SLEEP_EPISODES.find(n => n > (mine?.episodes ?? 0));
+            const episodes = this._player.length && this._player.url &&
+                SLEEP_EPISODES.find(n => n > (mine?.episodes ?? 0));
             this._setSleep(episodes ? {episodes} : null);
             return;
         }
@@ -669,17 +676,22 @@ export class MediaControlsApp {
         }
     }
 
-    // Another file is one episode done. The last one pauses just before it
+    // Another file is one episode done, if the one before was watched to
+    // its end; one skipped with Next or Previous is not, and the count moves
+    // on to the new file as it stands. The last one pauses just before it
     // ends (_armSleepEnd); should that be missed — a player running ahead of
-    // the reckoning, a file with no length — the file after it pauses as it
-    // begins, rather than play on. A player between files may name none for
-    // a moment, which is no file.
+    // the reckoning — the file after it pauses as it begins, rather than
+    // play on. A player between files may name none for a moment, which is no
+    // file, and the first url of all (the timer set as a file opened) is
+    // where the count starts, not a new file.
     _sleepPlayerChanged() {
         const sleep = this._sleep;
-        const url = sleep.player.url;
+        const {url, lastFile} = sleep.player;
         if (url && url !== sleep.url) {
+            const skipped = lastFile?.length > 0 && lastFile.length - lastFile.reached > SLEEP_WATCHED_MARGIN;
+            const counted = !!sleep.url && !skipped;
             sleep.url = url;
-            if (--sleep.episodes < 1) {
+            if (counted && --sleep.episodes < 1) {
                 this._sleepEnded();
                 return;
             }

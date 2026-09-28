@@ -215,9 +215,11 @@ button cycling 15–120 minutes, then the end of the file, then off — or, with
 `sleep-timer-mode` `episodes`, 1–5 files, this one counted; it pauses the
 player, the pause brings the bar up, and GNOME's own screen blank follows once
 the player stops holding it off. The last file counted pauses half a second
-before its end, so a player set to exit at the end stays open; each new `url`
-the player moves to counts one, and should the end be missed, the next file
-pauses as it begins. The timer belongs to the player it was set on: it
+before its end, so a player set to exit at the end stays open. A new `url`
+counts one if the file before was left within 30 s of its end
+(`Player.lastFile`); one skipped with Next or Previous is not counted, and
+should the end be missed, the next file pauses as it begins. Episodes need a
+url and a length, so a stream gets none. The timer belongs to the player it was set on: it
 survives a moment's change of focus, shows on that player's bar alone, and one
 set on another player replaces it). `bar-scale`
 (75–200 %) is one `font-size` percentage on the panel and the pop-out, which
