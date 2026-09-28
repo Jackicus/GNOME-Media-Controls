@@ -157,7 +157,9 @@ directly cannot hide it.
 so `Player` keeps the last reading and the monotonic time it was taken, and
 `now` reckons forward from that at the current rate while playing. A reading is
 taken when the bar comes up from hidden, when a player starts playing, when it
-moves to a new file, and whenever it announces `Seeked`. The bar redraws on a
+moves to a new file, and whenever it announces `Seeked` — except that for a
+second after a seek of ours, a reading nearer where it jumped from than where
+it went is from before it and is dropped (`Player.reading`). The bar redraws on a
 timer that only exists while it is visible and something on it moves: every
 250 ms while playing, and once a second otherwise, for the clock and the sleep
 countdown, which move by the minute. Seeks use `SetPosition(trackid, µs)` where
@@ -293,6 +295,13 @@ VLC's remote-control socket:
   commands by verb, so a reply that has not come in 2 s ends the connection
   rather than being taken for the next command's; the bar reconnects the next
   time it comes up.
+- **VLC announces each seek twice**, the second `Seeked` ~150 ms after the
+  first. In a run of seeks (a held pad button, a fast scroll, 150 ms apart)
+  that second one arrives after the next seek has gone, and taken as read it
+  pulled the position back and wasted every other seek; hence
+  `Player.reading`. **A seek made while VLC is paused is not announced at
+  all** — ours are reckoned here, but one from VLC's own keys shows only once
+  it plays again.
 - **A subtitle that already started is not drawn after a track switch**; the
   next one is. Not a failed switch.
 - **Subtitles are drawn along the foot of the picture, under the bar** (unless

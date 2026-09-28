@@ -12,7 +12,8 @@
 // where playback is at any moment is that position moved on by the clock
 // while playing (`Player.now`). A reading is taken when the bar comes up,
 // when a player starts playing and when it moves to a new file; a seek
-// announces its own.
+// announces its own — and for a moment after a seek of ours, a reading from
+// before it is told apart and dropped (`Player.reading`).
 //
 // Nothing here blocks a player: every call is asynchronous and cancelled on
 // disable, and a player that never answers leaves a stale row, not a frozen
@@ -33,6 +34,11 @@ const NO_TRACK = '/org/mpris/MediaPlayer2/TrackList/NoTrack';
 // Long enough for a busy player, short enough that a hung one is given up on
 // well before GDBus's own 25 s default.
 const CALL_TIMEOUT = 5000;
+// How long after a seek of ours a reading may still be from before it, in
+// seconds. VLC announces each seek twice, the second time ~150 ms on, which
+// in a run of seeks (a held pad button, a fast scroll) arrives after the
+// next seek has gone.
+const SEEK_SETTLE = 1;
 
 const clock = () => GLib.get_monotonic_time() / 1e6;
 
@@ -86,6 +92,9 @@ export class Player extends EventEmitter {
         this.playlistLength = null;
         this.position = 0;
         this.readAt = clock();
+        // The last seek of ours, {from, to, at}, while a reading may still
+        // be from before it.
+        this._seek = null;
         // What Mute puts back: MPRIS has a volume but no mute.
         this._unmuted = null;
     }
@@ -129,6 +138,20 @@ export class Player extends EventEmitter {
         this.read(this.now);
     }
 
+    // A position the player announced (Seeked) or was asked for. Shortly
+    // after a seek of ours, one nearer where it jumped from than where it
+    // went is from before it: it is dropped, and false returned.
+    reading(position) {
+        const seek = this._seek;
+        if (seek && clock() - seek.at < SEEK_SETTLE) {
+            const expected = seek.to + (this.playing ? (clock() - seek.at) * this.rate : 0);
+            if (Math.abs(position - expected) > Math.abs(position - seek.from))
+                return false;
+        }
+        this.read(position);
+        return true;
+    }
+
     // ------------------------------------------------------------------
     // What the bar asks of it
     // ------------------------------------------------------------------
@@ -163,6 +186,7 @@ export class Player extends EventEmitter {
         } else {
             this._call(PLAYER, 'Seek', new GLib.Variant('(x)', [Math.round((target - this.now) * 1e6)]));
         }
+        this._seek = {from: this.now, to: target, at: clock()};
         this.read(target);
         this.emit('changed');
     }
@@ -210,10 +234,8 @@ export class Player extends EventEmitter {
         this._registry.call(this.owner, PROPERTIES, 'Get',
             new GLib.Variant('(ss)', [PLAYER, 'Position']), '(v)', reply => {
                 const position = reply.recursiveUnpack()[0];
-                if (typeof position === 'number') {
-                    this.read(position / 1e6);
+                if (typeof position === 'number' && this.reading(position / 1e6))
                     this.emit('changed');
-                }
             });
     }
 
@@ -259,6 +281,7 @@ export class Player extends EventEmitter {
             const url = meta['xesam:url'] ?? '';
             if (url !== this.url) {
                 this.read(0);
+                this._seek = null;
                 refresh = true;
             }
             this.url = url;
@@ -353,9 +376,8 @@ export class PlayerRegistry extends EventEmitter {
             bus.signal_subscribe(null, PLAYER, 'Seeked', MPRIS_PATH, null, Gio.DBusSignalFlags.NONE,
                 (_bus, sender, _path, _iface, _signal, params) => {
                     const player = this._players.get(sender);
-                    if (!player)
+                    if (!player || !player.reading(params.recursiveUnpack()[0] / 1e6))
                         return;
-                    player.read(params.recursiveUnpack()[0] / 1e6);
                     this._changed(player);
                     player.emit('seeked');
                 }),
