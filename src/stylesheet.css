@@ -59,8 +59,8 @@
     text-align: left;
 }
 
-/* A button: a click switches it between the time left and the length. */
-.mc-remaining:hover {
+/* In a button: a click switches it between the time left and the length. */
+.mc-time-button:hover .mc-remaining {
     color: #ffffff;
 }
 

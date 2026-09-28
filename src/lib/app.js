@@ -115,8 +115,6 @@ export class MediaControlsApp {
 
         this._bar = new ControlBar();
         this._bar.connect('action', (_bar, action) => this.perform(action));
-        this._bar.connect('toggle-length', () =>
-            this._settings.set_boolean('show-length', !this._settings.get_boolean('show-length')));
         this._bar.panel.connect('notify::hover', () => this._armHide());
         this._bar.tracksMenu.connect('open-state-changed', () => this._armHide());
         this._bar.setScale(this._settings.get_int('bar-scale'));
@@ -457,6 +455,9 @@ export class MediaControlsApp {
         case 'quit': this._quit(); return true;
         case 'hide-bar': this._conceal(); return true;
         case 'show-bar': break;
+        case 'toggle-length':
+            this._settings.set_boolean('show-length', !this._settings.get_boolean('show-length'));
+            break;
         case 'navigate': this._toggleFocus(); return true;
         case 'tracks': this._openTracks(); return true;
         // These leave the bar where it is: subtitles are drawn along the

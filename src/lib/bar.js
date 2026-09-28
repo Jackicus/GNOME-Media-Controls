@@ -169,11 +169,7 @@ function volumeIcon(volume) {
 }
 
 export const ControlBar = GObject.registerClass({
-    Signals: {
-        'action': {param_types: [GObject.TYPE_STRING]},
-        // The time at the end of the seek row was clicked (setShowLength).
-        'toggle-length': {},
-    },
+    Signals: {'action': {param_types: [GObject.TYPE_STRING]}},
 }, class ControlBar extends Clutter.Actor {
     // The actor itself only places the panel: the constraint sizes it to the
     // monitor, and the alignment shrinks it back around the panel at the
@@ -290,19 +286,21 @@ export const ControlBar = GObject.registerClass({
         this._seek = new Slider(0);
         this._seek.add_style_class_name('mc-seek');
         this._seek.accessible_name = 'Position';
-        // A click switches it between the time left and the whole length.
-        // Out of the arrows' way: the slider's Left and Right skip, and Up
-        // and Down leave the row.
-        this._remaining = new St.Button({
-            style_class: 'mc-time mc-remaining',
-            label: '',
+        this._remaining = new St.Label({style_class: 'mc-time mc-remaining', y_align: Clutter.ActorAlign.CENTER});
+        // A click switches it between the time left and the whole length
+        // (setShowLength). Out of the arrows' way: the slider's Left and
+        // Right skip, and Up and Down leave the row.
+        const remainingButton = new St.Button({
+            style_class: 'mc-time-button',
+            child: this._remaining,
             can_focus: false,
             y_align: Clutter.ActorAlign.CENTER,
         });
-        this._remaining.connect('clicked', () => this.emit('toggle-length'));
+        remainingButton.label_actor = this._remaining;
+        remainingButton.connect('clicked', () => this.emit('action', 'toggle-length'));
         row.add_child(this._elapsed);
         row.add_child(this._seek);
-        row.add_child(this._remaining);
+        row.add_child(remainingButton);
         this.panel.add_child(row);
 
         this._seek.connect('drag-begin', () => {
@@ -602,11 +600,11 @@ export const ControlBar = GObject.registerClass({
         const at = this._seeking ? this._seek.value * p.length : p.now;
         this._elapsed.text = formatTime(at);
         if (!p.length)
-            this._remaining.label = '';
+            this._remaining.text = '';
         else if (this._showLength)
-            this._remaining.label = formatTime(p.length);
+            this._remaining.text = formatTime(p.length);
         else
-            this._remaining.label = `−${formatTime(p.length - at)}`;
+            this._remaining.text = `−${formatTime(p.length - at)}`;
         if (this._showClock) {
             const now = GLib.DateTime.new_now_local();
             const left = p.length ? (p.length - at) / (p.rate || 1) : 0;

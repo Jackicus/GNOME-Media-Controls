@@ -26,6 +26,7 @@ export const ACTIONS = [
     {id: 'faster', title: 'Faster'},
     {id: 'show-bar', title: 'Show the bar'},
     {id: 'hide-bar', title: 'Hide the bar'},
+    {id: 'toggle-length', title: 'Time left or length'},
     // Opens the bar holding the keyboard and the pad: the d-pad then moves
     // the highlight, the bottom button presses, the right one goes back.
     {id: 'navigate', title: 'Move around the bar'},
