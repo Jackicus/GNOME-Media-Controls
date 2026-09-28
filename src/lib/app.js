@@ -564,20 +564,36 @@ export class MediaControlsApp {
     // ------------------------------------------------------------------
     // The pad
     // ------------------------------------------------------------------
-    // Returns whether what the button did goes on while it is held
-    // (gamepads.js repeats it): a skip, a volume step, an arrow key.
+    // Returns what to do again while the button is held (gamepads.js
+    // repeats it until that returns false), or null: an arrow key, a skip, a
+    // volume step. Which of the two a d-pad button is doing is settled at the
+    // press — an arrow goes on only while the bar or its pop-out holds the
+    // focus, an action only while neither does — so a hold never turns from
+    // moving the highlight into seeking. Either ends with the player.
     _onPadButton(button, action) {
-        if (!this._player)
-            return false;
+        const player = this._player;
+        if (!player)
+            return null;
+        const navigating = () => !!(this._grab || this._bar.menuOpen);
         const key = NAVIGATION[button];
-        if (key && (this._grab || this._bar.menuOpen)) {
-            this._pressKey(Clutter[`KEY_${key}`]);
-            return key !== 'Return' && key !== 'Escape';
+        if (key && navigating()) {
+            const keyval = Clutter[`KEY_${key}`];
+            this._pressKey(keyval);
+            if (key === 'Return' || key === 'Escape')
+                return null;
+            return () => {
+                if (this._player !== player || !navigating())
+                    return false;
+                this._pressKey(keyval);
+                return true;
+            };
         }
         // The pop-out from the pad is walked with the pad.
         if (action === 'tracks' && this._remote)
             this._enterFocus();
-        return this.perform(action) && repeats(action);
+        if (!this.perform(action) || !repeats(action))
+            return null;
+        return () => this._player === player && !(key && navigating()) && this.perform(action);
     }
 
     // The on-screen keyboard's way of pressing a key. Only called while the

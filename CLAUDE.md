@@ -195,8 +195,11 @@ are only ever injected while the bar or the pop-out holds the grab, so they
 land on them and never on the player. Every other button keeps its own action.
 A button held down repeats what it did, as a held key does (`gamepads.js`,
 400 ms then every 150 ms): the actions marked `repeats` in `ACTIONS` (skips,
-volume, subtitle timing) and the arrows, never play or Return. Each repeat asks
-`app.js` again, so it stops when the player goes.
+volume, subtitle timing) and the arrows, never play or Return. `_onPadButton`
+hands back what to repeat, settled at the press: an arrow goes on only while
+the bar holds the focus, an action only while it does not, so a hold never
+turns from moving the highlight into seeking; either stops when the player
+goes.
 
 **Pads** go through **libmanette** (`gi://Manette?version=0.2`, the library
 WebKitGTK reads gamepads with), imported when enabled so a system without it

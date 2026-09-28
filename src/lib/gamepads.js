@@ -10,8 +10,9 @@
 //
 // A button held down goes on doing what it did, as a held key does: after
 // REPEAT_DELAY, every REPEAT_INTERVAL until it is let go — when the handler
-// says what it did repeats (app.js: a skip, a volume step, an arrow key; not
-// play or pause). One button repeats at a time: another press ends it.
+// hands back what to do again (app.js: a skip, a volume step, an arrow key;
+// not play or pause), and until that says it is done. One button repeats at
+// a time: another press ends it.
 //
 // Pads are never grabbed: a game running beside the player still sees every
 // press. The actions only reach a player when app.js has one attached — a
@@ -107,8 +108,9 @@ export class Gamepads {
             return;
         this._stopRepeat();
         const action = this._settings.get_value('gamepad-buttons').deep_unpack()[button.id] ?? 'none';
-        if (this._onButton(button.id, action))
-            this._startRepeat(device, button.id, action);
+        const again = this._onButton(button.id, action);
+        if (again)
+            this._startRepeat(device, button.id, again);
     }
 
     _released(device, event) {
@@ -117,13 +119,13 @@ export class Gamepads {
             this._stopRepeat();
     }
 
-    // Again after the delay, then at the interval, for as long as the
-    // handler still says it repeats (the player may have gone).
-    _startRepeat(device, id, action) {
+    // `again` after the delay, then at the interval, for as long as it says
+    // it did something (the player, or the bar's focus, may have gone).
+    _startRepeat(device, id, again) {
         const held = {device, id, source: 0};
         this._held = held;
-        const again = () => {
-            if (this._onButton(id, action))
+        const repeat = () => {
+            if (again())
                 return true;
             // The source that asked ends itself.
             held.source = 0;
@@ -131,9 +133,9 @@ export class Gamepads {
             return false;
         };
         held.source = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REPEAT_DELAY, () => {
-            if (again()) {
+            if (repeat()) {
                 held.source = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REPEAT_INTERVAL,
-                    () => again() ? GLib.SOURCE_CONTINUE : GLib.SOURCE_REMOVE);
+                    () => repeat() ? GLib.SOURCE_CONTINUE : GLib.SOURCE_REMOVE);
                 GLib.Source.set_name_by_id(held.source, '[media-controls] pad repeat');
             }
             return GLib.SOURCE_REMOVE;
