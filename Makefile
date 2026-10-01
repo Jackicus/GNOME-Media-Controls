@@ -3,12 +3,12 @@
 DEV := ./scripts/dev.sh
 NESTED := ./scripts/nested.sh
 
-.PHONY: all link install reload logs pack devices uninstall status stalls clean help lint demo-clip \
+.PHONY: all link install reload logs pack devices uninstall status stalls clean help lint check schema demo-clip \
         nested nested-headless nested-stop nested-status preview
 
 all: install
 
-link install reload logs pack devices uninstall status stalls clean:
+link install reload logs pack devices uninstall status stalls clean schema:
 	@$(DEV) $@
 
 # The film the README screenshots are taken over (docs/media/, not in git).
@@ -19,8 +19,13 @@ demo-clip:
 lint: node_modules
 	@npx --no-install eslint .
 
-node_modules: package.json
-	npm install --no-audit --no-fund
+# Everything that needs no GNOME Shell, and what CI runs (.github/workflows/ci.yml):
+# ESLint, and the schema as an install compiles it.
+check: lint schema
+
+# The versions package-lock.json names, as CI installs them.
+node_modules: package.json package-lock.json
+	npm ci --no-audit --no-fund
 	@touch $@
 
 # Nested shell -- a throwaway second GNOME Shell for visual testing. Opens a live

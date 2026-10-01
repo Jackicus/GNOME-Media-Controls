@@ -9,6 +9,8 @@
 #   ./scripts/dev.sh reload     recompile schemas and disable/enable the extension
 #   ./scripts/dev.sh logs [since]  shell logs; follows unless given e.g. '5 min ago'
 #   ./scripts/dev.sh pack       build dist/<uuid>.shell-extension.zip for extensions.gnome.org
+#   ./scripts/dev.sh schema     check the schema as an install compiles it (--strict),
+#                               writing nothing; part of 'make check'
 #   ./scripts/dev.sh devices    list the media players on the session bus and the
 #                               game controllers plugged in, as the extension sees them
 #   ./scripts/dev.sh uninstall  remove the extension
@@ -42,6 +44,15 @@ compile_schemas() {
     require glib-compile-schemas
     info "Compiling GSettings schemas..."
     glib-compile-schemas "$SRC_DIR/schemas"
+}
+
+# An install compiles the schema with --strict, so a warning here is a failed
+# install there. --dry-run writes nothing, so a link install's compiled schema
+# is left as it is.
+cmd_schema() {
+    require glib-compile-schemas
+    glib-compile-schemas --strict --dry-run "$SRC_DIR/schemas" || die "The schema does not pass --strict."
+    ok "The schema compiles with --strict."
 }
 
 remove_installed() {
@@ -160,9 +171,7 @@ cmd_pack() {
     local out="$REPO_DIR/dist"
     local zip="$out/$UUID.shell-extension.zip"
 
-    # An install compiles the schema with --strict, so a warning here is a
-    # failed install there.
-    glib-compile-schemas --strict --dry-run "$SRC_DIR/schemas" || die "The schema does not pass --strict."
+    cmd_schema
 
     mkdir -p "$out"
     info "Packing $UUID..."
@@ -276,6 +285,7 @@ case "${1:-}" in
     reload)     cmd_reload ;;
     logs)       cmd_logs "${2:-}" ;;
     pack)       cmd_pack ;;
+    schema)     cmd_schema ;;
     devices)    cmd_devices ;;
     uninstall)  cmd_uninstall ;;
     status)     cmd_status ;;
