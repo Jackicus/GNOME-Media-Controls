@@ -14,8 +14,9 @@
 #   ./scripts/dev.sh stalls [LOG]  watch for desktop freezes: shell main-loop
 #                                  stalls and processes stuck in the kernel,
 #                                  with timestamps
-#   ./scripts/dev.sh clean      remove the compiled schema and what the scripts
-#                               put in dist/ (the zip, the test clip, shots, logs)
+#   ./scripts/dev.sh clean      remove what the scripts put in dist/ (the zip, the
+#                               test clip, shots, logs) and the compiled schema,
+#                               unless a link install reads it
 #
 set -euo pipefail
 
@@ -208,12 +209,24 @@ cmd_uninstall() {
     ok "Removed $EXT_DIR"
 }
 
-# Only what the scripts put in dist/.
+# Whether the installed extension reads its schemas from this src/ -- a link
+# install, either kind -- so the compiled schema here is what its
+# getSettings() opens at the next login or nested start.
+linked_here() {
+    [[ "$(readlink -f "$EXT_DIR/schemas" 2>/dev/null)" == "$(readlink -f "$SRC_DIR/schemas")" ]]
+}
+
+# Only what the scripts put in dist/, and the compiled schema unless a link
+# install reads it: without it enable() throws and the extension sits at ERROR.
 cmd_clean() {
-    rm -f "$SRC_DIR/schemas/gschemas.compiled"
+    if linked_here; then
+        info "Keeping the compiled schema: the link install at $EXT_DIR reads it."
+    else
+        rm -f "$SRC_DIR/schemas/gschemas.compiled"
+    fi
     rm -f "$REPO_DIR"/dist/*.shell-extension.zip "$REPO_DIR/dist/test-video.mkv" \
         "$REPO_DIR/dist/stalls.log" "$REPO_DIR"/dist/nested-*.png "$REPO_DIR/dist/preview.png"
-    ok "Cleaned the compiled schema and the scripts' files in dist/."
+    ok "Cleaned the scripts' files in dist/$(linked_here || echo ' and the compiled schema')."
 }
 
 # A freeze is over by the time anyone looks; this leaves a log of what stalled.
