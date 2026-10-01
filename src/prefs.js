@@ -5,7 +5,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 
-import {ACTIONS, BAR_BUTTONS, BUTTONS, buttonForCode, playerNames} from './lib/actions.js';
+import {ACTIONS, BAR_BUTTONS, BUTTONS, buttonForCode, normaliseName, playerNames} from './lib/actions.js';
 import {readVlcState, vlcrcPath, writeVlcState} from './lib/vlcconfig.js';
 
 const MPRIS_NAMESPACE = 'org.mpris.MediaPlayer2';
@@ -306,9 +306,11 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         const ignoredRows = [];
 
         // Switching a player back on takes every name it goes by off the
-        // list; switching it off adds the first.
+        // list; switching it off adds the first. Entries are compared as
+        // app.js compares them, normalised, so a `VLC` or `vlc.desktop` set
+        // with gsettings is VLC's.
         const setIgnored = (names, ignored) => {
-            const list = settings.get_strv('ignored-players').filter(k => !names.includes(k));
+            const list = settings.get_strv('ignored-players').filter(k => !names.includes(normaliseName(k)));
             if (ignored)
                 list.push(names[0]);
             settings.set_strv('ignored-players', list);
@@ -317,6 +319,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         const fill = () => {
             removeAllRows(running, runningRows);
             const ignored = settings.get_strv('ignored-players');
+            const normalised = ignored.map(normaliseName);
             // One row per player process: VLC holds a second name per instance.
             const seen = new Set();
             const keys = new Set();
@@ -335,7 +338,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                     title: GLib.markup_escape_text(info.root.Identity || busName, -1),
                     subtitle: GLib.markup_escape_text(
                         [title ? `${status} · ${title}` : status, names.join(' · ')].join('\n'), -1),
-                    active: !names.some(n => ignored.includes(n)),
+                    active: !names.some(n => normalised.includes(n)),
                     subtitle_lines: 2,
                 });
                 row.connect('notify::active', () => setIgnored(names, !row.active));
@@ -352,13 +355,13 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             }
 
             removeAllRows(ignoredExpander, ignoredRows);
-            const notRunning = ignored.filter(k => !keys.has(k));
+            const notRunning = ignored.filter(k => !keys.has(normaliseName(k)));
             ignoredExpander.subtitle = notRunning.length
                 ? `${notRunning.length} not running now. Browsers are here by default: they draw their own controls.`
                 : 'None';
             for (const key of notRunning) {
                 const row = new Adw.SwitchRow({title: GLib.markup_escape_text(key, -1), active: false});
-                row.connect('notify::active', () => row.active && setIgnored([key], false));
+                row.connect('notify::active', () => row.active && setIgnored([normaliseName(key)], false));
                 ignoredExpander.add_row(row);
                 ignoredRows.push(row);
             }
