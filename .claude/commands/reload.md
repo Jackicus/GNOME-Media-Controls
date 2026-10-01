@@ -1,20 +1,41 @@
 ---
-description: Apply src/ edits to the running GNOME Shell and check for errors
-allowed-tools: Bash(make reload), Bash(./scripts/dev.sh reload), Bash(./scripts/dev.sh logs:*)
+description: Apply src/ edits to Media Controls in the nested shell and check for errors
+allowed-tools: Bash(./scripts/nested.sh status), Bash(./scripts/nested.sh start:*), Bash(./scripts/nested.sh reload), Bash(./scripts/nested.sh logs:*), Bash(./scripts/nested.sh mirror:*), Bash(./scripts/nested.sh stop)
 ---
 
-Apply the current `src/` edits to the running shell, then confirm they took.
+Apply the current `src/` edits to Media Controls in this repository's **nested
+shell**, then confirm they took. Never the user's own session: `make reload` and
+`./scripts/dev.sh reload` disable and enable the extension on the real desktop,
+which is the user's to do.
 
-1. Run `make reload`.
-2. Run `./scripts/dev.sh logs "1 min ago"` to see what the shell logged.
-3. Report whether it came up clean. A healthy reload of the `make link` install logs
-   `[Media Controls] Enabled from /run/user/1000/media-controls/lib-<stamp>`,
+1. `./scripts/nested.sh status`.
+   - **Not running:** `./scripts/nested.sh start --clean`. A fresh start loads the
+     current `src/`, so Media Controls is ACTIVE with the edits when it returns;
+     skip step 2.
+   - **Running with `settings: shared with the real session`** (a plain `start`):
+     do not reload. A reload rewrites `enabled-extensions` in the user's real
+     dconf through that shell's own dconf-service. Say so, and offer
+     `./scripts/nested.sh stop` then `start --clean`.
+   - **Running with its own settings (`--clean`):** go on.
+2. `./scripts/nested.sh reload`. It recompiles the schema into `src/schemas/` and
+   waits for ACTIVE.
+3. `./scripts/nested.sh logs 40` and report whether it came up clean. A healthy
+   reload ends with `[Media Controls] Enabled from
+   /run/user/1000/media-controls/lib-<stamp>` (a new stamp when `lib/` changed),
    and `[Media Controls] Attached to <player> (pid N)` once a fullscreen player
    has focus. Anything with `Failed to load`, `Error during disable`, or a JS
-   stack trace is a real failure — quote it and say which file it points at.
+   stack trace under a `[Media Controls]` line is a real failure: quote it and
+   say which file it points at. Other extensions' errors at startup (a stale
+   directory in the extensions folder) are not this one's.
 
-If the shell reports the extension doesn't exist, it needs a log out / log back
-in before it will register the UUID — say so rather than retrying. The same
-applies when `scripts/dev-extension.js` or `metadata.json` changed: the shell
-caches those for its whole lifetime, and a reload runs the old loader. A copy
-made by `make install` logs nothing on a healthy reload; it logs only failures.
+How to see it: the mirror window on the desktop shows the nested shell live
+(`./scripts/nested.sh mirror on` if `status` says it is closed); the bar shows
+only over a fullscreen player, so `/preview` (or the `drive-extension` skill:
+`player`, two `move`s, a `shot`) brings it up and screenshots it. Leave the
+nested shell running for that, and stop it (`./scripts/nested.sh stop`) when the
+work is done.
+
+A reload re-imports `lib/` only. An edit to `scripts/dev-extension.js`,
+`metadata.json` or the schema's keys needs `./scripts/nested.sh stop` then
+`start --clean`, not a reload, and no logout: only the real session needs one,
+and that is the user's to do.

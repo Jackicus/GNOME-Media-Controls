@@ -25,12 +25,11 @@ chapters), `mpris` (read or poke it), `pad` (a virtual Xbox pad). `stop` checks 
 nothing of the nested session survived (a prefs window once kept a nested shell
 alive after a `stop` that reported success) and says so if something did.
 
-`./scripts/dev.sh devices` lists the MPRIS players on the bus and the pads
-libmanette sees: the same two lists the preferences show.
+`/reload`, `/logs`, `/status` and `/preview` use the nested shell; `make reload` is
+the user's own session, theirs to run. `./scripts/dev.sh devices` lists the players
+and pads the preferences show (the nested ones under `./scripts/nested.sh run`).
 
 ## Layout
-
-`make pack` refuses a zip holding a stray file, naming it.
 
 ```
 src/extension.js      the shipped entry point: imports lib/app.js and enables it
@@ -68,10 +67,11 @@ scripts/demo-clip.sh  `make demo-clip`: docs/media/big-buck-bunny-demo.mkv, the
                       README screenshots' film, with docs/media/captions/
 ```
 
-`docs/proposal.md` is a live proposal (taking the bar's colours from the
-shell's theme classes instead of copying the OSD's), not yet done.
-`docs/publishing.md` covers building the EGO zip and checks the code against
-the review guidelines. `TODO.md` is the user's list of what is left to test.
+`docs/proposal.md` is a live proposal (taking the bar's colours from the shell's
+theme classes instead of copying the OSD's), not yet done. `docs/publishing.md`
+covers building the EGO zip (`make pack` refuses a stray file, naming it) and checks
+the code against the review guidelines. `TODO.md` is the user's list of what is left
+to test.
 
 Area detail is in `.claude/rules/`, loaded with the files it covers: `bar.md`
 (the widget, its placement, keys and sizes), `mpris.md` (position, playlists),

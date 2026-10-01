@@ -1,24 +1,39 @@
 ---
-description: Report install mode, shell state, and the players and controllers the extension can see
-allowed-tools: Bash(make status), Bash(./scripts/dev.sh status), Bash(./scripts/dev.sh devices)
+description: Report the nested shell's state, the install mode, and the players and controllers the extension can see
+allowed-tools: Bash(make status), Bash(./scripts/dev.sh status), Bash(./scripts/nested.sh status), Bash(./scripts/nested.sh run ./scripts/dev.sh devices)
 ---
 
-Run `./scripts/dev.sh status` and `./scripts/dev.sh devices`, and report:
+Run `./scripts/nested.sh status` and `./scripts/dev.sh status`; if a nested shell
+is running, also `./scripts/nested.sh run ./scripts/dev.sh devices`. Report in
+two parts.
 
-- **install** — `link` means dev mode (edits in `src/` are live after a
-  reload, through `scripts/dev-extension.js`); `old-style symlink` means the
-  install isn't using that entry point and needs `make link` again; `copy`
-  means a real install that won't pick up edits until `make install` is
-  re-run.
-- **state** — `ACTIVE` is healthy. `unknown to the running shell` means the UUID
-  was never registered, which needs a logout, not a reload.
+**Nested shell** (where changes are tried):
+
+- **nested** — running or not, its pid, size and idle timeout. Not running is
+  normal between tasks; `strays` means a previous one left processes, which
+  `./scripts/nested.sh stop` sweeps.
+- **extension** — `ACTIVE` is healthy; `ERROR` means `enable()` threw
+  (`/logs`); anything else after a `reload`, see `/logs` too.
+- **settings** — `its own (--clean)` is what tests use; `shared with the real
+  session` means a plain `start`, whose setting changes and reloads write the
+  user's real dconf.
+- **mirror** — open on the desktop, or closed (`./scripts/nested.sh mirror on`).
+- **players / controllers** (from `devices` under `run`) — the MPRIS players
+  on the nested bus (`./scripts/nested.sh player` starts VLC there) and the pads
+  libmanette sees (`NO MAPPING` means its buttons may not match the positions in
+  the preferences).
+
+**Real session (read-only)**, from `./scripts/dev.sh status`, which only reads:
+
+- **install** — `link` means dev mode: the nested shell, and the real one at its
+  next login, run `src/` through `scripts/dev-extension.js`; `old-style
+  symlink` needs `make link` again; `copy` is a real install that won't pick up
+  edits until `make install` is re-run. The nested shell reads the same
+  install.
+- **state** — the extension's state in the user's own shell. It says nothing
+  about the edits in progress, and is never fixed by reloading or enabling
+  there: that is the user's to do.
 - **pads** — whether libmanette is installed; without it the bar works but game
   controllers do not.
-- **players** — every MPRIS player on the session bus, with its desktop entry,
-  pid and state. The bar attaches to whichever of them owns the focused
-  fullscreen window, unless it is on `ignored-players` (browsers by default).
-- **controllers** — every pad libmanette sees, its SDL GUID, and whether a
-  mapping is known (`NO MAPPING` means its buttons may not match the
-  positions in the preferences).
 
 If anything is off, say which command fixes it.
