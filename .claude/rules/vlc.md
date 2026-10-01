@@ -60,9 +60,7 @@ file when the user flips the Players page's switch.
   are matched to commands by verb, so a reply that has not come in 2 s ends
   the connection rather than being taken for the next command's; the bar
   reconnects the next time it comes up.
-- **Two writes at once on a GIO stream fail** ("Stream has outstanding
-  operation"), and two hotkey presses come at once: `VlcRemote` queues its
-  lines.
+- **Two hotkey presses come at once**, so `VlcRemote` queues its lines.
 - **A subtitle that already started is not drawn after a track switch**; the
   next one is. Not a failed switch.
 - **Subtitles are drawn along the foot of the picture, under the bar** (unless
