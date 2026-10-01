@@ -25,9 +25,8 @@ paths:
   (`CentredRowLayout`) is the row's `spacing`, read the same way.
 - **Unredirection is off while it is shown**, as the OSD does it, so a
   fullscreen window scanned out directly cannot hide it (`setUnredirect`).
-- **`addChrome()` takes no `affectsInputRegion` on 50** (X11-only; not in
-  `layout.js`'s `defaultParams`): passing it throws "Unrecognized parameter".
-  48's default for it is `true`, so omitting it is right on both.
+- `addChrome()` is called without `affectsInputRegion`: 48's default for it is
+  `true`, so omitting it is right on 48 as well as 50.
 - **The pop-out keeps to the panel as it rises**: a `BoxPointer` places itself
   from its source's transformed position only when laid out, which a
   translation does not cause, so `notify::translation-y` calls
@@ -35,27 +34,22 @@ paths:
 
 ## Keys
 
-- **Arrow keys never reach the focus manager while the bar holds the grab**:
-  `St.FocusManager` moves focus from the stage's event handler, and a grab
-  stops the event at the grab actor. The panel calls `navigate_from_event`
-  itself, as the shell's popup menu items do. A focused slider takes
+- **The panel calls `navigate_from_event` itself**, since the bar holds a grab.
+  A focused slider takes
   Left/Right first (the seek slider skips by `seek-step` instead of the
   Slider's tenth of the film, `arrowKeys`); Up/Down leave it.
 - **A `PopupMenu` toggles on Return, Space or the arrow towards it reaching its
   source actor**, which is the panel for `TracksMenu` (so it stands above the
   bar rather than over its top row). The panel's key handler swallows those;
   a focused button has already taken them.
-- **A `PopupMenuSection` closes the whole menu when one of its items is
-  activated** (its own `itemActivated`), so `TracksMenu` overrides it on the
-  sections as well as the menu: picking a track leaves the pop-out open.
+- **`TracksMenu` overrides `itemActivated` on its sections as well as the
+  menu**: picking a track leaves the pop-out open.
 - A scroll anywhere on the panel skips as the buttons do; the volume slider
   keeps its own scroll.
 
 ## Sizes and redraws
 
-- **St sizes a button's icon against the theme, not the panel's font**, so the
-  `bar-scale` font size scaled everything but the icons. `bar.js` sets
-  `icon_size` from `ICON_SIZE` (16) or `PLAY_ICON_SIZE` (22) × the setting, the
+- **`bar-scale` scales the icons by hand**: `bar.js` sets `icon_size` from `ICON_SIZE` (16) or `PLAY_ICON_SIZE` (22) × the setting, the
   pop-out's buttons too (`setIconSize`).
 - **The redraw timer exists only while the bar is visible and something on it
   moves**: every 250 ms (`TICK_MS`) while playing, once a second otherwise,

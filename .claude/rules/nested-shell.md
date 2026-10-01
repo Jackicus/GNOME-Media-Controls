@@ -13,10 +13,6 @@ What is generic (dconf sharing, `--clean`, `do`, `stop`) is the kit's
   the nested bus activates, the prefs window included) has a writable
   `~/.config/dconf/media_controls_nested` over a read-only seed compiled at
   start from the real session's look; `stop` deletes the writable one.
-- **That name has no hyphen**: a dconf database is named by a D-Bus
-  object-path element (`/ca/desrt/dconf/Writer/<name>`), letters, digits and
-  underscores only. With a hyphen every write failed and `gsettings set`
-  waited forever.
 - **The nested session's `XDG_CONFIG_HOME`** is a directory of links to the
   real one's entries (dconf included, so settings behave as before) except
   `vlc`, which is the throwaway directory `player` gives VLC: the nested
