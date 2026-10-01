@@ -81,8 +81,9 @@ If the bar never shows up, `make logs` will show you what went wrong.
 
 ## Development
 
-Run `make link` once, then `make reload` after each edit. `CLAUDE.md` explains
-how it's built.
+Run `make link` once, then `make reload` after each edit, and `make check`
+(ESLint and the settings schema, what CI runs) before a pull request.
+`CLAUDE.md` explains how it's built.
 
 ## Licence
 

@@ -156,10 +156,10 @@ and when here.
 ## Before each upload
 
 1. Bump `version-name` in `src/metadata.json`.
-2. `make lint` — 0 errors.
+2. `make check` — ESLint with 0 errors, and the schema under `--strict`.
 3. `make pack` — reads the zip listing; confirm nothing unexpected is in it.
 4. Install that zip (not the `make link` install) and run through the
-   nested-shell checks in `CLAUDE.md` / the `drive-extension` skill on each
+   nested-shell checks in the `drive-extension` skill on each
    `shell-version` claimed.
 5. `make logs` quiet through enable, use, lock, unlock, disable.
 6. If a claimed shell version changed, update the table above.

@@ -129,14 +129,13 @@ load after the theme, so our em sizes win.
   flat button is painted for the popover's background. **`OsdWindow`**: it
   can't be clicked.
 
-## Open question: the focus ring and `!important`
+## Settled: the focus ring and `!important`
 
 The shell's `.icon-button:focus` and `.screenshot-ui-type-button:focus` set
-their `box-shadow` with `!important`. If St ranks `!important` above
-specificity, as CSS does, our focus ring's `box-shadow` is losing to the
-shell's **today**, and only our tint behind it applies. Check this in the
-nested shell before anything else. If the ring is losing, our two focus rules
-need `!important` too, whether or not this proposal goes ahead.
+their `box-shadow` with `!important`, which St ranks above specificity, as CSS
+does: the theme's ring was winning over ours. Our two focus rules
+(`.mc-bar .mc-button:focus`, `.mc-bar .mc-play:focus`) now carry `!important`
+too, and win on specificity; that holds with or without this proposal.
 
 ## Checking it
 
@@ -148,16 +147,15 @@ need `!important` too, whether or not this proposal goes ahead.
    (`org.gnome.desktop.a11y.interface high-contrast`), beside
    `docs/screenshots/bar-closeup.png`.
 3. Open the bar with the key, walk it with the arrows and the virtual pad: the
-   ring on the transport buttons, play, rate and sleep. Settle the
-   `!important` question.
+   ring on the transport buttons, play, rate and sleep.
 4. Hover, press, and a disabled button (previous/next with one file).
 5. The size setting at 75% and 200%, and Large Text.
 6. Retake `docs/screenshots/` if the look moved.
 
 ## Docs to change with it
 
-- **CLAUDE.md, Design rules:** "the panel is painted as the shell paints its
-  OSD" becomes "the panel and its buttons wear the screenshot panel's classes".
+- **CLAUDE.md, Design rules:** "Painted as the OSD" becomes "the panel and
+  its buttons wear the screenshot panel's classes".
   The colour rule becomes: the shell's classes set colour, ours set size; the
   exceptions are the focus ring, the sliders and the text shades.
 - **The `stylesheet.css` header,** which describes the copied OSD paint.
