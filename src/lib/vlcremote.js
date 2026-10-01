@@ -26,10 +26,13 @@
 // (VLC cycles in the order it lists them: audio skipping Disable, subtitles
 // through Off).
 //
-// Every call is asynchronous and cancelled by close(). A reply that has not
-// come in REPLY_TIMEOUT_MS ends the connection: replies are matched to
-// commands by their verb, so a late one would be taken for the next
-// command's. The bar reconnects the next time it comes up.
+// Every call is asynchronous and cancelled by close(), or by the connection
+// being lost. A reply that has not come in REPLY_TIMEOUT_MS ends the
+// connection: replies are matched to commands by their verb, so a late one
+// would be taken for the next command's. Either way the socket is closed
+// there and then: one left open keeps its place in VLC's queue, and once VLC
+// serves it no later connection is answered. The bar reconnects the next
+// time it comes up.
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -146,15 +149,10 @@ export class VlcRemote extends EventEmitter {
         });
     }
 
+    // Safe to call more than once, and after the connection was lost.
     close() {
-        this._closed = true;
-        this._cancellable.cancel();
+        this._shut();
         this._fail(new Error('closed'));
-        if (this._connection) {
-            this._connection.close_async(GLib.PRIORITY_DEFAULT, null, null);
-            this._connection = null;
-        }
-        this._input = this._output = null;
     }
 
     // ------------------------------------------------------------------
@@ -277,6 +275,8 @@ export class VlcRemote extends EventEmitter {
                     this._lost();
                 return;
             }
+            if (this._closed)
+                return;
             this._writes.shift();
             this._write();
         });
@@ -317,6 +317,8 @@ export class VlcRemote extends EventEmitter {
                     this._lost();
                 return;
             }
+            if (this._closed)
+                return;
             if (line === null) {
                 this._lost();
                 return;
@@ -349,13 +351,24 @@ export class VlcRemote extends EventEmitter {
     }
 
     // VLC went away, the connection broke, or VLC stopped answering.
+    // The socket is closed here, and the read waiting on it cancelled:
+    // close(), which follows, finds nothing left to do.
     _lost(error = new Error('VLC closed the connection')) {
-        if (!this._connection)
+        if (this._closed || !this._connection)
             return;
-        this._connection = null;
-        this._input = this._output = null;
+        this._shut();
         this._fail(error);
         this.emit('lost');
+    }
+
+    // Nothing runs on this object after this: what is in flight is
+    // cancelled, and the socket is closed, freeing VLC for its next client.
+    _shut() {
+        this._closed = true;
+        this._cancellable.cancel();
+        this._writes = [];
+        this._connection?.close_async(GLib.PRIORITY_DEFAULT, null, null);
+        this._connection = this._input = this._output = null;
     }
 
     _fail(error) {
