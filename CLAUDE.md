@@ -273,9 +273,10 @@ rate, close). A hidden button's action still works from the keys and pads.
   light in the light theme and the bar is always dark. The focus highlight is
   the accent at full strength: it has to be found from a sofa.
 - **JS sizes are physical pixels; CSS is not.** A number that meets an
-  allocation (`panel.width`, the row gap) is logical px times the stage's
-  `scale_factor`; nothing written into CSS is scaled. `St.Icon.icon_size` is
-  logical.
+  allocation (`panel.width`) is logical px times the stage's `scale_factor`;
+  nothing written into CSS is scaled. A length read back from the theme node
+  (the row gap, the panel's `max-width`) is already physical. `St.Icon.icon_size`
+  is logical.
 - **No private shell API.** There is none today — no underscore field is read or
   written (`TracksMenu` uses `PopupMenu`'s public `sourceActor`,
   `setSourceAlignment` and `itemActivated`, and `ControlBar.setTop` its
