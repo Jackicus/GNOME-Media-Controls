@@ -12,8 +12,8 @@ make pack
 This runs `scripts/dev.sh pack` (see its comments for exactly what each step
 does): checks the schema with `glib-compile-schemas --strict --dry-run`,
 packs `src/` plus `lib/` and `LICENSE` with `gnome-extensions pack`, drops
-`schemas/gschemas.compiled` if that `gnome-extensions` put one in (GNOME 45
-and older only — 46 and later compile the schema on install, so the zip never
+`schemas/gschemas.compiled` if that `gnome-extensions` put one in (45 and
+older do; GNOME 44 and later compile the schema on install, so the zip never
 carries a compiled one), then checks the zip holds exactly the files that
 should ship and prints the listing. Output:
 `dist/media-controls@jackicus.shell-extension.zip`.
@@ -65,9 +65,13 @@ list of independent steps, each caught on its own, so one throwing doesn't
 skip the rest: removes the keybinding, cancels the sleep timer and its
 signals (`_setSleep(null)`), drops the VLC remote, releases the grab,
 disposes the virtual keyboard, disables the pad watcher, stops the pointer
-watch, removes the hide and update sources, and disconnects every
-`connectObject` group (`_player`, `global.display`, `Main.overview`,
-`Main.layoutManager`, `_settings`, `_registry`) before destroying the bar.
+watch, removes the hide and update sources, stops watching the window, and
+disconnects every `connectObject` group (`_player`, `global.display`,
+`Main.overview`, `Main.layoutManager`, `_settings`, `_registry`) before
+destroying the bar.
+Last, with `hide-vlc-controls` on and the session not locked, it puts
+`qt-fs-controller` back in vlcrc (see *Modifying another application's
+files*).
 `ControlBar._onDestroy()` (`src/lib/bar.js`) disconnects the player, removes
 its own redraw timer, restores unredirection, and removes the panel from the
 focus group. `VlcRemote.close()` (`src/lib/vlcremote.js`) cancels its
@@ -79,10 +83,11 @@ focus group. `VlcRemote.close()` (`src/lib/vlcremote.js`) cancels its
 
 **No GTK in the shell, no shell libraries in the preferences: meets.** Every
 file under `src/lib` imports only `Clutter`, `GLib`, `GObject`, `Gio`, `Meta`,
-`Pango`, `Shell`, `St` and shell `resource:///` modules — no `Gtk`, `Gdk` or
-`Adw`. `src/prefs.js` imports `Adw`, `Gdk`, `Gio`, `GLib`, `Gtk` plus
-`lib/actions.js` and `lib/vlcconfig.js`, both pure GLib/Gio with no shell
-import.
+`Pango`, `Shell`, `St`, shell `resource:///` modules and — dynamically, in
+`gamepads.js`, so a system without it keeps the bar — `Manette` — no `Gtk`,
+`Gdk` or `Adw`. `src/prefs.js` imports `Adw`, `Gdk`, `Gio`, `GLib`, `Gtk`,
+`Manette` (dynamically, for the Controllers page) plus `lib/actions.js` and
+`lib/vlcconfig.js`, both pure GLib/Gio with no shell import.
 
 **Avoid interfering with the extension system: meets.** The module-cache
 workaround (`scripts/dev-extension.js`) is not part of `src/` and is never
@@ -112,7 +117,7 @@ Nothing else opens a socket, makes an HTTP request, or reaches outside the
 session bus and this one path.
 
 **Modifying another application's files: only on an explicit switch, and only
-these two lines.** `lib/vlcconfig.js`'s `writeVlcState()` edits
+these options.** `lib/vlcconfig.js`'s `writeVlcState()` edits
 `~/.config/vlc/vlcrc`. "Hide VLC's controls" is the `hide-vlc-controls`
 setting, which `src/lib/app.js` applies only while the extension is enabled
 and only when it is on: it sets, under `[qt]`, `qt-fs-controller=0` (VLC's
@@ -136,7 +141,8 @@ under `org.gnome.shell.extensions.media-controls`.
 fails the build on anything in the zip beyond the list above.
 
 **Use a linter: meets.** `make lint` runs ESLint with gjs.guide's
-configuration (`eslint.config.mjs`) over `src/`; 0 errors (some warnings).
+configuration (`eslint.config.mjs`) over the whole repository (`src/` and
+the GJS scripts beside it); 0 errors (some warnings).
 
 ## Private API
 
