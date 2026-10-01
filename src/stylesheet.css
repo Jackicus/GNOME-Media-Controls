@@ -123,10 +123,12 @@
 }
 
 /* The highlight the keyboard and the pad move around: the accent, strong
- * enough to find from the sofa. */
+ * enough to find from the sofa. The theme's .icon-button:focus ring is
+ * !important (a pale blend in the dark theme, 80% accent in the light), so
+ * ours has to be too. */
 .mc-bar .mc-button:focus {
     background-color: st-transparentize(-st-accent-color, 0.7);
-    box-shadow: inset 0 0 0 2px -st-accent-color;
+    box-shadow: inset 0 0 0 2px -st-accent-color !important;
 }
 
 .mc-bar .mc-button:insensitive {
@@ -148,7 +150,7 @@
 /* The accent fill hides the usual focus tint, so the ring is white here. */
 .mc-bar .mc-play:focus {
     background-color: st-lighten(-st-accent-color, 6%);
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.9);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.9) !important;
 }
 
 .mc-bar .mc-play:active {
