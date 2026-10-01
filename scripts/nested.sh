@@ -265,13 +265,13 @@ cmd_start() {
         "$REPO_DIR/scripts/dev.sh" link >/dev/null 2>&1 || true
     fi
 
-    rm -rf "$RUN_DIR"
+    # A run that died without a 'stop' left its run directory behind, and in it
+    # the mark that the crash guard is ours: cleared the way 'stop' clears it,
+    # not just deleted, or that guard is taken below for the real shell's.
+    remove_run_dir
     mkdir -p "$RUN_DIR"
     : > "$LOG_FILE"
     echo "$geometry" > "$GEOM_FILE"
-    # If the real shell's own guard is already there (it logged in under a minute
-    # ago), it is not ours to remove.
-    [[ -e "$CRASH_GUARD" ]] || touch "$GUARD_OWNED_FILE"
     # Only a shell a Claude Code session started is that session's to clean up.
     [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]] && echo "$CLAUDE_CODE_SESSION_ID" > "$OWNER_FILE"
 
@@ -281,6 +281,10 @@ cmd_start() {
         setup_clean_profile
         profile=(DCONF_PROFILE="$PROFILE_FILE")
     fi
+    # Last before the shell starts, since the shell is what creates the guard.
+    # If the real shell's own is already there (it logged in under a minute
+    # ago), it is not ours to remove.
+    [[ -e "$CRASH_GUARD" ]] || touch "$GUARD_OWNED_FILE"
 
     info "Starting nested GNOME Shell (headless, $geometry$( (( clean )) && echo ', own settings, no other extensions'))..."
 
@@ -305,7 +309,9 @@ cmd_start() {
         if ! kill -0 "$pid" 2>/dev/null; then
             warn "Nested shell exited during startup. Last output:"
             filtered_log 20 >&2
-            rm -f "$PID_FILE"
+            # It may have created the crash guard before it died; 'stop'
+            # removes that (when ours) with the rest of the run.
+            cmd_stop >/dev/null || true
             return 1
         fi
         if (( waited >= 200 )); then
@@ -318,6 +324,11 @@ cmd_start() {
         waited=$((waited + 1))
     done
     ok "Nested shell up (pid $pid)."
+    # The backstops from here on, so a start that dies below (the extension
+    # not ACTIVE: the shell is left up for 'logs') is still stopped when idle
+    # or gone, and its crash guard with it.
+    touch_activity
+    start_watchdog "$pid"
 
     # gnome-shell is exec'd by the bash under dbus-run-session, so it is a
     # grandchild of $pid (whose own arguments carry the same flags); its
@@ -339,8 +350,6 @@ cmd_start() {
         enable_in_nested
     fi
 
-    touch_activity
-    start_watchdog "$pid"
     [[ $mirror -eq 1 ]] && cmd_mirror on
     return 0
 }
@@ -486,16 +495,23 @@ cmd_stop() {
     fi
     kill_strays
     sweep_session || stranded=1
-    [[ -e "$GUARD_OWNED_FILE" ]] && rm -f "$CRASH_GUARD"
-    [[ -s "$XAUTH_FILE" ]] && rm -f "$(cat "$XAUTH_FILE")"
-    [[ -s "$PROFILE_FILE" ]] && remove_clean_db
-    rm -rf "$RUN_DIR"
+    remove_run_dir
     if (( stranded )) || [[ -n "$(session_pids)" ]]; then
         warn "Something of the nested session is still running:"
         ps -o pid=,args= -p "$(session_pids | sort -u | paste -sd,)" 2>/dev/null >&2 || true
         return 1
     fi
     ok "Nested shell stopped; nothing of its session is left running."
+}
+
+# The run directory and what it accounts for outside itself: the crash guard
+# (only if this run's shell made it, not the real one's), the X11 cookie and
+# the --clean database.
+remove_run_dir() {
+    [[ -e "$GUARD_OWNED_FILE" ]] && rm -f "$CRASH_GUARD"
+    [[ -s "$XAUTH_FILE" ]] && rm -f "$(cat "$XAUTH_FILE")"
+    [[ -s "$PROFILE_FILE" ]] && remove_clean_db
+    rm -rf "$RUN_DIR"
 }
 
 # SessionEnd hook: stop the nested shell only if the ending session started it.
