@@ -60,8 +60,10 @@ src/lib/tracksmenu.js TracksMenu: the audio-and-subtitles pop-out (a PopupMenu)
 src/lib/vlcremote.js  VlcRemote: VLC's remote-control socket
 src/lib/vlcconfig.js  VLC's settings file: the two things we may change in it
 src/lib/gamepads.js   libmanette → (button, action)
-src/lib/actions.js    pure data shared with prefs.js: ACTIONS, BUTTONS,
-                      NAVIGATION, RATES, SLEEP_STEPS, formatTime, playerNames
+src/lib/actions.js    pure data shared with prefs.js: ACTIONS, BAR_BUTTONS,
+                      BUTTONS, NAVIGATION, RATES, SLEEP_MINUTES,
+                      SLEEP_EPISODES, SUBTITLE_SHIFT_MS, and the helpers
+                      over them (formatTime, playerNames, isIgnored, …)
 src/lib/anim.js       the only durations and curves
 src/lib/log.js        note(): informational lines, on only under dev-extension.js
 src/prefs.js          Bar / Players (with the VLC switches) / Controllers pages
