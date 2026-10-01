@@ -136,9 +136,12 @@ export class MediaControlsApp {
                 this._queueUpdate();
             },
             // A player's pid arrives after it does, and its desktop entry
-            // with its properties; either can be what matches it.
-            'changed', () => {
-                if (!this._player)
+            // with its properties; either can be what matches it. Once one
+            // is attached, only a pid can take its place: the window's own,
+            // arriving after another player matched it by desktop entry.
+            'changed', (_registry, player) => {
+                if (!this._player ||
+                    (player.pid && player.pid === this._window?.get_pid() && this._player.pid !== player.pid))
                     this._queueUpdate();
             },
             this);
