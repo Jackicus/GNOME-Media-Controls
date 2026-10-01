@@ -28,7 +28,8 @@ prefs.js
 stylesheet.css
 schemas/org.gnome.shell.extensions.media-controls.gschema.xml
 lib/actions.js  lib/anim.js  lib/app.js  lib/bar.js  lib/gamepads.js
-lib/log.js  lib/mpris.js  lib/tracksmenu.js  lib/vlcconfig.js  lib/vlcremote.js
+lib/gtype.js  lib/log.js  lib/mpris.js  lib/tracksmenu.js  lib/vlcconfig.js
+lib/vlcremote.js
 ```
 
 `scripts/`, `docs/`, `README.md`, `CLAUDE.md`, `.claude/` and the screenshots
