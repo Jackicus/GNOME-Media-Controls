@@ -595,6 +595,9 @@ export const ControlBar = GObject.registerClass({
 
             this._rate.visible = p.hasRate && !this._hidden.includes('rate');
             this._rate.label = rateLabel(p.rate);
+            // The accessible name takes the label's place, so it says the
+            // value too; the sleep timer's likewise (_tick).
+            this._rate.accessible_name = `Playback speed: ${this._rate.label}`;
         } finally {
             this._syncing = false;
         }
@@ -625,6 +628,7 @@ export const ControlBar = GObject.registerClass({
             const text = this._sleepText();
             this._sleepLabel.text = text;
             this._sleepLabel.visible = !!text;
+            this._sleep.accessible_name = text ? `Sleep timer: ${text}` : 'Sleep timer';
         }
         if (!this._seeking) {
             this._syncing = true;
