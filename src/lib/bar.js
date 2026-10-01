@@ -27,6 +27,7 @@ import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
 
 import {RATES, formatTime} from './actions.js';
 import {Duration, Ease, RISE} from './anim.js';
+import {typeName} from './gtype.js';
 import {TracksMenu} from './tracksmenu.js';
 
 // The bar's width: most of a small monitor, less this on each side (logical
@@ -71,8 +72,9 @@ const clockTime = dateTime => formatClock(dateTime, {timeOnly: true}).trim();
 // shortfall, and the title gives the room. In a right-to-left locale the
 // row is mirrored, start on the right, as the boxes inside it are. The gap
 // between the three is the row's `spacing`, in em like the rest.
-const CentredRowLayout = GObject.registerClass(
-class CentredRowLayout extends Clutter.LayoutManager {
+const CentredRowLayout = GObject.registerClass({
+    GTypeName: typeName('CentredRowLayout'),
+}, class CentredRowLayout extends Clutter.LayoutManager {
     vfunc_get_preferred_width(container, forHeight) {
         const [start, centre, end] = container.get_children();
         const [cMin, cNat] = centre.get_preferred_width(forHeight);
@@ -169,6 +171,7 @@ function volumeIcon(volume) {
 }
 
 export const ControlBar = GObject.registerClass({
+    GTypeName: typeName('ControlBar'),
     Signals: {'action': {param_types: [GObject.TYPE_STRING]}},
 }, class ControlBar extends Clutter.Actor {
     // The actor itself only places the panel: the constraint sizes it to the

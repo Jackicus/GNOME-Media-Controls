@@ -49,6 +49,7 @@ src/lib/actions.js    pure data shared with prefs.js: ACTIONS, BAR_BUTTONS,
                       SLEEP_EPISODES, SUBTITLE_SHIFT_MS, and the helpers
                       over them (formatTime, playerNames, isIgnored, …)
 src/lib/anim.js       the only durations and curves
+src/lib/gtype.js      typeName(): our GObject type names, prefixed, apart per load
 src/lib/log.js        note(): `Attached to …` and the like, on only under
                       dev-extension.js (the shipped extension logs failures only)
 src/prefs.js          Bar / Players (with the VLC switches) / Controllers pages

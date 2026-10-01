@@ -18,6 +18,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {SUBTITLE_SHIFT_MS} from './actions.js';
+import {typeName} from './gtype.js';
 import {PausedError} from './vlcremote.js';
 
 // NO_DOT keeps an unpicked radio item lined up with the picked one's dot.
@@ -34,8 +35,9 @@ function formatDelay(ms) {
 // A menu row holding a label and a few buttons. The row itself is never
 // the thing activated; its buttons are, and the menu's focus group walks
 // between them with the arrow keys like any other items.
-const ButtonRow = GObject.registerClass(
-class ButtonRow extends PopupMenu.PopupBaseMenuItem {
+const ButtonRow = GObject.registerClass({
+    GTypeName: typeName('ButtonRow'),
+}, class ButtonRow extends PopupMenu.PopupBaseMenuItem {
     constructor(title) {
         super({activate: false, hover: false, can_focus: false, style_class: 'mc-menu-row'});
         this.label = new St.Label({
