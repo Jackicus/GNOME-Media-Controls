@@ -607,6 +607,18 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             });
             const monitor = new Manette.Monitor();
             const devices = new Map();
+            let connectedId = 0, disconnectedId = 0;
+            // Registered at once, so a throw below still lets the monitor go.
+            cleanup.add(() => {
+                if (connectedId)
+                    monitor.disconnect(connectedId);
+                if (disconnectedId)
+                    monitor.disconnect(disconnectedId);
+                for (const [device, id] of devices)
+                    device.disconnect(id);
+                devices.clear();
+                monitor.run_dispose();
+            });
 
             const describe = device => {
                 const kind = device.get_device_type?.() === Manette.DeviceType.STEAM_DECK ? 'Steam Deck · ' : '';
@@ -669,21 +681,16 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             const it = monitor.iterate();
             for (let [ok, device] = it.next(); ok; [ok, device] = it.next())
                 addDevice(device);
-            const connectedId = monitor.connect('device-connected', (_m, device) => addDevice(device));
-            const disconnectedId = monitor.connect('device-disconnected', (_m, device) => removeDevice(device));
+            connectedId = monitor.connect('device-connected', (_m, device) => addDevice(device));
+            disconnectedId = monitor.connect('device-disconnected', (_m, device) => removeDevice(device));
             showNoPads();
-
-            cleanup.add(() => {
-                monitor.disconnect(connectedId);
-                monitor.disconnect(disconnectedId);
-                for (const [device, id] of devices)
-                    device.disconnect(id);
-                devices.clear();
-                monitor.run_dispose();
-            });
-        }).catch(() => {
+        }, () => {
+            // Only the import itself: libmanette is not there.
             showPlaceholder('libmanette is not installed',
                 'Game controllers need it: the libmanette package on most distributions.');
+        }).catch(e => {
+            console.error('[Media Controls] Could not list controllers:', e);
+            showPlaceholder('Could not list controllers', GLib.markup_escape_text(e.message ?? String(e), -1));
         });
     }
 }
