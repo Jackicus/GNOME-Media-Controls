@@ -10,8 +10,9 @@ step.
 
 Requested: $ARGUMENTS
 
-1. `./scripts/nested.sh start --clean` (reuses one if running; opens the mirror window;
-   Media Controls is ACTIVE when it returns), then `./scripts/nested.sh player`.
+1. `./scripts/nested.sh start` (reuses one if running; opens the mirror window;
+   Media Controls is ACTIVE when it returns; its settings are its own, and
+   `--clean` resets them to the defaults), then `./scripts/nested.sh player`.
 2. In **one** `./scripts/nested.sh do …` call: `say`, two `move`s over the
    player to bring the bar up, anything requested above, then
    `shot <scratchpad>/bar.png 343 760 913 130`. Use `pad` for controller

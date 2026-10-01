@@ -14,9 +14,10 @@ two parts.
   `./scripts/nested.sh stop` sweeps.
 - **extension** — `ACTIVE` is healthy; `ERROR` means `enable()` threw
   (`/logs`); anything else after a `reload`, see `/logs` too.
-- **settings** — `its own (--clean)` is what tests use; `shared with the real
-  session` means a plain `start`, whose setting changes and reloads write the
-  user's real dconf.
+- **settings** — always its own, never the user's dconf: `kept between starts`
+  (a plain `start`; `start --clean` resets them) or `fresh for this run`
+  (`--stand-in`). VLC's vlcrc is in the same directory.
+- **data** — `your own` or `stand-in` (a scratch HOME, for screenshots).
 - **mirror** — open on the desktop, or closed (`./scripts/nested.sh mirror on`).
 - **players / controllers** (from `devices` under `run`) — the MPRIS players
   on the nested bus (`./scripts/nested.sh player` starts VLC there) and the pads
@@ -26,10 +27,11 @@ two parts.
 **Real session (read-only)**, from `./scripts/dev.sh status`, which only reads:
 
 - **install** — `link` means dev mode: the nested shell, and the real one at its
-  next login, run `src/` through `scripts/dev-extension.js`; `old-style
-  symlink` needs `make link` again; `copy` is a real install that won't pick up
-  edits until `make install` is re-run. The nested shell reads the same
-  install.
+  next login, run `src/` through `scripts/dev-extension.js`; `made before
+  dev-extension.json` or `old-style symlink` needs `make link` again (the user's
+  to run: it is their session's install); `copy` is a real install that won't
+  pick up edits until `make install` is re-run. The nested shell reads the same
+  install, except under `--stand-in`, which runs a copy of `src/`.
 - **state** — the extension's state in the user's own shell. It says nothing
   about the edits in progress, and is never fixed by reloading or enabling
   there: that is the user's to do.
