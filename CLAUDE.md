@@ -182,7 +182,8 @@ so turning the extension off gives VLC its controls back. With the setting
 off the file is never touched, so VLC's own choice stands. The shell does not
 disable on logout, shutdown or a crash, so a session that ends with the
 setting on leaves VLC's controls off until the next enable (or VLC's own
-preferences); and a nested shell's copy writes the real `~/.config/vlc`. `VlcRemote` connects
+preferences). A nested shell's copy writes its run directory's vlcrc, not
+the real one (see the nested shell's Gotchas). `VlcRemote` connects
 when a VLC is attached, and keeps the connection only if the socket's **peer
 credentials** are that VLC's pid and VLC then **answers** a harmless `atrack`
 (it serves one client at a time; a second connection is accepted by the kernel
@@ -400,7 +401,13 @@ The nested shell:
 - **VLC keeps a recent-media list and its volume in `~/.config/vlc`**, so
   `player` points VLC's `XDG_CONFIG_HOME`/`XDG_DATA_HOME` into the run
   directory, and sets that throwaway vlcrc up with `scripts/vlc-setup.js` (the
-  preferences' own code; `--plain` skips it). The socket path is the real one,
+  preferences' own code; `--plain` skips it). The nested session's own
+  `XDG_CONFIG_HOME` is a directory of links to the real one's entries (dconf
+  included, so settings behave as before) except `vlc`, which is that same
+  throwaway directory: the nested extension's `hide-vlc-controls` and the
+  nested preferences' switch reach the nested VLC, never `~/.config/vlc`.
+  When the extension is not installed, `start` links it with `dev.sh link
+  --no-enable`, which leaves the real shell alone. The socket path is the real one,
   so a VLC on the real desktop that holds it leaves the nested one without a
   tracks button — `player` warns.
 - **The nested shell's X11 display needs its own cookie.** `start` records the

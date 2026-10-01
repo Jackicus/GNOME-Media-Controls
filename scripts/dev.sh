@@ -2,7 +2,9 @@
 #
 # Media Controls development helper.
 #
-#   ./scripts/dev.sh link       link src/ into the extensions dir (dev mode)
+#   ./scripts/dev.sh link [--no-enable]
+#                               link src/ into the extensions dir (dev mode) and
+#                               enable it; --no-enable leaves the running shell alone
 #   ./scripts/dev.sh install    copy src/ into the extensions dir (real install)
 #   ./scripts/dev.sh reload     recompile schemas and disable/enable the extension
 #   ./scripts/dev.sh logs [since]  shell logs; follows unless given e.g. '5 min ago'
@@ -66,11 +68,14 @@ link_tree() {
     ln -s "$REPO_DIR/scripts/dev-extension.js" "$EXT_DIR/extension.js"
 }
 
+# --no-enable leaves the running shell alone: what nested.sh start uses, so
+# a nested session never enables (or reloads) it in the real one.
 cmd_link() {
     compile_schemas
     remove_installed
     link_tree
     ok "Linked $EXT_DIR → $SRC_DIR (entry point: scripts/dev-extension.js)"
+    [[ "${1:-}" == --no-enable ]] && return 0
     warn "Dev mode: edits in src/ are live. Run './scripts/dev.sh reload' to apply them."
     enable_extension
 }
@@ -266,7 +271,7 @@ usage() {
 }
 
 case "${1:-}" in
-    link)       cmd_link ;;
+    link)       cmd_link "${2:-}" ;;
     install)    cmd_install ;;
     reload)     cmd_reload ;;
     logs)       cmd_logs "${2:-}" ;;

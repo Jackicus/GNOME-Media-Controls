@@ -17,9 +17,10 @@
 #                                     play FILE (default: a generated test video) in VLC
 #                                     inside the nested shell, full screen, silent, with
 #                                     MPRIS on and VLC's own bar off; --qt uses VLC's Qt
-#                                     interface instead of cvlc. Its throwaway settings
-#                                     are set up as the preferences' VLC switches would
-#                                     (tracks socket on) unless --plain
+#                                     interface instead of cvlc. Its throwaway vlcrc gets
+#                                     the tracks socket (the Players page's switch) unless
+#                                     --plain; the nested shell's copy of the extension
+#                                     applies hide-vlc-controls to that file, not yours
 #   ./scripts/nested.sh mpris [METHOD [ARGS]|get PROP|set PROP VALUE]
 #                                     talk to the first MPRIS player on the nested bus:
 #                                     no argument prints its state; Quit ends it
@@ -82,6 +83,10 @@ GEOM_FILE="$RUN_DIR/geometry"
 X11_FILE="$RUN_DIR/x11-display"
 XAUTH_FILE="$RUN_DIR/x11-auth"
 PROFILE_FILE="$RUN_DIR/dconf-profile"
+# The nested session's XDG_CONFIG_HOME (setup_config_home), and the VLC
+# settings directory in it, which is also the one 'player' gives VLC.
+CONFIG_DIR="$RUN_DIR/config"
+VLC_CONFIG="$RUN_DIR/vlc/config"
 # --clean's database: ~/.config/dconf/<this>, written only by the nested
 # session's own dconf-service and deleted by 'stop'.
 # dconf names a database by a D-Bus object path element (/ca/desrt/dconf/
@@ -158,16 +163,18 @@ find_x11_auth() {
 # desktop -- and an X11 client (VLC's Qt interface) would open its window there.
 # DISPLAY is the nested Xwayland's, or unset if it has none, never the host's.
 # Under --clean, DCONF_PROFILE points everything at the private database too.
+# XDG_CONFIG_HOME is the session's own, as the shell has it.
 nested_env() {
-    local x11 xauth profile=()
+    local x11 xauth vars=()
     x11="$(cat "$X11_FILE" 2>/dev/null || true)"
     xauth="$(cat "$XAUTH_FILE" 2>/dev/null || true)"
-    [[ -s "$PROFILE_FILE" ]] && profile=(DCONF_PROFILE="$PROFILE_FILE")
+    [[ -s "$PROFILE_FILE" ]] && vars=(DCONF_PROFILE="$PROFILE_FILE")
+    [[ -d "$CONFIG_DIR" ]] && vars+=(XDG_CONFIG_HOME="$CONFIG_DIR")
     if [[ -n "$x11" && -n "$xauth" ]]; then
-        env "${profile[@]}" DBUS_SESSION_BUS_ADDRESS="$(nested_bus)" WAYLAND_DISPLAY="$WL_DISPLAY" \
+        env "${vars[@]}" DBUS_SESSION_BUS_ADDRESS="$(nested_bus)" WAYLAND_DISPLAY="$WL_DISPLAY" \
             DISPLAY="$x11" XAUTHORITY="$xauth" "$@"
     else
-        env -u DISPLAY "${profile[@]}" DBUS_SESSION_BUS_ADDRESS="$(nested_bus)" WAYLAND_DISPLAY="$WL_DISPLAY" "$@"
+        env -u DISPLAY "${vars[@]}" DBUS_SESSION_BUS_ADDRESS="$(nested_bus)" WAYLAND_DISPLAY="$WL_DISPLAY" "$@"
     fi
 }
 
@@ -196,6 +203,24 @@ setup_clean_profile() {
     dconf compile "$RUN_DIR/dconf-defaults" "$seed" || die "dconf could not compile the --clean defaults."
     printf 'user-db:%s\nfile-db:%s\n' "$CLEAN_DB" "$RUN_DIR/dconf-defaults" > "$PROFILE_FILE"
     remove_clean_db
+}
+
+# The nested session's XDG_CONFIG_HOME: a link to each entry of the real one
+# -- dconf above all, whose database clients read from there, so settings
+# behave exactly as before -- except vlc, which is the throwaway directory
+# 'player' gives VLC. The extension applies hide-vlc-controls to
+# $XDG_CONFIG_HOME/vlc/vlcrc at enable and disable, and the preferences' VLC
+# switch writes it too; with the real XDG_CONFIG_HOME inherited, a nested
+# enable or 'reload' rewrote the real VLC's settings behind the real
+# session's back. A file written at the top of this directory replaces its
+# link and goes with the run directory.
+setup_config_home() {
+    local real="${XDG_CONFIG_HOME:-$HOME/.config}" entry
+    mkdir -p "$CONFIG_DIR" "$VLC_CONFIG/vlc" "$real/dconf"
+    while IFS= read -r -d '' entry; do
+        ln -s "$entry" "$CONFIG_DIR/"
+    done < <(find "$real" -mindepth 1 -maxdepth 1 ! -name vlc -print0)
+    ln -s "$VLC_CONFIG/vlc" "$CONFIG_DIR/vlc"
 }
 
 remove_clean_db() {
@@ -260,9 +285,11 @@ cmd_start() {
 
     # Make sure the extension is installed before the shell scans for it, since a
     # nested shell only discovers UUIDs at startup -- same as the real one.
+    # --no-enable: the link alone, never an enable or reload of the real shell
+    # (which would list it in the real dconf); the nested one enables it below.
     if [[ ! -e "$HOME/.local/share/gnome-shell/extensions/$UUID" ]]; then
-        warn "$UUID is not installed; running 'make link' first."
-        "$REPO_DIR/scripts/dev.sh" link >/dev/null 2>&1 || true
+        warn "$UUID is not installed; linking it first (as 'make link', without enabling it here)."
+        "$REPO_DIR/scripts/dev.sh" link --no-enable >/dev/null 2>&1 || true
     fi
 
     # A run that died without a 'stop' left its run directory behind, and in it
@@ -276,10 +303,11 @@ cmd_start() {
     [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]] && echo "$CLAUDE_CODE_SESSION_ID" > "$OWNER_FILE"
 
     local mode_args=(--wayland --wayland-display "$WL_DISPLAY" --headless --virtual-monitor "$geometry")
-    local profile=()
+    setup_config_home
+    local profile=(XDG_CONFIG_HOME="$CONFIG_DIR")
     if (( clean )); then
         setup_clean_profile
-        profile=(DCONF_PROFILE="$PROFILE_FILE")
+        profile+=(DCONF_PROFILE="$PROFILE_FILE")
     fi
     # Last before the shell starts, since the shell is what creates the guard.
     # If the real shell's own is already there (it logged in under a minute
@@ -291,8 +319,8 @@ cmd_start() {
     # dbus-run-session creates the bus; we echo its address out so later commands
     # can address this shell specifically. DISPLAY is dropped so nothing the
     # nested session starts can reach the real desktop's Xwayland. The bus
-    # daemon hands its environment -- DCONF_PROFILE included -- to everything it
-    # activates, the prefs window among them.
+    # daemon hands its environment -- XDG_CONFIG_HOME and DCONF_PROFILE
+    # included -- to everything it activates, the prefs window among them.
     setsid env -u DISPLAY "${profile[@]}" dbus-run-session -- bash -c '
         echo "$DBUS_SESSION_BUS_ADDRESS" > "$1"
         exec gnome-shell "${@:2}"
@@ -630,21 +658,23 @@ cmd_player() {
     # nested bus address in its environment. Its config and data go under the
     # run directory: VLC's Qt interface otherwise puts the file at the top of
     # the user's own recent-media list, and remembers the volume it was left at.
-    mkdir -p "$RUN_DIR/vlc/config" "$RUN_DIR/vlc/data"
+    # Its vlcrc is the one the nested session's extension and preferences
+    # write (setup_config_home), so hide-vlc-controls reaches this VLC.
+    mkdir -p "$VLC_CONFIG" "$RUN_DIR/vlc/data"
     if (( ! plain )); then
         # The socket path is the real one ($XDG_RUNTIME_DIR is shared), and
         # the first VLC to start holds it: a VLC on the real desktop would
         # leave this one without a tracks button.
         [[ -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/media-controls-vlc.sock" ]] \
             && warn "Another VLC already holds the tracks socket; this one will have no tracks button."
-        XDG_CONFIG_HOME="$RUN_DIR/vlc/config" gjs -m "$REPO_DIR/scripts/vlc-setup.js" on >/dev/null \
+        XDG_CONFIG_HOME="$VLC_CONFIG" gjs -m "$REPO_DIR/scripts/vlc-setup.js" on >/dev/null \
             || warn "Could not write the throwaway VLC settings; no tracks socket."
     fi
     # Waited for as one more VLC on the bus than before, so a second player
     # (the two-player check) is waited for as the first was.
     local before waited=0
     before="$(vlc_count)"
-    nested_env XDG_CONFIG_HOME="$RUN_DIR/vlc/config" XDG_DATA_HOME="$RUN_DIR/vlc/data" \
+    nested_env XDG_CONFIG_HOME="$VLC_CONFIG" XDG_DATA_HOME="$RUN_DIR/vlc/data" \
         setsid "$vlc" "${args[@]}" "${extra[@]}" "$file" \
         >>"$RUN_DIR/player-log" 2>&1 < /dev/null &
     until (( $(vlc_count) > before )); do
