@@ -29,9 +29,9 @@ import {RATES, formatTime} from './actions.js';
 import {Duration, Ease, RISE} from './anim.js';
 import {TracksMenu} from './tracksmenu.js';
 
-// The bar's width: most of a small monitor, capped on a large one so the
-// slider stays a comfortable reach. Logical px.
-const MAX_WIDTH = 960;
+// The bar's width: most of a small monitor, less this on each side (logical
+// px), and capped on a large one by the panel's max-width, in em, so the
+// slider stays a comfortable reach.
 const SIDE_MARGIN = 32;
 // How often the running time is redrawn while the bar is up and playing.
 const TICK_MS = 250;
@@ -69,15 +69,10 @@ const clockTime = dateTime => formatClock(dateTime, {timeOnly: true}).trim();
 // cannot give: when their half is too small (the tracks and sleep buttons
 // both up, at a small size) the centre moves towards the start by the
 // shortfall, and the title gives the room. In a right-to-left locale the
-// row is mirrored, start on the right, as the boxes inside it are.
+// row is mirrored, start on the right, as the boxes inside it are. The gap
+// between the three is the row's `spacing`, in em like the rest.
 const CentredRowLayout = GObject.registerClass(
 class CentredRowLayout extends Clutter.LayoutManager {
-    constructor() {
-        super();
-        // The bar's size setting, as a factor.
-        this.scale = 1;
-    }
-
     vfunc_get_preferred_width(container, forHeight) {
         const [start, centre, end] = container.get_children();
         const [cMin, cNat] = centre.get_preferred_width(forHeight);
@@ -100,7 +95,7 @@ class CentredRowLayout extends Clutter.LayoutManager {
         const [start, centre, end] = container.get_children();
         const width = box.get_width();
         const height = box.get_height();
-        const gap = 12 * scaleFactor() * this.scale;
+        const gap = container.get_theme_node().get_length('spacing');
         const rtl = container.get_text_direction() === Clutter.TextDirection.RTL;
         const [, cNat] = centre.get_preferred_width(height);
         const cWidth = Math.min(cNat, width);
@@ -217,6 +212,9 @@ export const ControlBar = GObject.registerClass({
             track_hover: true,
         });
         this.add_child(this.panel);
+        // Its maximum width is in em, so it follows Large Text and the size
+        // setting as its contents do.
+        this.panel.connect('style-changed', () => this.setMonitor(this._monitorIndex));
         // Arrow keys walk the panel's buttons while it holds the keyboard.
         // The focus manager does that from the stage, which a key never
         // reaches while the panel holds the grab, so the panel asks it to
@@ -364,10 +362,9 @@ export const ControlBar = GObject.registerClass({
     }
 
     _buildControlRow() {
-        this._rowLayout = new CentredRowLayout();
         const row = new St.Widget({
             style_class: 'mc-control-row',
-            layout_manager: this._rowLayout,
+            layout_manager: new CentredRowLayout(),
             x_expand: true,
         });
 
@@ -468,15 +465,22 @@ export const ControlBar = GObject.registerClass({
         this.sync();
     }
 
-    // Onto the monitor the player is on, as wide as suits it.
+    // Onto the monitor the player is on, as wide as suits it. Off the stage
+    // the panel has no style to read its maximum from; the style-changed
+    // that follows its arrival there sets the width.
     setMonitor(index) {
         const monitor = Main.layoutManager.monitors[index];
         if (!monitor)
             return;
         this._monitorIndex = index;
         this._constraint.index = index;
-        const scale = scaleFactor();
-        this.panel.width = Math.min(monitor.width - 2 * SIDE_MARGIN * scale, MAX_WIDTH * scale * this._scale);
+        if (!this.panel.get_stage())
+            return;
+        let width = monitor.width - 2 * SIDE_MARGIN * scaleFactor();
+        const maxWidth = this.panel.get_theme_node().get_max_width();
+        if (maxWidth >= 0)
+            width = Math.min(width, maxWidth);
+        this.panel.width = width;
     }
 
     // The size setting, in percent. Every size in the stylesheet is in em,
@@ -486,8 +490,6 @@ export const ControlBar = GObject.registerClass({
         const style = percent === 100 ? null : `font-size: ${percent}%;`;
         this.panel.style = style;
         this.tracksMenu.actor.style = style;
-        this._rowLayout.scale = this._scale;
-        this._rowLayout.layout_changed();
         for (const [icon, size] of this._icons)
             icon.icon_size = Math.round(size * this._scale);
         this.tracksMenu.setIconSize(Math.round(ICON_SIZE * this._scale));

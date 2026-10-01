@@ -27,6 +27,9 @@
     padding: 0.818em 1.227em 0.682em;
     margin-bottom: 2em;
     spacing: 0.273em;
+    /* Most of a small monitor (bar.js setMonitor), capped on a large one so
+     * the slider stays a comfortable reach. */
+    max-width: 65.455em;
     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.4);
 }
 
@@ -95,6 +98,8 @@
 
 .mc-control-row {
     padding: 0 0.136em;
+    /* Between the title, the transport and the extras (CentredRowLayout). */
+    spacing: 0.818em;
 }
 
 .mc-transport,
