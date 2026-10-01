@@ -115,9 +115,10 @@ export function stepRate(rate, by, min = 0, max = Infinity) {
 }
 
 // "1:05:09" / "4:02" — hours only when there are any, as the shell's own
-// clocks and every player write a running time.
+// clocks and every player write a running time. A time that is not a number
+// (a malformed length or rate) is 0:00, not "NaN:NaN".
 export function formatTime(seconds) {
-    seconds = Math.max(0, Math.floor(seconds));
+    seconds = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
     const h = Math.floor(seconds / 3600);
     const m = Math.floor(seconds % 3600 / 60);
     const s = String(seconds % 60).padStart(2, '0');
