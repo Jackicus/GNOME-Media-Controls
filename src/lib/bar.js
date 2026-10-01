@@ -136,14 +136,15 @@ function iconButton(iconName, accessibleName, extraClass = '') {
 
 // Left and Right on a slider skip by the bar's own steps — seek-step and
 // volume-step — instead of the Slider's tenth of the whole. A signal handler
-// runs before the Slider's own key handling and stops the key there.
-function arrowKeys(slider, forward, back) {
+// runs before the Slider's own key handling and stops the key there. The
+// action is the bar's to emit: the Slider has no such signal.
+function arrowKeys(bar, slider, forward, back) {
     slider.connect('key-press-event', (_actor, event) => {
         const key = event.get_key_symbol();
         if (key !== Clutter.KEY_Right && key !== Clutter.KEY_Left)
             return Clutter.EVENT_PROPAGATE;
         const rtl = slider.get_text_direction() === Clutter.TextDirection.RTL;
-        slider.emit('action', (key === Clutter.KEY_Right) !== rtl ? forward : back);
+        bar.emit('action', (key === Clutter.KEY_Right) !== rtl ? forward : back);
         return Clutter.EVENT_STOP;
     });
 }
@@ -320,7 +321,7 @@ export const ControlBar = GObject.registerClass({
         // film — so it skips the way the rest of the panel does (_onScroll).
         // The arrow keys likewise (arrowKeys).
         this._seek.connect('scroll-event', (_actor, event) => this._onScroll(event));
-        arrowKeys(this._seek, 'seek-forward', 'seek-back');
+        arrowKeys(this, this._seek, 'seek-forward', 'seek-back');
     }
 
     // A scroll anywhere on the panel skips the way the buttons do: a wheel's
@@ -429,7 +430,7 @@ export const ControlBar = GObject.registerClass({
             if (!this._syncing)
                 this._player?.setVolume(this._volume.value);
         });
-        arrowKeys(this._volume, 'volume-up', 'volume-down');
+        arrowKeys(this, this._volume, 'volume-up', 'volume-down');
         this._rate = new St.Button({
             style_class: 'icon-button mc-button mc-rate',
             label: '1×',
