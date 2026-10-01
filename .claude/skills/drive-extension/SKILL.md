@@ -14,7 +14,7 @@ put the bar over, a virtual pad, and where everything is on its screen.
 ./scripts/nested.sh start --clean           # Media Controls is ACTIVE when it returns
 ./scripts/nested.sh player                  # VLC, full screen, the test clip (made once, in dist/)
 ./scripts/nested.sh do "say Showing the bar" "move 700 400" "move 760 430" "wait 0.5" \
-                       "shot $S/bar.png 300 760 1000 140"
+                       "shot $S/bar.png 343 760 913 130"
 ```
 
 Check what the player did with `./scripts/nested.sh mpris` (status, position,
@@ -53,15 +53,15 @@ installed `extension.js` link at it for one `start`, then point it back.
   With `edge`, the moves must land below y ≈ 720 (above y ≈ 180 with
   `bar-position` `top`, where the panel is `320,28` to `1280,120`). It hides
   `hide-delay` (3) s after the last movement unless paused.
-- **The bar:** panel `320,780` to `1280,872`; crop shots to `300 760 1000 140`.
-  Seek slider on y ≈ 803 from x ≈ 405 to 1195; `click 800 803` is the middle
-  of the clip. Transport on y ≈ 840: previous 708, skip back 750, **play 799**,
-  skip forward 850, next 891. **Tracks 1018** (when VLC's socket answered:
-  give it ~3 s after `player` or a `reload`), mute 1057, volume slider
-  1080–1160, rate 1194, **close 1240** (quits the player). At another
+- **The bar:** panel `363,778` to `1236,872`; crop shots to `343 760 913 130`.
+  Seek slider on y ≈ 800 from x ≈ 445 to 1155; `click 800 800` is the middle
+  of the clip. Transport on y ≈ 839: previous 706, skip back 748, **play 799**,
+  skip forward 851, next 894. **Tracks 972** (when VLC's socket answered:
+  give it ~3 s after `player` or a `reload`), mute 1015, volume slider
+  1038–1118, rate 1150, **close 1197** (quits the player). At another
   `bar-scale`, or with the sleep button on, read positions off a `shot` first.
-- **The pop-out** (`click 1018 841`) stands above the bar centred on the
-  tracks button, x ≈ 900–1140; its height depends on the file (the default
+- **The pop-out** (`click 972 839`) stands above the bar centred on the
+  tracks button, x ≈ 855–1090; its height depends on the file (the default
   clip's chapters add a row), so `shot` it and read the item rows off that
   before clicking one. An item's highlight follows the pointer, so park the
   pointer away from the pop-out before checking where the keyboard or pad
@@ -88,7 +88,7 @@ installed `extension.js` link at it for one `start`, then point it back.
 
 ## Never
 
-- **Close (1240) quits the player**, and **Escape reaches VLC** when the bar
+- **Close (1197) quits the player**, and **Escape reaches VLC** when the bar
   does not hold the keyboard: VLC's Escape leaves fullscreen, after which the
   bar (correctly) detaches. If a shot shows VLC in a window, that is why:
   `key f` or restart the player.
@@ -106,5 +106,13 @@ the README) with two audio tracks (Stereo, 5.1 Surround) and two subtitle
 tracks (English, Español), so the tracks pop-out has something to show. It is
 not in git: `make demo-clip` downloads the film and builds it with the
 captions in `docs/media/captions/`. Play it with
-`./scripts/nested.sh player docs/media/big-buck-bunny-demo.mkv`. The hero is a
-JPEG, the preference windows PNGs from `window`.
+`./scripts/nested.sh player docs/media/big-buck-bunny-demo.mkv -- --audio
+--aout=pulse --gain=0`: a file of its own plays with `--no-audio`, which leaves
+the pop-out with no audio track picked; `--gain=0` keeps the real sound server
+silent. Set its volume with `mpris set Volume '<0.6>'`. The published shots use
+the green accent (`run timeout 5 gsettings set org.gnome.desktop.interface
+accent-color green`, in `--clean`'s own database). The hero `bar.jpg` is the
+whole screen as a JPEG at 1:24, `bar-closeup.png` the bar's crop of it,
+`tracks.jpg` the crop `300 330 1000 570` with the pop-out open (Stereo and
+Español picked), and the preference windows PNGs from `window`;
+`prefs-controllers.png` needs a virtual pad (python-evdev).

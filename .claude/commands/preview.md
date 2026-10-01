@@ -14,7 +14,7 @@ Requested: $ARGUMENTS
    Media Controls is ACTIVE when it returns), then `./scripts/nested.sh player`.
 2. In **one** `./scripts/nested.sh do …` call: `say`, two `move`s over the
    player to bring the bar up, anything requested above, then
-   `shot <scratchpad>/bar.png 300 760 1000 140`. Use `pad` for controller
+   `shot <scratchpad>/bar.png 343 760 913 130`. Use `pad` for controller
    buttons and `mpris` to confirm what the player actually did.
 3. **Read the PNG** and describe what's actually on screen — layout, spacing,
    state of the buttons, anything visibly broken.
