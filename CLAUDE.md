@@ -174,8 +174,15 @@ as invalidated) and `Seeked`.
 timing and no chapters. VLC's C remote-control interface (`oldrc`) can listen on
 a Unix socket; `vlcconfig.js` turns it on in VLC's own settings file when the
 user flips the Players page's switch, at `$XDG_RUNTIME_DIR/media-controls-vlc.sock`
-(one path, since a settings file cannot name one per instance), together with
-the switch that turns VLC's own fullscreen controller off. `VlcRemote` connects
+(one path, since a settings file cannot name one per instance). VLC's own
+fullscreen controller is the `hide-vlc-controls` setting, which `app.js`
+applies to the file **only while the extension is on**: off at enable, back on
+at disable — except at a lock, which the unlock's enable would only undo —
+so turning the extension off gives VLC its controls back. With the setting
+off the file is never touched, so VLC's own choice stands. The shell does not
+disable on logout, shutdown or a crash, so a session that ends with the
+setting on leaves VLC's controls off until the next enable (or VLC's own
+preferences); and a nested shell's copy writes the real `~/.config/vlc`. `VlcRemote` connects
 when a VLC is attached, and keeps the connection only if the socket's **peer
 credentials** are that VLC's pid and VLC then **answers** a harmless `atrack`
 (it serves one client at a time; a second connection is accepted by the kernel

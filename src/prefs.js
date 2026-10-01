@@ -287,7 +287,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             description: 'Media players that speak MPRIS. The bar appears over the one whose fullscreen window has focus. VLC needs its D-Bus control on (--dbus); mpv needs mpv-mpris.',
         });
         page.add(running);
-        page.add(this._vlcGroup());
+        page.add(this._vlcGroup(settings));
 
         const ignoredGroup = new Adw.PreferencesGroup({title: 'Never shown over'});
         page.add(ignoredGroup);
@@ -451,42 +451,35 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
 
     // VLC's own settings file, for the two things only it can be told
     // (lib/vlcconfig.js): to keep its controller out of the way, and to open
-    // the socket the tracks pop-out talks to.
-    _vlcGroup() {
+    // the socket the tracks pop-out talks to. The first is a setting the
+    // extension applies to the file while it is on (app.js), so turning the
+    // extension off gives VLC its controller back; the second is written here.
+    _vlcGroup(settings) {
         const group = new Adw.PreferencesGroup({
             title: 'VLC',
             description: 'These change VLC\'s own settings, and apply from the next time VLC starts.',
         });
-        const state = readVlcState();
         const hide = new Adw.SwitchRow({
             title: 'Hide VLC\'s own fullscreen controls',
-            subtitle: 'So the bar is the only one over the video, however VLC was opened',
-            active: state.hideControls,
+            subtitle: 'While Media Controls is on, so the bar is the only one over the video. Turning the extension off brings them back',
         });
+        settings.bind('hide-vlc-controls', hide, 'active', Gio.SettingsBindFlags.DEFAULT);
         const tracks = new Adw.SwitchRow({
             title: 'Audio and subtitle tracks',
             subtitle: 'Lets the bar list and switch VLC\'s tracks and fix subtitle timing, over a private socket',
-            active: state.trackControl,
+            active: readVlcState().trackControl,
         });
         const failed = new Adw.ActionRow({title: 'Could not change VLC\'s settings', visible: false});
-        const write = changes => {
+        tracks.connect('notify::active', () => {
+            if (tracks.active === readVlcState().trackControl)
+                return;
             try {
-                const now = writeVlcState(changes);
-                hide.active = now.hideControls;
-                tracks.active = now.trackControl;
+                tracks.active = writeVlcState({trackControl: tracks.active}).trackControl;
                 failed.visible = false;
             } catch (e) {
                 failed.subtitle = GLib.markup_escape_text(`${vlcrcPath()}: ${e.message}`, -1);
                 failed.visible = true;
             }
-        };
-        hide.connect('notify::active', () => {
-            if (hide.active !== readVlcState().hideControls)
-                write({hideControls: hide.active});
-        });
-        tracks.connect('notify::active', () => {
-            if (tracks.active !== readVlcState().trackControl)
-                write({trackControl: tracks.active});
         });
         group.add(hide);
         group.add(tracks);

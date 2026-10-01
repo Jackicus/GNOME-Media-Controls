@@ -113,9 +113,12 @@ session bus and this one path.
 
 **Modifying another application's files: only on an explicit switch, and only
 these two lines.** `lib/vlcconfig.js`'s `writeVlcState()` edits
-`~/.config/vlc/vlcrc`, and is called only from `src/prefs.js` when a Players
-page VLC switch changes. It sets, under `[qt]`, `qt-fs-controller=0` (VLC's
-own fullscreen controller off) when "hide VLC's controls" is on; and, under
+`~/.config/vlc/vlcrc`. "Hide VLC's controls" is the `hide-vlc-controls`
+setting, which `src/lib/app.js` applies only while the extension is enabled
+and only when it is on: it sets, under `[qt]`, `qt-fs-controller=0` (VLC's
+own fullscreen controller off) at enable and puts it back at disable (not at
+a lock, which the unlock would undo), so disabling the extension gives VLC
+its controller back. The "tracks" switch is written by `src/prefs.js`: under
 `[core]`/`[oldrc]`, adds `oldrc` to `extraintf`, sets
 `rc-unix=$XDG_RUNTIME_DIR/media-controls-vlc.sock` and `rc-fake-tty=1` when
 "tracks" is on. Turning a switch off removes exactly what it added (or

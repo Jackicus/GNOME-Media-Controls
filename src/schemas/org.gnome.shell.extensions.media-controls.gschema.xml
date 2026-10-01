@@ -102,6 +102,12 @@
             <description>Lower-case names, matched against every name a player goes by: its desktop entry, its identity, and its bus name without the per-instance part (Chrome is "chromium" there). The browsers are here by default: a fullscreen video in one draws its own controls.</description>
         </key>
 
+        <key name="hide-vlc-controls" type="b">
+            <default>false</default>
+            <summary>Hide VLC's own fullscreen controls while the extension is on</summary>
+            <description>Turned off in VLC's settings file (qt-fs-controller) when the extension is enabled, and put back when it is disabled. VLC reads the file as it starts, so a change applies from the next VLC.</description>
+        </key>
+
         <!-- Game controllers -->
         <key name="gamepads" type="b">
             <default>true</default>

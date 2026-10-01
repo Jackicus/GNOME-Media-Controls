@@ -55,6 +55,7 @@ import {ControlBar} from './bar.js';
 import {Gamepads} from './gamepads.js';
 import {note} from './log.js';
 import {PlayerRegistry} from './mpris.js';
+import {readVlcState, writeVlcState} from './vlcconfig.js';
 import {VlcRemote} from './vlcremote.js';
 
 // How often the pointer is looked at while the user is active, in ms.
@@ -112,6 +113,8 @@ export class MediaControlsApp {
 
     _enable() {
         this._settings = this._extension.getSettings();
+        if (this._settings.get_boolean('hide-vlc-controls'))
+            this._setVlcControls(true);
 
         this._bar = new ControlBar();
         this._bar.connect('action', (_bar, action) => this.perform(action));
@@ -158,6 +161,7 @@ export class MediaControlsApp {
             'changed::show-clock', () => this._syncClock(),
             'changed::show-length', () => this._syncLength(),
             'changed::sleep-timer', () => this._syncSleep(),
+            'changed::hide-vlc-controls', () => this._setVlcControls(this._settings.get_boolean('hide-vlc-controls')),
             'changed::sleep-timer-mode', () => {
                 this._setSleep(null);
                 this._syncSleep();
@@ -197,6 +201,10 @@ export class MediaControlsApp {
             () => this._registry?.disconnectObject(this),
             () => this._registry?.disable(),
             () => this._bar?.destroy(),
+            // Last, so nothing above can stop VLC's controls coming back. Not
+            // at a lock: the unlock enables again, and no VLC starts between.
+            () => !Main.sessionMode.isLocked && this._settings?.get_boolean('hide-vlc-controls') &&
+                this._setVlcControls(false),
         ];
         for (const step of steps) {
             try {
@@ -212,6 +220,25 @@ export class MediaControlsApp {
         this._registry = null;
         this._bar = null;
         this._settings = null;
+    }
+
+    // ------------------------------------------------------------------
+    // VLC's own fullscreen controls
+    // ------------------------------------------------------------------
+    // The bar replaces them only while the extension is on: with
+    // `hide-vlc-controls` set they are turned off in vlcrc at enable and back
+    // on at disable (but not at a lock), so turning the extension off gives
+    // VLC its controller back from the next VLC. With it unset the file is
+    // never touched, so a choice made in VLC's own preferences stands. The
+    // shell does not disable on logout or shutdown: the file stays as it is
+    // until the next enable, or until VLC's own preferences change it.
+    _setVlcControls(hide) {
+        try {
+            if (readVlcState().hideControls !== hide)
+                writeVlcState({hideControls: hide});
+        } catch (e) {
+            console.error('[Media Controls] Could not change VLC\'s settings:', e);
+        }
     }
 
     // ------------------------------------------------------------------

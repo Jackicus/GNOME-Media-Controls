@@ -1,9 +1,12 @@
 // VLC's own settings file, and the two things this extension may change in
-// it — only when the user flips the switch for it in the preferences:
+// it — only when the user turns them on in the preferences:
 //
 //   hideControls   VLC's fullscreen controller off (`qt-fs-controller`), so
 //                  the bar is the only one over the video, however VLC was
-//                  started — from a file manager, a launcher, anything.
+//                  started — from a file manager, a launcher, anything. The
+//                  `hide-vlc-controls` setting; app.js turns it off here at
+//                  enable and back on at disable, so turning the extension
+//                  off gives VLC its controller back.
 //   trackControl   VLC's remote-control interface on a private socket, which
 //                  is how the bar lists and switches audio and subtitle
 //                  tracks and moves the subtitle timing: MPRIS has none of
@@ -13,7 +16,7 @@
 //                  `rc-fake-tty` is set, socket or not.
 //
 // Pure GLib/Gio, so prefs.js (outside the shell) and app.js (inside it, for
-// SOCKET_PATH) both import it.
+// SOCKET_PATH and hideControls) both import it.
 //
 // vlcrc is "name=value" lines under "[module]" headers, every default
 // written out commented ("#name=value"). A module's options are only read
