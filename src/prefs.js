@@ -67,6 +67,33 @@ class Cleanup {
     }
 }
 
+// Why vlcrc cannot be written, or null if nothing stands in the way: the file
+// if it is there, else the nearest folder it would be made in. The extension
+// writes `hide-vlc-controls` into it from the shell, where a failure reaches
+// only the journal, so this is what the preferences can show of it. A full
+// disk is not caught; a read-only file or folder is.
+function vlcrcUnwritable(path = vlcrcPath()) {
+    let file = Gio.File.new_for_path(path);
+    // Replacing the file writes its folder too: a temporary and a backup.
+    const checks = file.query_exists(null) ? [file, file.get_parent()] : [];
+    if (!checks.length) {
+        file = file.get_parent();
+        while (file && !file.query_exists(null))
+            file = file.get_parent();
+        checks.push(file);
+    }
+    for (const f of checks.filter(Boolean)) {
+        try {
+            const info = f.query_info('access::can-write', Gio.FileQueryInfoFlags.NONE, null);
+            if (!info.get_attribute_boolean('access::can-write'))
+                return `${f.get_path()} is not writable`;
+        } catch (e) {
+            return `${f.get_path()}: ${e.message}`;
+        }
+    }
+    return null;
+}
+
 function removeAllRows(group, rows) {
     for (const row of rows.splice(0))
         group.remove(row);
@@ -473,17 +500,29 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             active: readVlcState().trackControl,
         });
         const failed = new Adw.ActionRow({title: 'Could not change VLC\'s settings', visible: false});
+        // The tracks switch's own failed write, else whatever would stop the
+        // extension writing the hide switch, while that one is on.
+        let tracksError = null;
+        const showFailed = () => {
+            const problem = tracksError ?? (hide.active ? vlcrcUnwritable() : null);
+            failed.subtitle = GLib.markup_escape_text(problem ?? '', -1);
+            failed.visible = problem !== null;
+        };
+        hide.connect('notify::active', showFailed);
         tracks.connect('notify::active', () => {
             if (tracks.active === readVlcState().trackControl)
                 return;
             try {
                 tracks.active = writeVlcState({trackControl: tracks.active}).trackControl;
-                failed.visible = false;
+                tracksError = null;
             } catch (e) {
-                failed.subtitle = GLib.markup_escape_text(`${vlcrcPath()}: ${e.message}`, -1);
-                failed.visible = true;
+                tracksError = `${vlcrcPath()}: ${e.message}`;
+                // The file is as it was, and so is the switch.
+                tracks.active = readVlcState().trackControl;
             }
+            showFailed();
         });
+        showFailed();
         group.add(hide);
         group.add(tracks);
         group.add(failed);
