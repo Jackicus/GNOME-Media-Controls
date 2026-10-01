@@ -213,6 +213,15 @@ export class TracksMenu extends PopupMenu.PopupMenu {
             this.setSourceAlignment(Math.clamp((buttonX + buttonWidth / 2 - panelX - content.x1) / width, 0, 1));
     }
 
+    // Stand where the panel is now. The BoxPointer places itself from its
+    // source's transformed position only when it is laid out, which a
+    // translation of the bar (its arrival: bar.js reveal) does not cause;
+    // opened from a hidden bar, it stayed where the panel began its rise.
+    reposition() {
+        if (this.isOpen)
+            this.actor.queue_relayout();
+    }
+
     _syncDelay() {
         this._delay.text = formatDelay(this._remote?.subtitleDelay ?? 0);
     }

@@ -263,6 +263,8 @@ export const ControlBar = GObject.registerClass({
         this.tracksMenu = new TracksMenu(this.panel, this._tracks);
         this._menuManager = new PopupMenu.PopupMenuManager(this.panel);
         this._menuManager.addMenu(this.tracksMenu);
+        // The pop-out keeps to the panel as it rises (or drops) into place.
+        this.connect('notify::translation-y', () => this.tracksMenu.reposition());
         this.connect('destroy', () => this._onDestroy());
     }
 
