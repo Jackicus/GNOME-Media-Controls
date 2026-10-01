@@ -7,7 +7,8 @@
 // "<command>: returned <n> (<message>)"; `key` (a hotkey press) has no reply
 // at all. VLC also sends "status change: ( … )" lines whenever it likes,
 // which are read past — except a new input, which resets the subtitle timing
-// kept here.
+// kept here and forgets the track lists (`_last`, below): the next file's
+// tracks are its own.
 //
 // One socket path serves every VLC (it is set in VLC's settings, which
 // cannot name a per-instance path), and the first VLC to start holds it. So a
@@ -99,8 +100,11 @@ export class VlcRemote extends EventEmitter {
         // False once VLC was reached and ours but did not answer — busy
         // with a connection from before (app.js tries once more).
         this.answered = null;
-        // What VLC last listed while playing: {audio, subtitles, chapter}.
+        // What VLC last listed while playing this file: {audio, subtitles,
+        // chapter}. Null from each new input until it is read again.
         this._last = null;
+        // Counts new inputs, so a reading that spans one is not kept.
+        this._inputs = 0;
         // Where this extension has moved the subtitle timing to, in ms, since
         // the file started. VLC cannot be asked, so a change made with VLC's
         // own keys is not in it; VLC's on-screen message shows the truth.
@@ -159,9 +163,11 @@ export class VlcRemote extends EventEmitter {
     // What the bar asks
     // ------------------------------------------------------------------
     // {audio: [...], subtitles: [...], chapter: {current, count}} — fresh
-    // while playing, what was last read while paused (PausedError if nothing
-    // was).
+    // while playing, what was last read of this file while paused
+    // (PausedError if nothing was). A reading the file changed under is
+    // taken again, rather than kept half of one file and half of the next.
     async state() {
+        const input = this._inputs;
         const audioReply = await this._command('atrack');
         if (audioReply.includes(PAUSED)) {
             if (this._last)
@@ -171,6 +177,8 @@ export class VlcRemote extends EventEmitter {
         const audio = parseTracks(audioReply);
         const subtitles = parseTracks(await this._command('strack'));
         const chapter = await this._readChapter();
+        if (this._inputs !== input)
+            return this.state();
         this._last = {audio, subtitles, chapter};
         return this._last;
     }
@@ -331,8 +339,11 @@ export class VlcRemote extends EventEmitter {
     _onLine(line) {
         if (line.startsWith('status change:')) {
             if (line.includes('new input:')) {
+                this._inputs++;
+                this._last = null;
                 this.subtitleDelay = 0;
                 this.emit('changed');
+                this.emit('new-input');
             }
             return;
         }
