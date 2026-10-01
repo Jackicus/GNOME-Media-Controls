@@ -67,8 +67,9 @@ const clockTime = dateTime => formatClock(dateTime, {timeOnly: true}).trim();
 // buttons stay put however long the title is, and a long title ellipsizes
 // rather than pushing them over. The end holds buttons and a slider, which
 // cannot give: when their half is too small (the tracks and sleep buttons
-// both up, at a small size) the centre moves left by the shortfall, and the
-// title gives the room.
+// both up, at a small size) the centre moves towards the start by the
+// shortfall, and the title gives the room. In a right-to-left locale the
+// row is mirrored, start on the right, as the boxes inside it are.
 const CentredRowLayout = GObject.registerClass(
 class CentredRowLayout extends Clutter.LayoutManager {
     constructor() {
@@ -100,6 +101,7 @@ class CentredRowLayout extends Clutter.LayoutManager {
         const width = box.get_width();
         const height = box.get_height();
         const gap = 12 * scaleFactor() * this.scale;
+        const rtl = container.get_text_direction() === Clutter.TextDirection.RTL;
         const [, cNat] = centre.get_preferred_width(height);
         const cWidth = Math.min(cNat, width);
         let cX = Math.round((width - cWidth) / 2);
@@ -114,7 +116,9 @@ class CentredRowLayout extends Clutter.LayoutManager {
             const w = Math.min(natW, room);
             const [, natH] = child.get_preferred_height(w);
             const h = Math.min(natH, height);
-            const x = align === 'end' ? x2 - w : x1;
+            let x = align === 'end' ? x2 - w : x1;
+            if (rtl)
+                x = width - x - w;
             const y = Math.round((height - h) / 2);
             child.allocate(Clutter.ActorBox.new(box.x1 + x, box.y1 + y, box.x1 + x + w, box.y1 + y + h));
         };
