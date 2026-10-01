@@ -5,13 +5,13 @@ description: Run Media Controls in a throwaway nested GNOME Shell, mirrored live
 
 # Driving Media Controls in a nested shell
 
-**Read `gnome-ext:nested-shell` first**: the loop (`start --clean`, `do`,
-`reload`, `stop`), the steps, settings under `--clean`, the hot corner and the
-rest are there. This is what is particular to Media Controls: a player to
+**Read `gnome-ext:nested-shell` first**: the loop (`start`, `do`, `reload`,
+`stop`), the steps, its settings (its own, kept between starts; `--clean`
+resets them), the hot corner and the rest are there. This is what is particular to Media Controls: a player to
 put the bar over, a virtual pad, and where everything is on its screen.
 
 ```bash
-./scripts/nested.sh start --clean           # Media Controls is ACTIVE when it returns
+./scripts/nested.sh start                   # Media Controls is ACTIVE when it returns
 ./scripts/nested.sh player                  # VLC, full screen, the test clip (made once, in dist/)
 ./scripts/nested.sh do "say Showing the bar" "move 700 400" "move 760 430" "wait 0.5" \
                        "shot $S/bar.png 343 760 913 130"
@@ -24,17 +24,17 @@ volume, rate, title): the bar showing a pause is not the player pausing.
 
 | Command | Does |
 |---|---|
-| `player [--qt] [--windowed] [--plain] [FILE] [-- VLC ARGS]` | VLC in the nested session: cvlc by default, `--qt` for the Qt interface; full screen unless `--windowed`. No FILE = the generated 10-minute test pattern: running time burned in, audio Japanese/English, subtitles English "Second N"/Spanish "Segundo N" (one a second, so timing shows), a chapter every 2 min. Its throwaway vlcrc gets the tracks socket (the preferences' own code) unless `--plain`, which is how to check a VLC with no tracks button; it is also the vlcrc the nested extension applies `hide-vlc-controls` to (the real `~/.config/vlc` is never touched). Run it twice for two players. |
+| `player [--qt] [--windowed] [--plain] [FILE] [-- VLC ARGS]` | VLC in the nested session: cvlc by default, `--qt` for the Qt interface; full screen unless `--windowed`. No FILE = the generated 10-minute test pattern: running time burned in, audio Japanese/English, subtitles English "Second N"/Spanish "Segundo N" (one a second, so timing shows), a chapter every 2 min. Its vlcrc, the nested session's own (`.claude/rules/nested-shell.md`), gets the tracks socket (the preferences' own code) unless `--plain`, which is how to check a VLC with no tracks button; it is also the vlcrc the nested extension applies `hide-vlc-controls` to (the real `~/.config/vlc` is never touched). Run it twice for two players. |
 | `mpris` | The first player's PlaybackStatus, Position (µs), Volume, Rate, title |
 | `mpris get PROP` / `set PROP '<VALUE>'` / `METHOD [ARGS]` / `Quit` | Poke it directly (`set Volume '<0.8>'`, `PlayPause`, `Quit`). Quit players this way or by pid. |
 | `pad [HOLD] BUTTON...` | Plug in a virtual Xbox 360 pad, wait HOLD s (default 1.5) for libmanette to open it, press each BUTTON, unplug. Buttons are the `gamepad-buttons` ids: `south` `east` `west` `north` `dpad-left` `dpad-right` `dpad-up` `dpad-down` `left-shoulder` `right-shoulder` `left-trigger` `right-trigger` `select` `start` `mode` `left-stick` `right-stick`, any of them as `BUTTON:SECS` to hold it down (`dpad-right:2` scrubs forward), plus `wait:SECS`. |
-| `do` … `scroll X Y up\|down [N]` | A step beside the kit's: N wheel notches (the panel skips by `seek-step` per notch). |
-| `preview` | `start --clean`, the test clip, the bar up, a shot in `dist/preview.png` |
+| `do` … `scroll X Y up\|down [N]` | The kit's step; over the bar, the panel skips by `seek-step` per notch. |
+| `preview` | `start` (if none runs), the test clip, the bar up, a shot in `dist/preview.png` |
 | `logs` | `[Media Controls]` lines are ours; `Attached to <player> (pid N)` says which player the bar belongs to. |
 
 The preferences: `run gnome-extensions prefs media-controls@jackicus`. A shell
 started from a Claude Code session stops itself after 10 minutes with no
-`nested.sh` command (`MEDIA_CONTROLS_NESTED_IDLE=<seconds>` at `start`, `0` =
+`nested.sh` command (`NESTED_IDLE=<seconds>` at `start`, `0` =
 never).
 
 The nested shell runs the link's entry point, `scripts/dev-extension.js`; to
@@ -76,8 +76,8 @@ installed `extension.js` link at it for one `start`, then point it back.
   a fresh pad in (1.5 s), so for a walk with shots in between, open with `pad`
   and continue with `key` steps: the path is the same.
 - **Preferences** (`wait 2.5` after opening): a 640×800 window, centred in the
-  work area, so where it lands depends on the panels loaded. Under `--clean`
-  (stock top bar) its tabs are Bar (687,86), Players (800,86), Controllers
+  work area, so where it lands depends on the panels loaded. With only this
+  extension enabled (the nested default; stock top bar) its tabs are Bar (687,86), Players (800,86), Controllers
   (925,86); with other panels, take a `shot` and read them off before
   clicking. The first frame after a tab switch can carry redraw leftovers;
   `wait 1` before a `window` shot. A pad plugged in while Controllers is
@@ -100,7 +100,7 @@ installed `extension.js` link at it for one `start`, then point it back.
 
 ## README screenshots
 
-`docs/screenshots/`, taken under `--clean` at 1600×900 over
+`docs/screenshots/`, taken under `start --stand-in` at 1600×900 over
 `docs/media/big-buck-bunny-demo.mkv`: Big Buck Bunny (CC BY 3.0, credited in
 the README) with two audio tracks (Stereo, 5.1 Surround) and two subtitle
 tracks (English, Español), so the tracks pop-out has something to show. It is
@@ -111,7 +111,7 @@ captions in `docs/media/captions/`. Play it with
 the pop-out with no audio track picked; `--gain=0` keeps the real sound server
 silent. Set its volume with `mpris set Volume '<0.6>'`. The published shots use
 the green accent (`run timeout 5 gsettings set org.gnome.desktop.interface
-accent-color green`, in `--clean`'s own database). The hero `bar.jpg` is the
+accent-color green`, in the nested session's own settings). The hero `bar.jpg` is the
 whole screen as a JPEG at 1:24, `bar-closeup.png` the bar's crop of it,
 `tracks.jpg` the crop `300 330 1000 570` with the pop-out open (Stereo and
 Español picked), and the preference windows PNGs from `window`;

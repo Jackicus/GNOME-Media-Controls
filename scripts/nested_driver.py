@@ -6,6 +6,9 @@ the nested shell's private bus and exports NESTED_GEOMETRY / NESTED_RUN_DIR.
 Running it against your real session is pointless (and the name-ownership step
 below would fail there anyway).
 
+Copied from the GNOME-EXTENSIONS kit (template/scripts/nested_driver.py) by its
+scripts/sync.sh: change it there.
+
     nested_driver.py step CMD ARGS...       one step, argv form
     nested_driver.py batch "STEP" "STEP"... several steps over one connection
     nested_driver.py stream WIDTH HEIGHT VIEWER_CMD...
@@ -21,7 +24,7 @@ Steps:
     wait SECONDS           pause, e.g. for a workspace slide to finish
     shot [FILE [X Y W H]]  screenshot, optionally of one region only
     window FILE            screenshot of the focused window alone, frame
-                           included, its rounded corners left transparent
+                           and shadow included -- the preferences, say
     overview on|off        show/hide the Activities overview
 """
 
@@ -53,6 +56,12 @@ KEYSYMS = {
     "Page_Up": 0xFF55, "Page_Down": 0xFF56,
     "Super": 0xFFEB, "Super_L": 0xFFEB, "Alt": 0xFFE9, "Alt_L": 0xFFE9,
     "Control": 0xFFE3, "Ctrl": 0xFFE3, "Shift": 0xFFE1,
+    # F1..F12, for a shortcut that takes a function key.
+    **{f"F{n}": 0xFFBD + n for n in range(1, 13)},
+    # What a media remote sends (xkbcommon-keysyms.h).
+    "XF86OK": 0x10081160, "XF86Select": 0x1008FFA0, "XF86Back": 0x1008FF26,
+    "XF86HomePage": 0x1008FF18, "XF86Exit": 0x100810AE,
+    "XF86ChannelUp": 0x10081192, "XF86ChannelDown": 0x10081193,
 }
 
 
@@ -70,9 +79,10 @@ def _keysym(name):
 
 
 class Driver:
-    """One bus connection, one bus name and one input session for a whole batch:
-    a separate process per step would re-acquire the name, re-create the virtual
-    input devices, and pay the first-event workaround on every one.
+    """One bus connection, one bus name and one input session for a whole batch.
+
+    A process per step would re-acquire the name, re-create the virtual input
+    devices and pay the first-event workaround on every one of them.
     """
 
     def __init__(self):
@@ -176,8 +186,9 @@ class Driver:
 
     def ensure_desktop(self):
         """The nested shell boots into the overview, and the hot corner can throw it
-        back there; either way it covers the windows the bar is drawn over. Dismiss it
-        -- and only wait for the animation when there was something to dismiss."""
+        back there; either way it covers the desktop, where a shot or a click that
+        did not ask for the overview is aimed. Dismiss it -- and only wait for the
+        animation when there was something to dismiss."""
         if self._overview_wanted():
             return
         if self._overview_active():
@@ -413,15 +424,18 @@ def cmd_stream(width, height, viewer):
     argv = [a.replace("{node}", str(state["node"])) for a in viewer]
     proc = subprocess.Popen(argv)
 
-    loop = GLib.MainLoop()
+    # A loop of its own, not `loop` rebound: the five-second guard above is
+    # still pending when the node arrives early, and closes over the name —
+    # it would have quit this loop, and the mirror with it, at five seconds.
+    watching = GLib.MainLoop()
 
     def finish(*_):
-        loop.quit()
+        watching.quit()
         return GLib.SOURCE_REMOVE
 
     def viewer_alive():
         if proc.poll() is not None:     # the user closed the window
-            loop.quit()
+            watching.quit()
             return GLib.SOURCE_REMOVE
         return GLib.SOURCE_CONTINUE
 
@@ -435,7 +449,7 @@ def cmd_stream(width, height, viewer):
     signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, finish)
     signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, finish)
     GLib.timeout_add(300, viewer_alive)
-    loop.run()
+    watching.run()
 
     if proc.poll() is None:
         proc.terminate()

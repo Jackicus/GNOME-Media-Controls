@@ -1,37 +1,36 @@
 ---
 paths:
-  - "scripts/nested.sh"
-  - "scripts/nested_driver.py"
+  - "scripts/nested.d/*.sh"
+  - "scripts/ext.conf"
+  - "scripts/vlc-setup.js"
+  - "scripts/fakepad.py"
 ---
 
-# How this repository's nested shell keeps off the real session
+# VLC and the pad in this repository's nested shell
 
-What is generic (dconf sharing, `--clean`, `do`, `stop`) is the kit's
-`live-session.md` and `gnome-ext:nested-shell`; this is how `nested.sh` does it.
+`./scripts/nested.sh` is the kit's (its own settings, the X11 display and its
+cookie, `stop`'s sweep: `live-session.md` and `gnome-ext:nested-shell`). What is
+Media Controls' own is in `./scripts/nested.d/media-controls.sh`: `player`,
+`mpris`, `pad` and `preview`.
 
-- **`start --clean`**: its own profile (`DCONF_PROFILE`, handed to everything
-  the nested bus activates, the prefs window included) has a writable
-  `~/.config/dconf/media_controls_nested` over a read-only seed compiled at
-  start from the real session's look; `stop` deletes the writable one.
-- **The nested session's `XDG_CONFIG_HOME`** is a directory of links to the
-  real one's entries (dconf included, so settings behave as before) except
-  `vlc`, which is the throwaway directory `player` gives VLC: the nested
-  extension's `hide-vlc-controls` and the nested preferences' switch reach the
-  nested VLC, never `~/.config/vlc`. `player` also points VLC's
-  `XDG_DATA_HOME` into the run directory (VLC keeps a recent-media list and its
-  volume) and sets its vlcrc up with `scripts/vlc-setup.js` (the preferences'
-  own code; `--plain` skips it).
+- **VLC's settings are the nested session's own.** `player` runs VLC under
+  `nested_env`, whose `XDG_CONFIG_HOME` is `$(config_dir)` (kept under
+  `~/.local/state/gnome-extensions-nested/media-controls/config`, or the
+  stand-in's), so `$(config_dir)/vlc/vlcrc` is the file the nested extension
+  applies `hide-vlc-controls` to and the nested preferences' switches write;
+  `~/.config/vlc` is never touched. It sets that vlcrc up with
+  `./scripts/vlc-setup.js` (the preferences' own `vlcconfig.js`; `--plain` skips
+  it), and points VLC's `XDG_DATA_HOME` at `$RUN_DIR/vlc/data` (VLC keeps a
+  recent-media list and its volume there), which `stop` removes.
 - **The socket path is the real one** (`$XDG_RUNTIME_DIR` is shared), so a VLC
   on the real desktop that holds it leaves the nested one without a tracks
   button; `player` warns.
-- **Not installed**, `start` links it with `dev.sh link --no-enable`, which
-  leaves the real shell alone.
 - **VLC in the headless shell** has no GPU for Xwayland: its GL outputs fail
   and it plays on with no window, so `player` passes `--vout=xcb_x11
   --avcodec-hw=none`. Its dummy audio output reports volume 0 and ignores a
-  new one, so the generated clip carries *silent* tracks and plays through the
-  real sound server (`--aout=pulse`); any other file gets `--no-audio`.
-- **The nested X11 display needs its own cookie.** `start` records the display
-  (from the listening socket the nested gnome-shell holds) and the
-  `.mutter-Xwaylandauth.*` it wrote, `run`/`player` pass both, and `stop`
-  deletes that cookie, since nothing else does.
+  new one, so the generated clip (`dist/test-video.mkv`) carries *silent*
+  tracks and plays through the real sound server (`--aout=pulse`); any other
+  file gets `--no-audio`.
+- **The virtual pad is a real kernel device** (`./scripts/fakepad.py`, uinput):
+  the real session sees it while it is plugged in. `NESTED_STRAYS` names it, so
+  `stop` sweeps one left behind.

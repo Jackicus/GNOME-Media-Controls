@@ -21,9 +21,10 @@ The bar is drawn over a fullscreen window, so a change is verified only by
 looking at it in the nested shell: `gnome-ext:nested-shell` for the loop, then
 this repository's **`drive-extension` skill** for the bar's coordinates and its
 own commands: `player` (VLC full screen on a test clip with tracks and
-chapters), `mpris` (read or poke it), `pad` (a virtual Xbox pad). `stop` checks that
-nothing of the nested session survived (a prefs window once kept a nested shell
-alive after a `stop` that reported success) and says so if something did.
+chapters), `mpris` (read or poke it), `pad` (a virtual Xbox pad), `preview`.
+Its settings are its own, VLC's vlcrc too (`.claude/rules/nested-shell.md`).
+`lib/` is staged per shell and per edit, at
+`$XDG_RUNTIME_DIR/media-controls/shell-<pid>/lib-<checksum of its files>`.
 
 `/reload`, `/logs`, `/status` and `/preview` use the nested shell; `make reload` is
 the user's own session, theirs to run. `./scripts/dev.sh devices` lists the players
@@ -54,12 +55,11 @@ src/lib/log.js        note(): `Attached to …` and the like, on only under
 src/prefs.js          Bar / Players (with the VLC switches) / Controllers pages
 src/stylesheet.css    paint only, every size in em
 src/schemas/          org.gnome.shell.extensions.media-controls
-scripts/dev-extension.js  the development entry point `make link` installs
-scripts/dev.sh        link / install / reload / pack / schema / logs / status /
-                      devices / stalls / clean / uninstall
-scripts/nested.sh     the nested shell: start / player / do / pad / mpris / stop …
-scripts/nested_driver.py  the `do` steps: input and screenshots over the nested
-                      shell's RemoteDesktop/Screenshot
+scripts/dev.sh, nested.sh, nested_driver.py, dev-extension.js, kit.mk
+                      the kit's, synced by its scripts/sync.sh: change them there
+scripts/ext.conf      what the kit's scripts need to know about this extension
+scripts/dev.d/media-controls.sh     dev.sh's devices, stalls, the pads status line
+scripts/nested.d/media-controls.sh  nested.sh's player, mpris, pad, preview
 scripts/fakepad.py    the virtual Xbox pad `pad` plugs in (python-evdev)
 scripts/stallwatch.py, devices.js, vlc-setup.js  what `make stalls`, `dev.sh
                       devices` and nested `player` (vlcconfig.js from the CLI) run
@@ -76,14 +76,13 @@ to test.
 Area detail is in `.claude/rules/`, loaded with the files it covers: `bar.md`
 (the widget, its placement, keys and sizes), `mpris.md` (position, playlists),
 `vlc.md` (the remote, vlcrc, the pop-out), `gamepads.md` (libmanette, the
-virtual pad), `sleep-timer.md` (counting episodes), `nested-shell.md` (how
-`./scripts/nested.sh` keeps off the real session).
+virtual pad), `sleep-timer.md` (counting episodes), `nested-shell.md` (VLC and
+the pad in the nested shell).
 
 ## make check
 
-`make check` is everything that needs no shell, and what CI runs: `make lint`
-(ESLint; its present warnings are known, add none) and
-`./scripts/dev.sh schema` (`glib-compile-schemas --strict --dry-run`). No
+`make check` is what CI runs: `make lint` (ESLint; its present warnings are
+known, add none) and the schema under `--strict` (`EXT_CHECKS` is empty). No
 headless tests exist; behaviour is checked in the nested shell.
 
 ## How it fits together

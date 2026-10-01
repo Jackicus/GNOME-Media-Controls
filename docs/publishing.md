@@ -9,9 +9,11 @@ EGO [Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-gu
 make pack
 ```
 
-This runs `scripts/dev.sh pack` (see its comments for exactly what each step
-does): checks the schema with `glib-compile-schemas --strict --dry-run`,
-packs `src/` plus `lib/` and `LICENSE` with `gnome-extensions pack`, drops
+This runs `./scripts/dev.sh pack` (the kit's; see its comments for exactly what
+each step does): checks the schema with `glib-compile-schemas --strict --dry-run`,
+stages what ships (the entry points, metadata, stylesheet, schema XML, what
+`./scripts/ext.conf`'s `EXT_SHIP` names, `lib/*.js`, and `LICENSE`), packs that
+with `gnome-extensions pack`, drops
 `schemas/gschemas.compiled` if that `gnome-extensions` put one in (45 and
 older do; GNOME 44 and later compile the schema on install, so the zip never
 carries a compiled one), then checks the zip holds exactly the files that
@@ -138,8 +140,8 @@ under `org.gnome.shell.extensions.media-controls`.
 **Licensing: meets.** GPL-2.0-or-later, `LICENSE` at the repo root, packed by
 `make pack`.
 
-**Don't include unnecessary files: meets.** `scripts/dev.sh check_pack`
-fails the build on anything in the zip beyond the list above.
+**Don't include unnecessary files: meets.** `./scripts/dev.sh pack` fails
+the build on anything in the zip beyond the list above.
 
 **Use a linter: meets.** `make lint` runs ESLint with gjs.guide's
 configuration (`eslint.config.mjs`) over the whole repository (`src/` and

@@ -17,8 +17,10 @@ running, say so: its log goes with it at `stop`, and a fresh one starts at
 
 **The real session's journal**, read-only, only when the request is a time spec
 (`5 min ago`, `today`, `09:00`) or asks for the user's own desktop:
-`./scripts/dev.sh logs "<window>"`. Head the answer "real session (read-only)":
-it is what Media Controls did on the user's desktop, not in the nested shell.
+`./scripts/dev.sh logs "<window>"` (what `make logs SINCE='<window>'` runs; the
+preferences window's lines included). Head the answer "real session
+(read-only)": it is what Media Controls did on the user's desktop, not in the
+nested shell.
 
 Summarise rather than dump: how many enable/disable cycles (`Enabled from …`),
 which players the bar attached to (`Attached to … (pid N)`), which controllers
