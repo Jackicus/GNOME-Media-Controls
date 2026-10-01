@@ -2,7 +2,9 @@
 #
 # Media Controls development helper.
 #
-#   ./scripts/dev.sh link       link src/ into the extensions dir (dev mode)
+#   ./scripts/dev.sh link [--no-enable]
+#                               link src/ into the extensions dir (dev mode) and
+#                               enable it; --no-enable leaves the running shell alone
 #   ./scripts/dev.sh install    copy src/ into the extensions dir (real install)
 #   ./scripts/dev.sh reload     recompile schemas and disable/enable the extension
 #   ./scripts/dev.sh logs [since]  shell logs; follows unless given e.g. '5 min ago'
@@ -14,8 +16,9 @@
 #   ./scripts/dev.sh stalls [LOG]  watch for desktop freezes: shell main-loop
 #                                  stalls and processes stuck in the kernel,
 #                                  with timestamps
-#   ./scripts/dev.sh clean      remove the compiled schema and what the scripts
-#                               put in dist/ (the zip, the test clip, shots, logs)
+#   ./scripts/dev.sh clean      remove what the scripts put in dist/ (the zip, the
+#                               test clip, shots, logs) and the compiled schema,
+#                               unless a link install reads it
 #
 set -euo pipefail
 
@@ -65,11 +68,14 @@ link_tree() {
     ln -s "$REPO_DIR/scripts/dev-extension.js" "$EXT_DIR/extension.js"
 }
 
+# --no-enable leaves the running shell alone: what nested.sh start uses, so
+# a nested session never enables (or reloads) it in the real one.
 cmd_link() {
     compile_schemas
     remove_installed
     link_tree
     ok "Linked $EXT_DIR → $SRC_DIR (entry point: scripts/dev-extension.js)"
+    [[ "${1:-}" == --no-enable ]] && return 0
     warn "Dev mode: edits in src/ are live. Run './scripts/dev.sh reload' to apply them."
     enable_extension
 }
@@ -208,12 +214,24 @@ cmd_uninstall() {
     ok "Removed $EXT_DIR"
 }
 
-# Only what the scripts put in dist/.
+# Whether the installed extension reads its schemas from this src/ -- a link
+# install, either kind -- so the compiled schema here is what its
+# getSettings() opens at the next login or nested start.
+linked_here() {
+    [[ "$(readlink -f "$EXT_DIR/schemas" 2>/dev/null)" == "$(readlink -f "$SRC_DIR/schemas")" ]]
+}
+
+# Only what the scripts put in dist/, and the compiled schema unless a link
+# install reads it: without it enable() throws and the extension sits at ERROR.
 cmd_clean() {
-    rm -f "$SRC_DIR/schemas/gschemas.compiled"
+    if linked_here; then
+        info "Keeping the compiled schema: the link install at $EXT_DIR reads it."
+    else
+        rm -f "$SRC_DIR/schemas/gschemas.compiled"
+    fi
     rm -f "$REPO_DIR"/dist/*.shell-extension.zip "$REPO_DIR/dist/test-video.mkv" \
         "$REPO_DIR/dist/stalls.log" "$REPO_DIR"/dist/nested-*.png "$REPO_DIR/dist/preview.png"
-    ok "Cleaned the compiled schema and the scripts' files in dist/."
+    ok "Cleaned the scripts' files in dist/$(linked_here || echo ' and the compiled schema')."
 }
 
 # A freeze is over by the time anyone looks; this leaves a log of what stalled.
@@ -253,7 +271,7 @@ usage() {
 }
 
 case "${1:-}" in
-    link)       cmd_link ;;
+    link)       cmd_link "${2:-}" ;;
     install)    cmd_install ;;
     reload)     cmd_reload ;;
     logs)       cmd_logs "${2:-}" ;;
