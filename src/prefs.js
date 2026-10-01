@@ -5,7 +5,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 
-import {ACTIONS, BAR_BUTTONS, BUTTONS, buttonForCode, playerNames} from './lib/actions.js';
+import {ACTIONS, BAR_BUTTONS, BUTTONS, buttonForCode, normaliseName, playerNames} from './lib/actions.js';
 import {readVlcState, vlcrcPath, writeVlcState} from './lib/vlcconfig.js';
 
 const MPRIS_NAMESPACE = 'org.mpris.MediaPlayer2';
@@ -65,6 +65,33 @@ class Cleanup {
         this.add(() => object.disconnect(id));
         return id;
     }
+}
+
+// Why vlcrc cannot be written, or null if nothing stands in the way: the file
+// if it is there, else the nearest folder it would be made in. The extension
+// writes `hide-vlc-controls` into it from the shell, where a failure reaches
+// only the journal, so this is what the preferences can show of it. A full
+// disk is not caught; a read-only file or folder is.
+function vlcrcUnwritable(path = vlcrcPath()) {
+    let file = Gio.File.new_for_path(path);
+    // Replacing the file writes its folder too: a temporary and a backup.
+    const checks = file.query_exists(null) ? [file, file.get_parent()] : [];
+    if (!checks.length) {
+        file = file.get_parent();
+        while (file && !file.query_exists(null))
+            file = file.get_parent();
+        checks.push(file);
+    }
+    for (const f of checks.filter(Boolean)) {
+        try {
+            const info = f.query_info('access::can-write', Gio.FileQueryInfoFlags.NONE, null);
+            if (!info.get_attribute_boolean('access::can-write'))
+                return `${f.get_path()} is not writable`;
+        } catch (e) {
+            return `${f.get_path()}: ${e.message}`;
+        }
+    }
+    return null;
 }
 
 function removeAllRows(group, rows) {
@@ -306,9 +333,11 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         const ignoredRows = [];
 
         // Switching a player back on takes every name it goes by off the
-        // list; switching it off adds the first.
+        // list; switching it off adds the first. Entries are compared as
+        // app.js compares them, normalised, so a `VLC` or `vlc.desktop` set
+        // with gsettings is VLC's.
         const setIgnored = (names, ignored) => {
-            const list = settings.get_strv('ignored-players').filter(k => !names.includes(k));
+            const list = settings.get_strv('ignored-players').filter(k => !names.includes(normaliseName(k)));
             if (ignored)
                 list.push(names[0]);
             settings.set_strv('ignored-players', list);
@@ -317,6 +346,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         const fill = () => {
             removeAllRows(running, runningRows);
             const ignored = settings.get_strv('ignored-players');
+            const normalised = ignored.map(normaliseName);
             // One row per player process: VLC holds a second name per instance.
             const seen = new Set();
             const keys = new Set();
@@ -335,7 +365,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                     title: GLib.markup_escape_text(info.root.Identity || busName, -1),
                     subtitle: GLib.markup_escape_text(
                         [title ? `${status} · ${title}` : status, names.join(' · ')].join('\n'), -1),
-                    active: !names.some(n => ignored.includes(n)),
+                    active: !names.some(n => normalised.includes(n)),
                     subtitle_lines: 2,
                 });
                 row.connect('notify::active', () => setIgnored(names, !row.active));
@@ -352,13 +382,13 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             }
 
             removeAllRows(ignoredExpander, ignoredRows);
-            const notRunning = ignored.filter(k => !keys.has(k));
+            const notRunning = ignored.filter(k => !keys.has(normaliseName(k)));
             ignoredExpander.subtitle = notRunning.length
                 ? `${notRunning.length} not running now. Browsers are here by default: they draw their own controls.`
                 : 'None';
             for (const key of notRunning) {
                 const row = new Adw.SwitchRow({title: GLib.markup_escape_text(key, -1), active: false});
-                row.connect('notify::active', () => row.active && setIgnored([key], false));
+                row.connect('notify::active', () => row.active && setIgnored([normaliseName(key)], false));
                 ignoredExpander.add_row(row);
                 ignoredRows.push(row);
             }
@@ -470,17 +500,29 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             active: readVlcState().trackControl,
         });
         const failed = new Adw.ActionRow({title: 'Could not change VLC\'s settings', visible: false});
+        // The tracks switch's own failed write, else whatever would stop the
+        // extension writing the hide switch, while that one is on.
+        let tracksError = null;
+        const showFailed = () => {
+            const problem = tracksError ?? (hide.active ? vlcrcUnwritable() : null);
+            failed.subtitle = GLib.markup_escape_text(problem ?? '', -1);
+            failed.visible = problem !== null;
+        };
+        hide.connect('notify::active', showFailed);
         tracks.connect('notify::active', () => {
             if (tracks.active === readVlcState().trackControl)
                 return;
             try {
                 tracks.active = writeVlcState({trackControl: tracks.active}).trackControl;
-                failed.visible = false;
+                tracksError = null;
             } catch (e) {
-                failed.subtitle = GLib.markup_escape_text(`${vlcrcPath()}: ${e.message}`, -1);
-                failed.visible = true;
+                tracksError = `${vlcrcPath()}: ${e.message}`;
+                // The file is as it was, and so is the switch.
+                tracks.active = readVlcState().trackControl;
             }
+            showFailed();
         });
+        showFailed();
         group.add(hide);
         group.add(tracks);
         group.add(failed);
@@ -604,6 +646,18 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             });
             const monitor = new Manette.Monitor();
             const devices = new Map();
+            let connectedId = 0, disconnectedId = 0;
+            // Registered at once, so a throw below still lets the monitor go.
+            cleanup.add(() => {
+                if (connectedId)
+                    monitor.disconnect(connectedId);
+                if (disconnectedId)
+                    monitor.disconnect(disconnectedId);
+                for (const [device, id] of devices)
+                    device.disconnect(id);
+                devices.clear();
+                monitor.run_dispose();
+            });
 
             const describe = device => {
                 const kind = device.get_device_type?.() === Manette.DeviceType.STEAM_DECK ? 'Steam Deck · ' : '';
@@ -666,21 +720,16 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             const it = monitor.iterate();
             for (let [ok, device] = it.next(); ok; [ok, device] = it.next())
                 addDevice(device);
-            const connectedId = monitor.connect('device-connected', (_m, device) => addDevice(device));
-            const disconnectedId = monitor.connect('device-disconnected', (_m, device) => removeDevice(device));
+            connectedId = monitor.connect('device-connected', (_m, device) => addDevice(device));
+            disconnectedId = monitor.connect('device-disconnected', (_m, device) => removeDevice(device));
             showNoPads();
-
-            cleanup.add(() => {
-                monitor.disconnect(connectedId);
-                monitor.disconnect(disconnectedId);
-                for (const [device, id] of devices)
-                    device.disconnect(id);
-                devices.clear();
-                monitor.run_dispose();
-            });
-        }).catch(() => {
+        }, () => {
+            // Only the import itself: libmanette is not there.
             showPlaceholder('libmanette is not installed',
                 'Game controllers need it: the libmanette package on most distributions.');
+        }).catch(e => {
+            console.error('[Media Controls] Could not list controllers:', e);
+            showPlaceholder('Could not list controllers', GLib.markup_escape_text(e.message ?? String(e), -1));
         });
     }
 }
