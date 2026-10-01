@@ -130,7 +130,12 @@ export class TracksMenu extends PopupMenu.PopupMenu {
     setRemote(remote) {
         this._remote?.disconnectObject(this);
         this._remote = remote;
-        this._remote?.connectObject('changed', () => this._syncDelay(), this);
+        // A new file's tracks are not the lists on show: the pop-out goes,
+        // to be opened onto the new ones.
+        this._remote?.connectObject(
+            'changed', () => this._syncDelay(),
+            'new-input', () => this.close(),
+            this);
         if (!remote)
             this.close();
     }
