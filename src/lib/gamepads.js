@@ -102,11 +102,13 @@ export class Gamepads {
     _pressed(device, event) {
         if (this._settings.get_strv('ignored-gamepads').includes(device.get_guid()))
             return;
+        // Any press ends a repeat, a button outside the standard positions
+        // (a paddle, say) as well.
+        this._stopRepeat();
         const [ok, code] = event.get_button();
         const button = ok ? buttonForCode(code) : null;
         if (!button)
             return;
-        this._stopRepeat();
         const action = this._settings.get_value('gamepad-buttons').deep_unpack()[button.id] ?? 'none';
         const again = this._onButton(button.id, action);
         if (again)
