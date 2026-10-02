@@ -1,7 +1,4 @@
-// Lines that say what the extension is doing: which player the bar attached
-// to, which controllers came and went. The shipped extension logs only
-// failures; the development entry point, scripts/dev-extension.js, turns
-// these on.
+// Development log lines: only the development entry point turns them on.
 
 let verbose = false;
 

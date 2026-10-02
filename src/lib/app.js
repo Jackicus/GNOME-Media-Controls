@@ -1,43 +1,5 @@
-// Media Controls: a bar the shell draws over a fullscreen video player.
-//
-// Three questions decide everything here, and each has one answer:
-//
-// Which player?  The one that owns the focused window, when that window is
-//   fullscreen (`_update`). A player is matched to its window by process id
-//   first — the bus tells us whose connection a player is, the window says
-//   whose it is — and by desktop entry after that, for a sandboxed player
-//   whose bus connection goes through a proxy. With two players running, the
-//   one you are looking at is the one you get; with no fullscreen player
-//   focused, the bar is not attached to anything and nothing here reacts.
-//   Players named in `ignored-players` (the browsers, by default: they draw
-//   their own controls) are never matched.
-//
-// When is it seen?  When the pointer moves over the player (`pointer-reveal`
-//   `anywhere`, as VLC's own fullscreen controller does) or near the edge the
-//   bar is on (`edge`); when the `toggle-bar` key is pressed, which also
-//   gives it the keyboard; when a pad button does something; and when the
-//   player pauses, seeks or changes file by itself. It goes after
-//   `hide-delay` seconds unless the pointer is on it, it has the keyboard, its
-//   pop-out is open, a slider is being dragged, or — with `stay-while-paused`
-//   — the player is paused. The pointer is watched with the shell's
-//   PointerWatcher, which polls only while the user is active and takes no
-//   input away from the video.
-//
-// How is it above the video?  It is chrome (`Main.layoutManager.addChrome`)
-//   with `trackFullscreen` off, which is the default: chrome sits in uiGroup
-//   above every window, and only actors that ask to (the top bar) hide over a
-//   fullscreen one. While it is up it turns unredirection off, as the OSD does.
-//
-// Beyond MPRIS: a VLC whose settings open its remote-control socket
-// (vlcconfig.js) also gets the audio-and-subtitles pop-out (vlcremote.js,
-// tracksmenu.js), connected only once the socket's owner is the attached
-// player's own process. The pad can move around the bar: while it holds the
-// focus — opened with Start (`navigate`), the key, or with the pop-out up — the
-// d-pad and the bottom and right buttons are pressed as the arrow keys,
-// Return and Escape on a virtual keyboard, so the pad drives exactly what the
-// keyboard drives. Those keys are only ever pressed while the bar holds the
-// grab, so they can never reach the player. The sleep timer and the clock
-// are settings, off by default.
+// Which player the bar is attached to (the focused fullscreen one), when the
+// bar is seen, and what each action does.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -58,20 +20,13 @@ import {PlayerRegistry} from './mpris.js';
 import {readVlcState, writeVlcState} from './vlcconfig.js';
 import {VlcRemote} from './vlcremote.js';
 
-// How often the pointer is looked at while the user is active, in ms.
 const POINTER_INTERVAL = 100;
-// `edge` counts this much of the monitor's height as the edge.
 const EDGE_FRACTION = 0.2;
-// A VLC without its socket is asked again at most this often, in seconds, as
-// the bar comes up: it may have been set up since, or still be starting.
+// Seconds before a VLC without a socket is tried again as the bar comes up.
 const REMOTE_RETRY = 10;
-// The sleep timer pauses this far before the end of the last file it counts,
-// so a player that exits at the end of its file stays open, paused.
+// Seconds before the end: a player that exits at the end of its file stays open.
 const SLEEP_END_MARGIN = 0.5;
-// A file left this near its end, or nearer, was watched — one of the sleep
-// timer's episodes; one left further back was skipped. Wide enough for the
-// reckoning to have fallen behind a player that ran fast, and for the
-// credits.
+// A file left this near its end was watched: room for the credits and a lagging reckoning.
 const SLEEP_WATCHED_MARGIN = 30;
 
 const clock = () => GLib.get_monotonic_time() / 1e6;
@@ -99,9 +54,7 @@ export class MediaControlsApp {
         this._sleepId = 0;
     }
 
-    // The shell never disables an extension whose enable() threw, so a failure
-    // halfway would leave the bar, the key binding and the signals behind until
-    // a restart: take down what was built, then fail as the shell expects.
+    // The shell never disables after a throwing enable(): take down what was built.
     enable() {
         try {
             this._enable();
@@ -123,8 +76,7 @@ export class MediaControlsApp {
         this._bar.setScale(this._settings.get_int('bar-scale'));
         this._syncPosition();
         this._syncButtons();
-        // No params: trackFullscreen is off by default, which is the point,
-        // and 48's affectsInputRegion (default on) is gone by 50.
+        // trackFullscreen stays off (the default), so the bar is shown over fullscreen windows.
         Main.layoutManager.addChrome(this._bar);
 
         this._registry = new PlayerRegistry();
@@ -135,10 +87,8 @@ export class MediaControlsApp {
                     this._setSleep(null);
                 this._queueUpdate();
             },
-            // A player's pid arrives after it does, and its desktop entry
-            // with its properties; either can be what matches it. Once one
-            // is attached, only a pid can take its place: the window's own,
-            // arriving after another player matched it by desktop entry.
+            // Once a player is attached, only the window's own pid, arriving
+            // late, may replace one matched by desktop entry.
             'changed', (_registry, player) => {
                 if (!this._player ||
                     (player.pid && player.pid === this._window?.get_pid() && this._player.pid !== player.pid))
@@ -181,9 +131,7 @@ export class MediaControlsApp {
         this._update();
     }
 
-    // Safe on a half-done enable(), and each step on its own: one that throws
-    // must not leave the rest standing — a bar and handlers left behind by a
-    // disable that stopped halfway keep running beside the next enable's.
+    // Each step on its own, so one that throws cannot leave the rest running.
     disable() {
         const steps = [
             () => Main.wm.removeKeybinding('toggle-bar'),
@@ -204,8 +152,7 @@ export class MediaControlsApp {
             () => this._registry?.disconnectObject(this),
             () => this._registry?.disable(),
             () => this._bar?.destroy(),
-            // Last, so nothing above can stop VLC's controls coming back. Not
-            // at a lock: the unlock enables again, and no VLC starts between.
+            // Not at a lock: the unlock enables again, and no VLC starts between.
             () => !Main.sessionMode.isLocked && this._settings?.get_boolean('hide-vlc-controls') &&
                 this._setVlcControls(false),
         ];
@@ -225,16 +172,6 @@ export class MediaControlsApp {
         this._settings = null;
     }
 
-    // ------------------------------------------------------------------
-    // VLC's own fullscreen controls
-    // ------------------------------------------------------------------
-    // The bar replaces them only while the extension is on: with
-    // `hide-vlc-controls` set they are turned off in vlcrc at enable and back
-    // on at disable (but not at a lock), so turning the extension off gives
-    // VLC its controller back from the next VLC. With it unset the file is
-    // never touched, so a choice made in VLC's own preferences stands. The
-    // shell does not disable on logout or shutdown: the file stays as it is
-    // until the next enable, or until VLC's own preferences change it.
     _setVlcControls(hide) {
         try {
             if (readVlcState().hideControls !== hide)
@@ -244,11 +181,7 @@ export class MediaControlsApp {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Which player
-    // ------------------------------------------------------------------
-    // Several things can change at once (focus moves as the overview hides);
-    // they are settled together on the next idle.
+    // Focus moves as the overview hides: such changes are settled together.
     _queueUpdate() {
         if (this._updateId)
             return;
@@ -267,8 +200,7 @@ export class MediaControlsApp {
         this._attach(player, player ? window : null);
     }
 
-    // The focused window can go fullscreen, leave it or close without the
-    // focus moving.
+    // The focused window can change fullscreen or close without the focus moving.
     _watchWindow(window) {
         if (window === this._watched)
             return;
@@ -316,9 +248,6 @@ export class MediaControlsApp {
         let status = player.status;
         let url = player.url;
         player.connectObject(
-            // What the player does by itself is shown: a pause (by a remote's
-            // media key, say) brings the bar up and keeps it there, a new file
-            // flashes it, and playing again lets it go.
             'changed', () => {
                 if (player.status !== status || player.url !== url) {
                     status = player.status;
@@ -330,14 +259,10 @@ export class MediaControlsApp {
             this);
         this._syncPointerWatch();
         this._connectRemote(player);
-        // Paused already when it came into focus: say so.
         if (player.status === 'Paused')
             this._reveal();
     }
 
-    // ------------------------------------------------------------------
-    // When it is seen
-    // ------------------------------------------------------------------
     _reveal() {
         if (!this._player)
             return;
@@ -353,7 +278,6 @@ export class MediaControlsApp {
     }
 
     _conceal() {
-        // The bar closes its pop-out, and the pop-out's own grab, first.
         this._bar.conceal();
         this._ungrab();
         if (this._hideId) {
@@ -426,9 +350,6 @@ export class MediaControlsApp {
         this._bar.setButtons(this._settings.get_string('previous-next'), this._settings.get_strv('hidden-buttons'));
     }
 
-    // The key (and the pad's `navigate`) opens the bar holding the keyboard,
-    // so the arrow keys walk its buttons and Escape — or the key again — puts
-    // it away. The grab is the popup tier the shell's own menus use.
     _toggleFocus() {
         if (this._grab)
             this._conceal();
@@ -441,8 +362,7 @@ export class MediaControlsApp {
             return;
         this._reveal();
         this._grab = Main.pushModal(this._bar.panel, {actionMode: Shell.ActionMode.POPUP});
-        // While the panel holds the grab, a press anywhere reaches it; one
-        // that landed outside it puts the bar away, as a popup menu goes.
+        // Under the grab every press reaches the panel; one outside it closes the bar.
         this._pressId = this._bar.panel.connect('button-press-event', (actor, event) => {
             if (!actor.contains(global.stage.get_event_actor(event)))
                 this._conceal();
@@ -461,11 +381,7 @@ export class MediaControlsApp {
         this._grab = null;
     }
 
-    // ------------------------------------------------------------------
-    // What it does
-    // ------------------------------------------------------------------
-    // One vocabulary (actions.js ACTIONS) for the bar's buttons, the pads and
-    // anything else that asks. Returns whether a player was there to ask.
+    // Returns whether a player was there to ask.
     perform(action) {
         const p = this._player;
         if (!p)
@@ -491,9 +407,7 @@ export class MediaControlsApp {
             break;
         case 'navigate': this._toggleFocus(); return true;
         case 'tracks': this._openTracks(); return true;
-        // These leave the bar where it is: subtitles are drawn along the
-        // foot of the picture, under the bar, and are what is being watched
-        // while they are timed. VLC says what changed in its own message.
+        // No reveal: the subtitles being timed are under the bar.
         case 'cycle-audio': this._remote?.cycleAudio(); return true;
         case 'cycle-subtitles': this._remote?.cycleSubtitles(); return true;
         case 'subtitles-earlier': this._remote?.shiftSubtitles(-SUBTITLE_SHIFT_MS); return true;
@@ -502,7 +416,6 @@ export class MediaControlsApp {
             if (!this._settings.get_boolean('sleep-timer'))
                 return false;
             this._cycleSleep();
-            // Nothing on the player changed, so the bar is told itself.
             this._bar.sync();
             break;
         default: return false;
@@ -511,8 +424,6 @@ export class MediaControlsApp {
         return true;
     }
 
-    // Quit over MPRIS where the player allows it; otherwise ask its window
-    // to close, the way its own close button would.
     _quit() {
         const window = this._window;
         this._conceal();
@@ -522,12 +433,7 @@ export class MediaControlsApp {
             window?.delete(global.get_current_time());
     }
 
-    // ------------------------------------------------------------------
-    // Tracks
-    // ------------------------------------------------------------------
-    // VLC's remote-control socket, when this VLC opened one. A first attempt
-    // that finds VLC still busy with the connection before it (a reload, a
-    // shell restart) is tried once more a moment later.
+    // A VLC still busy with a connection from before (a reload) gets one retry.
     _connectRemote(player, retry = true) {
         this._dropRemote();
         if (!player?.pid || !playerNames(player).includes('vlc'))
@@ -560,9 +466,7 @@ export class MediaControlsApp {
         });
     }
 
-    // Closed before anything else, so a VLC is never left holding a
-    // connection nobody reads: it serves only one. A retry still pending is
-    // for this player, and goes too.
+    // VLC serves one client, so the connection is closed before anything else.
     _dropRemote() {
         if (this._remoteRetryId) {
             GLib.source_remove(this._remoteRetryId);
@@ -577,31 +481,19 @@ export class MediaControlsApp {
         this._bar?.setRemote(null);
     }
 
-    // VLC lists its tracks only while playing (vlcremote.js), so they are read
-    // whenever there is a chance — connecting, the bar coming up — for the
-    // pop-out to have them if it is opened paused.
+    // VLC lists tracks only while playing: read them for a pop-out opened paused.
     _readTracks() {
         if (this._remote && this._player?.playing)
             this._remote.state().catch(() => {});
     }
 
-    // With the keyboard or the pad in charge the pop-out takes the focus, so
-    // its lists can be walked the same way; from the mouse it just opens.
-    // Without a remote there is no tracks button, and only the bar comes up.
     _openTracks() {
         this._reveal();
         this._bar.openTracks({focus: !!this._grab});
     }
 
-    // ------------------------------------------------------------------
-    // The pad
-    // ------------------------------------------------------------------
-    // Returns what to do again while the button is held (gamepads.js
-    // repeats it until that returns false), or null: an arrow key, a skip, a
-    // volume step. Which of the two a d-pad button is doing is settled at the
-    // press — an arrow goes on only while the bar or its pop-out holds the
-    // focus, an action only while neither does — so a hold never turns from
-    // moving the highlight into seeking. Either ends with the player.
+    // Returns what to repeat while held, or null. Decided at the press: an arrow
+    // while the bar holds the focus, an action otherwise.
     _onPadButton(button, action) {
         const player = this._player;
         if (!player)
@@ -620,7 +512,6 @@ export class MediaControlsApp {
                 return true;
             };
         }
-        // The pop-out from the pad is walked with the pad.
         if (action === 'tracks' && this._remote)
             this._enterFocus();
         if (!this.perform(action) || !repeats(action))
@@ -628,8 +519,7 @@ export class MediaControlsApp {
         return () => this._player === player && !(key && navigating()) && this.perform(action);
     }
 
-    // The on-screen keyboard's way of pressing a key. Only called while the
-    // bar or its pop-out holds the grab, so the key lands on them.
+    // Only called while the bar or its pop-out holds the grab, so the key lands there.
     _pressKey(keyval) {
         if (!this._keyboard) {
             const seat = Clutter.get_default_backend().get_default_seat();
@@ -640,10 +530,6 @@ export class MediaControlsApp {
         this._keyboard.notify_keyval(time, keyval, Clutter.KeyState.RELEASED);
     }
 
-    // ------------------------------------------------------------------
-    // Clock and sleep timer
-    // ------------------------------------------------------------------
-    // The 12/24-hour setting is the shell's formatting's to read (bar.js).
     _syncClock() {
         this._bar.setClock(this._settings.get_boolean('show-clock'));
     }
@@ -655,10 +541,6 @@ export class MediaControlsApp {
         this._bar.setSleep(on ? () => this._sleepText() : null);
     }
 
-    // The timer belongs to the player it was set on: it outlives a moment's
-    // change of focus, and shows on that player's bar alone. It runs either
-    // for `minutes`, or for `episodes`: files, this one counted, of which
-    // the minutes' end-of-file step is one.
     _sleepText() {
         const sleep = this._sleep;
         if (!sleep || sleep.player !== this._player)
@@ -670,11 +552,6 @@ export class MediaControlsApp {
         return `${Math.max(1, Math.ceil((sleep.until - clock()) / 60))} min`;
     }
 
-    // Off, then each step in turn, then off again. A timer set on another
-    // player counts as off here, and is replaced. The end of the file is no
-    // step for a stream, which has none; the episodes go up from however
-    // many are left, and are no step either for a stream, or a player that
-    // names no file (no url) to count by.
     _cycleSleep() {
         const mine = this._sleep?.player === this._player ? this._sleep : null;
         if (this._settings.get_string('sleep-timer-mode') === 'episodes') {
@@ -693,7 +570,6 @@ export class MediaControlsApp {
             this._setSleep(step === 'end' ? {episodes: 1} : {minutes: step});
     }
 
-    // `{minutes}`, `{episodes}`, or null for off.
     _setSleep(timer) {
         if (this._sleepId) {
             GLib.source_remove(this._sleepId);
@@ -707,8 +583,6 @@ export class MediaControlsApp {
         const player = this._player;
         this._sleep = {...timer, player, url: player.url, signals: []};
         if (timer.episodes) {
-            // Wherever the end moves to: a seek, a pause, another rate, the
-            // next file.
             this._sleep.signals = [
                 player.connect('changed', () => this._sleepPlayerChanged()),
                 player.connect('seeked', () => this._armSleepEnd()),
@@ -724,14 +598,8 @@ export class MediaControlsApp {
         }
     }
 
-    // Another file is one episode done, if the one before was watched to
-    // its end; one skipped with Next or Previous is not, and the count moves
-    // on to the new file as it stands. The last one pauses just before it
-    // ends (_armSleepEnd); should that be missed — a player running ahead of
-    // the reckoning — the file after it pauses as it begins, rather than
-    // play on. A player between files may name none for a moment, which is no
-    // file, and the first url of all (the timer set as a file opened) is
-    // where the count starts, not a new file.
+    // A new file counts one episode unless the one before was skipped. A
+    // player between files may name none for a moment.
     _sleepPlayerChanged() {
         const sleep = this._sleep;
         const {url, lastFile} = sleep.player;
@@ -763,9 +631,6 @@ export class MediaControlsApp {
         });
     }
 
-    // Pause, and leave it at that: the pause brings the bar up and keeps it
-    // there, and once the player stops holding the screen awake GNOME's own
-    // blank-screen delay takes it from there.
     _sleepEnded() {
         const player = this._sleep?.player;
         this._setSleep(null);

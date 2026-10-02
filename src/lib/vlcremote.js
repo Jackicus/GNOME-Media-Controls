@@ -1,39 +1,6 @@
-// VLC's remote-control socket: the tracks, the subtitle timing and the
-// chapters, none of which MPRIS carries. VLC only opens it when its settings
-// say so (vlcconfig.js), so for any other VLC — and any other player — the
-// bar simply has no tracks button.
-//
-// The protocol is lines of text. A command's reply ends with a line
-// "<command>: returned <n> (<message>)"; `key` (a hotkey press) has no reply
-// at all. VLC also sends "status change: ( … )" lines whenever it likes,
-// which are read past — except a new input, which resets the subtitle timing
-// kept here and forgets the track lists (`_last`, below): the next file's
-// tracks are its own.
-//
-// One socket path serves every VLC (it is set in VLC's settings, which
-// cannot name a per-instance path), and the first VLC to start holds it. So a
-// connection is only kept once the socket's peer credentials say it is the
-// VLC whose window the bar is attached to; with two VLCs open, the second has
-// no tracks button rather than a menu for the wrong one. And VLC serves one
-// client at a time — a second connection is accepted by the kernel and then
-// never answered — so a connection only counts once VLC has answered a
-// harmless `atrack` on it.
-//
-// While playback is paused VLC answers almost everything with "Press pause to
-// continue." — tracks and chapters included — but still takes hotkey
-// presses. So the lists read while playing are kept (`_last`), a paused menu
-// shows those, and a track is picked while paused by pressing VLC's own
-// cycle hotkey as many times as it takes to get from the current one to it
-// (VLC cycles in the order it lists them: audio skipping Disable, subtitles
-// through Off).
-//
-// Every call is asynchronous and cancelled by close(), or by the connection
-// being lost. A reply that has not come in REPLY_TIMEOUT_MS ends the
-// connection: replies are matched to commands by their verb, so a late one
-// would be taken for the next command's. Either way the socket is closed
-// there and then: one left open keeps its place in VLC's queue, and once VLC
-// serves it no later connection is answered. The bar reconnects the next
-// time it comes up.
+// VLC's oldrc remote-control socket: lines of text, a reply ending in
+// "<command>: returned". Paused, VLC answers "Press pause to continue." to
+// almost everything but still takes hotkeys, so the lists read while playing are kept.
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -46,7 +13,7 @@ const REPLY_TIMEOUT_MS = 2000;
 const PAUSED = 'Press pause to continue.';
 const encoder = new TextEncoder();
 
-// VLC lists no tracks while paused, and none have been read before.
+// Paused before any tracks were read.
 export class PausedError extends Error {}
 // VLC's own subtitle-delay hotkeys move it by 50 ms a press.
 const SUBTITLE_STEP_MS = 50;
@@ -69,7 +36,7 @@ function trackLabel(raw) {
     return `${title} · ${language}`;
 }
 
-// The body of an `atrack`/`strack` reply: "| <id> - <name>[ *]" lines.
+// "| <id> - <name>[ *]" lines of an atrack or strack reply.
 function parseTracks(lines) {
     const tracks = [];
     for (const line of lines) {
@@ -97,22 +64,17 @@ export class VlcRemote extends EventEmitter {
         this._queue = [];
         this._writes = [];
         this._closed = false;
-        // False once VLC was reached and ours but did not answer — busy
-        // with a connection from before (app.js tries once more).
+        // False when VLC was ours but busy with a connection from before.
         this.answered = null;
-        // What VLC last listed while playing this file: {audio, subtitles,
-        // chapter}. Null from each new input until it is read again.
+        // {audio, subtitles, chapter} as last read while playing this file.
         this._last = null;
-        // Counts new inputs, so a reading that spans one is not kept.
         this._inputs = 0;
-        // Where this extension has moved the subtitle timing to, in ms, since
-        // the file started. VLC cannot be asked, so a change made with VLC's
-        // own keys is not in it; VLC's on-screen message shows the truth.
+        // In ms. VLC cannot be asked, so changes made with VLC's own keys are not in it.
         this.subtitleDelay = 0;
     }
 
-    // Resolves true once connected to the VLC with process id `pid`. (Not
-    // `connect`: that is the signal method connectObject builds on.)
+    // Resolves true once connected to the VLC with process id `pid`. Not
+    // `connect`, which connectObject builds on.
     open(pid) {
         return new Promise(resolve => {
             const client = new Gio.SocketClient();
@@ -153,19 +115,13 @@ export class VlcRemote extends EventEmitter {
         });
     }
 
-    // Safe to call more than once, and after the connection was lost.
     close() {
         this._shut();
         this._fail(new Error('closed'));
     }
 
-    // ------------------------------------------------------------------
-    // What the bar asks
-    // ------------------------------------------------------------------
-    // {audio: [...], subtitles: [...], chapter: {current, count}} — fresh
-    // while playing, what was last read of this file while paused
-    // (PausedError if nothing was). A reading the file changed under is
-    // taken again, rather than kept half of one file and half of the next.
+    // {audio, subtitles, chapter}: fresh while playing, the last reading while
+    // paused. Read again if the file changed meanwhile.
     async state() {
         const input = this._inputs;
         const audioReply = await this._command('atrack');
@@ -183,7 +139,7 @@ export class VlcRemote extends EventEmitter {
         return this._last;
     }
 
-    // {current, count}, VLC counting from 0; only answered while playing.
+    // VLC counts from 0, and answers only while playing.
     async _readChapter() {
         const match = (await this._command('chapter')).join('\n').match(/chapter (\d+)\/(\d+)/);
         return match ? {current: Number(match[1]), count: Number(match[2])} : {current: 0, count: 0};
@@ -200,7 +156,8 @@ export class VlcRemote extends EventEmitter {
     async _setTrack(kind, command, hotkey, id) {
         const reply = await this._command(`${command} ${id}`);
         if (reply.includes(PAUSED)) {
-            // Audio cycling skips Disable; subtitle cycling goes through Off.
+            // Press VLC's cycle hotkey until it gets there. Audio cycling skips
+            // Disable; subtitle cycling goes through Off.
             const list = (this._last?.[kind] ?? []).filter(t => kind !== 'audio' || t.id !== -1);
             const from = list.findIndex(t => t.current);
             const to = list.findIndex(t => t.id === id);
@@ -213,8 +170,7 @@ export class VlcRemote extends EventEmitter {
             track.current = track.id === id;
     }
 
-    // Move the subtitles by `ms` (a multiple of SUBTITLE_STEP_MS), later
-    // for positive. VLC shows its own "Subtitle delay" message as it goes.
+    // Positive `ms` is later, in steps of SUBTITLE_STEP_MS.
     shiftSubtitles(ms) {
         const steps = Math.round(ms / SUBTITLE_STEP_MS);
         const key = steps > 0 ? 'key-subdelay-up' : 'key-subdelay-down';
@@ -230,7 +186,6 @@ export class VlcRemote extends EventEmitter {
         this.emit('changed');
     }
 
-    // VLC's own track hotkeys: they cycle, and VLC says which it landed on.
     cycleAudio() {
         this._send('key key-audio-track');
     }
@@ -239,8 +194,7 @@ export class VlcRemote extends EventEmitter {
         this._send('key key-subtitle-track');
     }
 
-    // Resolves to the chapter it landed on: VLC's word while playing, the
-    // count moved on by one while paused, when VLC cannot be asked.
+    // Paused, VLC cannot be asked where it landed: the count is moved on here.
     async chapter(delta) {
         const reply = await this._command(delta > 0 ? 'chapter_n' : 'chapter_p');
         if (!reply.includes(PAUSED)) {
@@ -256,11 +210,7 @@ export class VlcRemote extends EventEmitter {
         return chapter ?? null;
     }
 
-    // ------------------------------------------------------------------
-    // The line protocol
-    // ------------------------------------------------------------------
-    // Lines go out one after another: a GIO stream refuses a second write
-    // while one is pending, and two hotkey presses come at once.
+    // One write at a time: a GIO stream refuses a second while one is pending.
     _send(text) {
         if (!this._output)
             return;
@@ -290,7 +240,7 @@ export class VlcRemote extends EventEmitter {
         });
     }
 
-    // Commands go one at a time, each waiting for its "returned" line.
+    // One command at a time: replies are matched to commands by verb.
     _command(text) {
         return new Promise((resolve, reject) => {
             if (!this._connection) {
@@ -361,9 +311,6 @@ export class VlcRemote extends EventEmitter {
         }
     }
 
-    // VLC went away, the connection broke, or VLC stopped answering.
-    // The socket is closed here, and the read waiting on it cancelled:
-    // close(), which follows, finds nothing left to do.
     _lost(error = new Error('VLC closed the connection')) {
         if (this._closed || !this._connection)
             return;
@@ -372,8 +319,7 @@ export class VlcRemote extends EventEmitter {
         this.emit('lost');
     }
 
-    // Nothing runs on this object after this: what is in flight is
-    // cancelled, and the socket is closed, freeing VLC for its next client.
+    // Closing at once frees VLC for its next client.
     _shut() {
         this._closed = true;
         this._cancellable.cancel();

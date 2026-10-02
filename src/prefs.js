@@ -11,7 +11,6 @@ import {readVlcState, vlcrcPath, writeVlcState} from './lib/vlcconfig.js';
 const MPRIS_NAMESPACE = 'org.mpris.MediaPlayer2';
 const MPRIS_PATH = '/org/mpris/MediaPlayer2';
 const PROPERTIES = 'org.freedesktop.DBus.Properties';
-// How long a pressed button stays lit on the Controllers page.
 const FLASH_MS = 1200;
 
 const POSITIONS = [
@@ -36,9 +35,7 @@ const REVEALS = [
     {id: 'never', title: 'Never'},
 ];
 
-// What the preferences hold open — bus subscriptions, the pad monitor,
-// timers — goes when the window does. The window belongs to the Extensions
-// app, which outlives it.
+// What outlives the window (bus subscriptions, the pad monitor, timers) goes when it closes.
 class Cleanup {
     constructor(window) {
         this._jobs = [];
@@ -51,8 +48,7 @@ class Cleanup {
         });
     }
 
-    // A job added once the window has closed runs at once: what it cleans up
-    // was made after the close (an import that resolved late).
+    // A job added after the close runs at once (an import that resolved late).
     add(job) {
         if (this.closed)
             job();
@@ -67,14 +63,11 @@ class Cleanup {
     }
 }
 
-// Why vlcrc cannot be written, or null if nothing stands in the way: the file
-// if it is there, else the nearest folder it would be made in. The extension
-// writes `hide-vlc-controls` into it from the shell, where a failure reaches
-// only the journal, so this is what the preferences can show of it. A full
-// disk is not caught; a read-only file or folder is.
+// Why vlcrc cannot be written, or null. The extension writes it from the shell,
+// where a failure reaches only the journal.
 function vlcrcUnwritable(path = vlcrcPath()) {
     let file = Gio.File.new_for_path(path);
-    // Replacing the file writes its folder too: a temporary and a backup.
+    // Replacing the file writes its folder too.
     const checks = file.query_exists(null) ? [file, file.get_parent()] : [];
     if (!checks.length) {
         file = file.get_parent();
@@ -109,9 +102,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         window.add(this._controllersPage(settings, cleanup));
     }
 
-    // ------------------------------------------------------------------
-    // Bar
-    // ------------------------------------------------------------------
     _barPage(window, settings, cleanup) {
         const page = new Adw.PreferencesPage({title: 'Bar', icon_name: 'video-display-symbolic'});
 
@@ -166,8 +156,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         return page;
     }
 
-    // The bar's size, as a slider: the whole bar and its pop-out scale
-    // together, for a television across the room.
     _scaleRow(settings) {
         const row = new Adw.ActionRow({
             title: 'Size',
@@ -189,7 +177,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         return row;
     }
 
-    // Which buttons are on the bar, folded away: most people keep them all.
     _buttonsRow(settings, cleanup) {
         const row = new Adw.ExpanderRow({
             title: 'Buttons',
@@ -217,7 +204,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         return row;
     }
 
-    // A string setting with a few choices ({id, title}), as a drop-down.
     _choiceRow(settings, cleanup, key, choices, title, subtitle) {
         const row = new Adw.ComboRow({title, subtitle, model: Gtk.StringList.new(choices.map(c => c.title))});
         const sync = () => {
@@ -266,10 +252,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         return row;
     }
 
-    // The next key combination pressed becomes the shortcut. Escape cancels
-    // and Backspace turns it off, as in Settings → Keyboard. The shell takes
-    // the keys it has bound itself before this window sees them — the current
-    // shortcut included, while the extension is on.
+    // As in Settings → Keyboard: Escape cancels, Backspace turns the shortcut off.
     _captureShortcut(window, settings, key) {
         const dialog = new Adw.AlertDialog({
             heading: 'Set Shortcut',
@@ -300,12 +283,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         dialog.present(window);
     }
 
-    // ------------------------------------------------------------------
-    // Players
-    // ------------------------------------------------------------------
-    // The players on the bus now, read the way the extension reads them —
-    // property reads only, never a method call on a player — each with a
-    // switch for whether the bar appears over it.
     _playersPage(settings, cleanup) {
         const page = new Adw.PreferencesPage({title: 'Players', icon_name: 'multimedia-player-symbolic'});
 
@@ -332,10 +309,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         const runningRows = [];
         const ignoredRows = [];
 
-        // Switching a player back on takes every name it goes by off the
-        // list; switching it off adds the first. Entries are compared as
-        // app.js compares them, normalised, so a `VLC` or `vlc.desktop` set
-        // with gsettings is VLC's.
+        // Compared normalised, as app.js does: on removes every name, off adds the first.
         const setIgnored = (names, ignored) => {
             const list = settings.get_strv('ignored-players').filter(k => !names.includes(normaliseName(k)));
             if (ignored)
@@ -479,11 +453,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         return page;
     }
 
-    // VLC's own settings file, for the two things only it can be told
-    // (lib/vlcconfig.js): to keep its controller out of the way, and to open
-    // the socket the tracks pop-out talks to. The first is a setting the
-    // extension applies to the file while it is on (app.js), so turning the
-    // extension off gives VLC its controller back; the second is written here.
     _vlcGroup(settings) {
         const group = new Adw.PreferencesGroup({
             title: 'VLC',
@@ -500,8 +469,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             active: readVlcState().trackControl,
         });
         const failed = new Adw.ActionRow({title: 'Could not change VLC\'s settings', visible: false});
-        // The tracks switch's own failed write, else whatever would stop the
-        // extension writing the hide switch, while that one is on.
+        // The tracks switch's failed write, else what would stop the extension writing the hide switch.
         let tracksError = null;
         const showFailed = () => {
             const problem = tracksError ?? (hide.active ? vlcrcUnwritable() : null);
@@ -529,9 +497,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         return group;
     }
 
-    // ------------------------------------------------------------------
-    // Controllers
-    // ------------------------------------------------------------------
     _controllersPage(settings, cleanup) {
         const page = new Adw.PreferencesPage({title: 'Controllers', icon_name: 'input-gaming-symbolic'});
 
@@ -570,7 +535,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         return page;
     }
 
-    // One action picker per button, in the order of the standard layout.
     _buttonRows(settings, cleanup, group) {
         const rows = new Map();
         const titles = Gtk.StringList.new(ACTIONS.map(a => a.title));
@@ -600,9 +564,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         return rows;
     }
 
-    // The pads plugged in, live. The preferences read them with libmanette as
-    // the extension does, so what is listed is what the bar hears; a press
-    // lights up the pad's row and the button's row below.
+    // Read with libmanette as the extension does, so what is listed is what the bar hears.
     _watchPads(settings, cleanup, group, buttonRows) {
         const rows = new Map();
         let placeholder = null;
@@ -685,8 +647,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                     const [ok, code] = event.get_button();
                     const button = ok ? buttonForCode(code) : null;
                     const pressed = button ? button.title : `Button ${event.get_hardware_code()} (not mapped)`;
-                    // Two lines, as the row's own subtitle has, so the page
-                    // does not jump while it is lit.
+                    // Two lines, as the row's own subtitle, so the page does not jump.
                     flash(row, () => {
                         row.subtitle = GLib.markup_escape_text(`Pressed: ${pressed}\n${guid}`, -1);
                         row.add_css_class('accent');

@@ -1,42 +1,14 @@
-// VLC's own settings file, and the two things this extension may change in
-// it — only when the user turns them on in the preferences:
-//
-//   hideControls   VLC's fullscreen controller off (`qt-fs-controller`), so
-//                  the bar is the only one over the video, however VLC was
-//                  started — from a file manager, a launcher, anything. The
-//                  `hide-vlc-controls` setting; app.js turns it off here at
-//                  enable and back on at disable, so turning the extension
-//                  off gives VLC its controller back.
-//   trackControl   VLC's remote-control interface on a private socket, which
-//                  is how the bar lists and switches audio and subtitle
-//                  tracks and moves the subtitle timing: MPRIS has none of
-//                  that. `oldrc` is VLC's C interface (the one that can listen
-//                  on a Unix socket; plain `rc` picks the Lua one, which
-//                  cannot), and it refuses to start without a terminal unless
-//                  `rc-fake-tty` is set, socket or not.
-//
-// Pure GLib/Gio, so prefs.js (outside the shell) and app.js (inside it, for
-// SOCKET_PATH and hideControls) both import it.
-//
-// vlcrc is "name=value" lines under "[module]" headers, every default
-// written out commented ("#name=value"). A module's options are only read
-// under that module's header — `rc-fake-tty` anywhere but under [oldrc] is
-// ignored — so a value is set by uncommenting its line in place, which VLC
-// wrote in the right section, or, in a file without the line, added under its
-// module's header (made if missing). VLC only reads the file
-// as it starts — a change applies from the next VLC — and a VLC that was
-// already running rewrites the file from what it read if its own preferences
-// are saved.
+// VLC's settings file (vlcrc) and the two switches this extension may change in
+// it. Pure GLib and Gio: prefs.js imports it too.
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
-// $XDG_RUNTIME_DIR is private to the user (0700), so the socket is too. It
-// has to be short: a Unix socket path is at most 107 bytes.
+// A Unix socket path is at most 107 bytes; $XDG_RUNTIME_DIR is short and private.
 export const SOCKET_PATH = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'media-controls-vlc.sock']);
 
 const RC_MODULE = 'oldrc';
-// The section each option this file touches lives in.
+// VLC reads an option only under its module's section.
 const SECTION = {
     'qt-fs-controller': 'qt',
     'extraintf': 'core',
@@ -57,7 +29,7 @@ function readLines(path) {
     }
 }
 
-// The value an option is set to, or null where it is left at VLC's default.
+// Null where the option is left at VLC's default.
 function valueOf(lines, name) {
     for (const line of lines ?? []) {
         if (line.startsWith(`${name}=`))
@@ -68,7 +40,6 @@ function valueOf(lines, name) {
 
 const modulesOf = value => (value ?? '').split(/[:,]/).map(m => m.trim()).filter(Boolean);
 
-// What this machine's VLC is set to, as far as the two switches go.
 export function readVlcState(path = vlcrcPath()) {
     const lines = readLines(path);
     return {
@@ -79,7 +50,7 @@ export function readVlcState(path = vlcrcPath()) {
     };
 }
 
-// Set `name`, or put it back to VLC's default with `value` null.
+// `value` null puts `name` back to VLC's default.
 function setValue(lines, name, value) {
     const set = value === null ? null : `${name}=${value}`;
     const at = lines.findIndex(l => l.startsWith(`${name}=`));
@@ -105,14 +76,12 @@ function setValue(lines, name, value) {
     }
 }
 
-// Flip one or both switches. Returns the state it left the file in; throws
-// if the file could not be written.
+// Returns the state the file was left in; throws if it could not be written.
 export function writeVlcState({hideControls, trackControl}, path = vlcrcPath()) {
     const lines = readLines(path) ?? ['# Written by Media Controls; VLC fills in the rest.', ''];
     if (hideControls !== undefined)
         setValue(lines, 'qt-fs-controller', hideControls ? '0' : null);
     if (trackControl !== undefined) {
-        // Keep whatever other extra interfaces were already listed.
         const others = modulesOf(valueOf(lines, 'extraintf')).filter(m => m !== RC_MODULE);
         const modules = trackControl ? [...others, RC_MODULE] : others;
         setValue(lines, 'extraintf', modules.length ? modules.join(':') : null);

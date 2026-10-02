@@ -1,13 +1,5 @@
-// The audio-and-subtitles pop-out: the shell's own PopupMenu, standing on the
-// bar and pointing down at its tracks button (hanging from it and pointing
-// up, with the bar at the top — bar.js setTop), holding the player's audio and
-// subtitle tracks as radio lists, the subtitle timing as a − / + row, and the
-// chapters when the file has any. Everything in it comes from, and goes to,
-// a VlcRemote (vlcremote.js).
-//
-// Picking a track leaves the menu open, so the audio and the subtitles can be
-// chosen in one go from across a room; Escape, the pad's back button or a
-// click away closes it.
+// The audio-and-subtitles pop-out. Picking a track leaves it open, so audio and
+// subtitles can be chosen in one go.
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -32,9 +24,6 @@ function formatDelay(ms) {
     return `${sign}${(Math.abs(ms) / 1000).toFixed(ms % 100 ? 2 : 1)} s`;
 }
 
-// A menu row holding a label and a few buttons. The row itself is never
-// the thing activated; its buttons are, and the menu's focus group walks
-// between them with the arrow keys like any other items.
 const ButtonRow = GObject.registerClass({
     GTypeName: typeName('ButtonRow'),
 }, class ButtonRow extends PopupMenu.PopupBaseMenuItem {
@@ -49,7 +38,6 @@ const ButtonRow = GObject.registerClass({
         this.label_actor = this.label;
     }
 
-    // The size setting's icon size (bar.js), for every button in the row.
     setIconSize(size) {
         for (const child of this.get_children()) {
             if (child instanceof St.Button && child.child instanceof St.Icon)
@@ -78,9 +66,8 @@ const ButtonRow = GObject.registerClass({
 });
 
 export class TracksMenu extends PopupMenu.PopupMenu {
-    // The menu's source is the whole panel, so it stands above the bar rather
-    // than over its top row (or hangs below it, rather than over its bottom
-    // row); the arrow is aimed at `button` as it opens.
+    // The source is the whole panel, so the menu stands clear of the bar; the
+    // arrow is aimed at `button`.
     constructor(panel, button) {
         super(panel, 0.5, St.Side.BOTTOM);
         this._button = button;
@@ -94,8 +81,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
 
         this._audio = new PopupMenu.PopupMenuSection();
         this._subtitles = new PopupMenu.PopupMenuSection();
-        // An item in a section closes the menu through the section's own
-        // itemActivated, so it is kept open there too.
+        // A section's itemActivated closes the menu too.
         this._audio.itemActivated = this._subtitles.itemActivated = () => {};
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem('Audio'));
         this.addMenuItem(this._audio);
@@ -120,7 +106,6 @@ export class TracksMenu extends PopupMenu.PopupMenu {
         this.addMenuItem(this._chapters);
     }
 
-    // Picking a track keeps the menu open (see the top of the file).
     itemActivated() {
     }
 
@@ -132,8 +117,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
     setRemote(remote) {
         this._remote?.disconnectObject(this);
         this._remote = remote;
-        // A new file's tracks are not the lists on show: the pop-out goes,
-        // to be opened onto the new ones.
+        // A new file's tracks are not the ones on show.
         this._remote?.connectObject(
             'changed', () => this._syncDelay(),
             'new-input', () => this.close(),
@@ -142,9 +126,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
             this.close();
     }
 
-    // Read what the player has now, and open onto it. With `focus`, the
-    // current audio track takes the keyboard (the bar was opened with the
-    // keyboard or the pad).
+    // With `focus`, the current audio track takes the keyboard.
     async openFresh({focus = false} = {}) {
         const remote = this._remote;
         if (!remote)
@@ -158,7 +140,6 @@ export class TracksMenu extends PopupMenu.PopupMenu {
             // Paused before VLC was ever asked: say why the lists are empty.
             state = {audio: null, subtitles: null, chapter: {current: 0, count: 0}};
         }
-        // The bar may have gone, or the player with it, while VLC was asked.
         if (this._remote !== remote || !this.sourceActor.mapped)
             return;
         this._fill(state);
@@ -172,13 +153,10 @@ export class TracksMenu extends PopupMenu.PopupMenu {
 
     _fill({audio, subtitles, chapter}) {
         const unread = 'Play for a moment: VLC lists its tracks only while playing';
-        // A pick VLC does not answer (gone, or busy) is simply not made; the
-        // menu goes with the bar.
         this._fillList(this._audio, this._audioItems, audio?.filter(t => t.id !== -1) ?? [],
             audio ? 'No audio tracks' : unread, id => this._remote?.setAudio(id).catch(() => {}));
         this._fillList(this._subtitles, this._subtitleItems, subtitles ?? [],
             subtitles ? 'No subtitles' : unread, id => this._remote?.setSubtitles(id).catch(() => {}));
-        // Only Off, or unknown: nothing to time.
         this._sync.visible = !!subtitles?.some(t => t.id !== -1);
         this._syncDelay();
         const hasChapters = chapter.count > 1;
@@ -207,8 +185,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
         }
     }
 
-    // Point the arrow at the tracks button: the fraction of the panel's
-    // content width its middle sits at, as BoxPointer measures its source.
+    // As BoxPointer measures its source: a fraction of the panel's content width.
     _aim() {
         const panel = this.sourceActor;
         const [panelX] = panel.get_transformed_position();
@@ -220,10 +197,8 @@ export class TracksMenu extends PopupMenu.PopupMenu {
             this.setSourceAlignment(Math.clamp((buttonX + buttonWidth / 2 - panelX - content.x1) / width, 0, 1));
     }
 
-    // Stand where the panel is now. The BoxPointer places itself from its
-    // source's transformed position only when it is laid out, which a
-    // translation of the bar (its arrival: bar.js reveal) does not cause;
-    // opened from a hidden bar, it stayed where the panel began its rise.
+    // BoxPointer places itself only when laid out, which the bar's rise (a
+    // translation) does not cause.
     reposition() {
         if (this.isOpen)
             this.actor.queue_relayout();

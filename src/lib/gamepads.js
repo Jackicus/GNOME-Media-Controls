@@ -1,34 +1,12 @@
-// Game controllers, through libmanette — GNOME's gamepad library, the one
-// WebKitGTK reads pads with. It watches udev for pads coming and going, opens
-// each one's evdev node on the main loop without blocking, and maps whatever
-// was plugged in onto the kernel's standard buttons with the SDL controller
-// database, so an Xbox, PlayStation, Switch or 8BitDo pad all press the same
-// `BTN_SOUTH`. Which action a button performs is the `gamepad-buttons`
-// setting, keyed by the ids in actions.js BUTTONS; every press of a known
-// button is handed on with its id as well, since while the bar holds the
-// focus the d-pad and the face buttons move around it instead (app.js).
-//
-// A button held down goes on doing what it did, as a held key does: after
-// REPEAT_DELAY, every REPEAT_INTERVAL until it is let go — when the handler
-// hands back what to do again (app.js: a skip, a volume step, an arrow key;
-// not play or pause), and until that says it is done. One button repeats at
-// a time: another press ends it.
-//
-// Pads are never grabbed: a game running beside the player still sees every
-// press. The actions only reach a player when app.js has one attached — a
-// focused, fullscreen window of a player — so a pad in a game does nothing
-// here.
-//
-// libmanette is imported when enabled rather than at the top, so a system
-// without it loses the pads and keeps the bar.
+// Game controllers through libmanette, never grabbed: a game beside the player
+// still sees every press. A held button repeats what the handler hands back.
 
 import GLib from 'gi://GLib';
 
 import {buttonForCode} from './actions.js';
 import {note} from './log.js';
 
-// ms: the keyboard's feel, a little slower, since each repeat is a call to
-// the player.
+// ms: a held key's feel, a little slower, since each repeat is a call to the player.
 const REPEAT_DELAY = 400;
 const REPEAT_INTERVAL = 150;
 
@@ -102,8 +80,6 @@ export class Gamepads {
     _pressed(device, event) {
         if (this._settings.get_strv('ignored-gamepads').includes(device.get_guid()))
             return;
-        // Any press ends a repeat, a button outside the standard positions
-        // (a paddle, say) as well.
         this._stopRepeat();
         const [ok, code] = event.get_button();
         const button = ok ? buttonForCode(code) : null;
@@ -121,15 +97,12 @@ export class Gamepads {
             this._stopRepeat();
     }
 
-    // `again` after the delay, then at the interval, for as long as it says
-    // it did something (the player, or the bar's focus, may have gone).
     _startRepeat(device, id, again) {
         const held = {device, id, source: 0};
         this._held = held;
         const repeat = () => {
             if (again())
                 return true;
-            // The source that asked ends itself.
             held.source = 0;
             this._held = null;
             return false;

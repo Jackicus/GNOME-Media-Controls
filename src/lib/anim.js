@@ -1,7 +1,4 @@
-// Motion vocabulary: the shell's ease-out-quad, at lengths inside its own
-// 100–250 ms rather than copied from any one of them. These are the only
-// durations and curves in use; actor.ease() already honours the animations
-// toggle and the slow-down factor, so nothing here checks them.
+// The only durations and curves in use: the shell's ease-out-quad, within its 100–250 ms.
 
 import Clutter from 'gi://Clutter';
 
@@ -14,5 +11,5 @@ export const Ease = {
     OUT: Clutter.AnimationMode.EASE_OUT_QUAD,
 };
 
-// How far the bar rises as it fades in, in logical px.
+// Logical px the bar rises as it fades in.
 export const RISE = 8;

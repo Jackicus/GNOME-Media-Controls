@@ -1,17 +1,3 @@
-// The bar itself: a panel at the foot of the player's monitor (or its head,
-// with `bar-position` `top`), holding the
-// position, the transport buttons, the volume and the rate (any of which but
-// play can be left off: setButtons) — and, where the
-// player allows it, the audio-and-subtitles pop-out (tracksmenu.js), and the
-// clock and sleep timer when they are switched on. It knows how to show a
-// player and how to ask it for things; when to be seen is app.js's.
-//
-// Everything in it is the shell's: the seek and volume sliders are the quick
-// settings' `Slider`, the buttons are `icon-button`s, the panel is painted the
-// way the shell paints its OSD, and it is placed on its monitor by the same
-// `MonitorConstraint` the OSD uses. Only the layout of the lower row is ours
-// (`CentredRowLayout`).
-
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
@@ -30,15 +16,11 @@ import {Duration, Ease, RISE} from './anim.js';
 import {typeName} from './gtype.js';
 import {TracksMenu} from './tracksmenu.js';
 
-// The bar's width: most of a small monitor, less this on each side (logical
-// px), and capped on a large one by the panel's max-width, in em, so the
-// slider stays a comfortable reach.
+// Logical px on each side; the panel's max-width caps the width on a large monitor.
 const SIDE_MARGIN = 32;
-// How often the running time is redrawn while the bar is up and playing.
 const TICK_MS = 250;
-// Icon sizes at 100%, logical px: the shell's icon-button size, and the
-// play button's larger one. The size setting multiplies them in JS, since St
-// sizes a button's icon against the theme, not the panel's font size.
+// Logical px at 100%. St sizes a button's icon from the theme, not the panel's
+// font, so bar-scale multiplies these in JS.
 const ICON_SIZE = 16;
 const PLAY_ICON_SIZE = 22;
 
@@ -59,19 +41,11 @@ function setUnredirect(allowed) {
     }
 }
 
-// "21∶40" or "9∶40 PM": the shell's own time formatting, which reads the
-// 12/24-hour setting the top bar's clock follows. `%l` is space-padded.
+// The shell's formatting follows the 12/24-hour setting; its `%l` is space-padded.
 const clockTime = dateTime => formatClock(dateTime, {timeOnly: true}).trim();
 
-// [start | centre | end], with the centre on the middle of the row whatever
-// the sides hold and the sides sharing what is left — so the transport
-// buttons stay put however long the title is, and a long title ellipsizes
-// rather than pushing them over. The end holds buttons and a slider, which
-// cannot give: when their half is too small (the tracks and sleep buttons
-// both up, at a small size) the centre moves towards the start by the
-// shortfall, and the title gives the room. In a right-to-left locale the
-// row is mirrored, start on the right, as the boxes inside it are. The gap
-// between the three is the row's `spacing`, in em like the rest.
+// [start | centre | end] with the centre on the row's middle however long the
+// title is, unless the end needs more than its half: then the title gives way.
 const CentredRowLayout = GObject.registerClass({
     GTypeName: typeName('CentredRowLayout'),
 }, class CentredRowLayout extends Clutter.LayoutManager {
@@ -135,10 +109,7 @@ function iconButton(iconName, accessibleName, extraClass = '') {
     });
 }
 
-// Left and Right on a slider skip by the bar's own steps — seek-step and
-// volume-step — instead of the Slider's tenth of the whole. A signal handler
-// runs before the Slider's own key handling and stops the key there. The
-// action is the bar's to emit: the Slider has no such signal.
+// Left and Right step by seek-step and volume-step, not the Slider's tenth of the whole.
 function arrowKeys(bar, slider, forward, back) {
     slider.connect('key-press-event', (_actor, event) => {
         const key = event.get_key_symbol();
@@ -150,8 +121,7 @@ function arrowKeys(bar, slider, forward, back) {
     });
 }
 
-// The shell greys a button and takes it out of the focus chain together
-// (popupMenu.js syncSensitive); St does only the first by itself.
+// Greyed out and out of the focus chain together, as popupMenu.js syncSensitive does.
 function setSensitive(actor, on) {
     actor.reactive = actor.can_focus = on;
 }
@@ -174,10 +144,8 @@ export const ControlBar = GObject.registerClass({
     GTypeName: typeName('ControlBar'),
     Signals: {'action': {param_types: [GObject.TYPE_STRING]}},
 }, class ControlBar extends Clutter.Actor {
-    // The actor itself only places the panel: the constraint sizes it to the
-    // monitor, and the alignment shrinks it back around the panel at the
-    // bottom centre — the OSD's arrangement (osdWindow.js) — or the top
-    // centre (setTop).
+    // The OSD's arrangement (osdWindow.js): the constraint sizes the actor to the
+    // monitor, and the alignment shrinks it around the panel.
     constructor() {
         super({
             x_expand: true,
@@ -215,15 +183,10 @@ export const ControlBar = GObject.registerClass({
             track_hover: true,
         });
         this.add_child(this.panel);
-        // Its maximum width is in em, so it follows Large Text and the size
-        // setting as its contents do.
+        // max-width is in em, so the width follows the style.
         this.panel.connect('style-changed', () => this.setMonitor(this._monitorIndex));
-        // Arrow keys walk the panel's buttons while it holds the keyboard.
-        // The focus manager does that from the stage, which a key never
-        // reaches while the panel holds the grab, so the panel asks it to
-        // navigate from the event itself — as the shell's popup menu items
-        // do. A slider that has the focus takes Left and Right first (seek,
-        // volume); Up and Down leave it.
+        // Under the grab no key reaches the stage, so the panel navigates from
+        // the event itself, as the shell's popup menu items do.
         global.focus_manager.add_group(this.panel);
         this.panel.connect('key-press-event', (_actor, event) => {
             const key = event.get_key_symbol();
@@ -233,12 +196,7 @@ export const ControlBar = GObject.registerClass({
             }
             if (global.focus_manager.navigate_from_event(event))
                 return Clutter.EVENT_STOP;
-            // The pop-out's menu has the panel for its source, and a menu
-            // toggles on Return, Space or the arrow towards it (Up, or Down
-            // with the bar at the top) reaching its source. A button has
-            // taken Return already; what gets here is a slider's, or an
-            // arrow with nowhere to go — Up from the top row — and it stops,
-            // or the pop-out would open unfilled.
+            // Stopped here, or the pop-out, whose source is the panel, would toggle.
             switch (key) {
             case Clutter.KEY_Up:
             case Clutter.KEY_Down:
@@ -257,7 +215,6 @@ export const ControlBar = GObject.registerClass({
         this._buildSeekRow();
         this._buildControlRow();
 
-        // Every icon the size setting scales, with its size at 100%.
         this._icons = [
             ...[this._previous, this._back, this._forward, this._next, this._tracks, this._mute, this._close]
                 .map(button => [button.child, ICON_SIZE]),
@@ -268,7 +225,6 @@ export const ControlBar = GObject.registerClass({
         this.tracksMenu = new TracksMenu(this.panel, this._tracks);
         this._menuManager = new PopupMenu.PopupMenuManager(this.panel);
         this._menuManager.addMenu(this.tracksMenu);
-        // The pop-out keeps to the panel as it rises (or drops) into place.
         this.connect('notify::translation-y', () => this.tracksMenu.reposition());
         this.connect('destroy', () => this._onDestroy());
     }
@@ -285,9 +241,6 @@ export const ControlBar = GObject.registerClass({
         return this.tracksMenu.isOpen;
     }
 
-    // ------------------------------------------------------------------
-    // Building
-    // ------------------------------------------------------------------
     _buildSeekRow() {
         const row = new St.BoxLayout({style_class: 'mc-seek-row', x_expand: true});
         this._elapsed = new St.Label({style_class: 'mc-time mc-elapsed', y_align: Clutter.ActorAlign.CENTER});
@@ -295,9 +248,7 @@ export const ControlBar = GObject.registerClass({
         this._seek.add_style_class_name('mc-seek');
         this._seek.accessible_name = 'Position';
         this._remaining = new St.Label({style_class: 'mc-time mc-remaining', y_align: Clutter.ActorAlign.CENTER});
-        // A click switches it between the time left and the whole length
-        // (setShowLength). Out of the arrows' way: the slider's Left and
-        // Right skip, and Up and Down leave the row.
+        // Out of the focus chain: the slider's Left and Right skip, Up and Down leave the row.
         const remainingButton = new St.Button({
             style_class: 'mc-time-button',
             child: this._remaining,
@@ -319,23 +270,17 @@ export const ControlBar = GObject.registerClass({
             if (this._player?.length)
                 this._player.seekTo(this._seek.value * this._player.length);
         });
-        // While dragging, the running time previews where the drop will land.
         this._seek.connect('notify::value', () => {
             if (this._seeking && !this._syncing)
                 this._tick();
         });
-        // The slider's own steps are a fraction of the whole — minutes, on a
-        // film — so it skips the way the rest of the panel does (_onScroll).
-        // The arrow keys likewise (arrowKeys).
+        // Skip by seek-step, not by the Slider's fraction of the whole.
         this._seek.connect('scroll-event', (_actor, event) => this._onScroll(event));
         arrowKeys(this, this._seek, 'seek-forward', 'seek-back');
     }
 
-    // A scroll anywhere on the panel skips the way the buttons do: a wheel's
-    // notch once, a touchpad's fractions of a notch added up until one is
-    // due (as the Slider reads them, skipping the copy a wheel sends in the
-    // other form). The volume slider keeps its scroll: it stops the event
-    // before it reaches the panel.
+    // A wheel notch skips once; touchpad deltas add up to whole notches. The
+    // emulated copy a wheel also sends is dropped.
     _onScroll(event) {
         if (event.is_pointer_emulated())
             return Clutter.EVENT_STOP;
@@ -400,8 +345,6 @@ export const ControlBar = GObject.registerClass({
         }
 
         const extras = new St.BoxLayout({style_class: 'mc-extras', y_align: Clutter.ActorAlign.CENTER});
-        // Only where the player can be asked for its tracks (app.js
-        // setRemote); the pop-out hangs off it.
         this._tracks = iconButton('media-view-subtitles-symbolic', 'Audio and subtitles');
         this._tracks.visible = false;
         this._tracks.connect('clicked', () => this.emit('action', 'tracks'));
@@ -456,9 +399,6 @@ export const ControlBar = GObject.registerClass({
         this.panel.add_child(row);
     }
 
-    // ------------------------------------------------------------------
-    // What it shows
-    // ------------------------------------------------------------------
     setPlayer(player) {
         if (player === this._player)
             return;
@@ -468,9 +408,8 @@ export const ControlBar = GObject.registerClass({
         this.sync();
     }
 
-    // Onto the monitor the player is on, as wide as suits it. Off the stage
-    // the panel has no style to read its maximum from; the style-changed
-    // that follows its arrival there sets the width.
+    // Off the stage the panel has no style to read max-width from; style-changed
+    // calls this again.
     setMonitor(index) {
         const monitor = Main.layoutManager.monitors[index];
         if (!monitor)
@@ -486,8 +425,7 @@ export const ControlBar = GObject.registerClass({
         this.panel.width = width;
     }
 
-    // The size setting, in percent. Every size in the stylesheet is in em,
-    // so one font size on the panel scales the lot; the pop-out follows.
+    // Every size in the stylesheet is in em, so one font size scales the lot.
     setScale(percent) {
         this._scale = percent / 100;
         const style = percent === 100 ? null : `font-size: ${percent}%;`;
@@ -499,9 +437,6 @@ export const ControlBar = GObject.registerClass({
         this.setMonitor(this._monitorIndex);
     }
 
-    // At the top of the monitor rather than the foot: out of the way of
-    // subtitles, which are drawn along the foot of the picture. The pop-out
-    // hangs below it then, and it arrives dropping rather than rising.
     setTop(top) {
         this._top = top;
         this.y_align = top ? Clutter.ActorAlign.START : Clutter.ActorAlign.END;
@@ -513,8 +448,6 @@ export const ControlBar = GObject.registerClass({
         this.tracksMenu.actor.updateArrowSide(top ? St.Side.TOP : St.Side.BOTTOM);
     }
 
-    // The tracks button and its pop-out, for a player that can be asked
-    // (a VlcRemote), or neither.
     setRemote(remote) {
         this._tracks.visible = !!remote;
         this.tracksMenu.setRemote(remote);
@@ -529,9 +462,6 @@ export const ControlBar = GObject.registerClass({
             this.tracksMenu.openFresh({focus});
     }
 
-    // Which buttons are on the bar: `previousNext` 'always' (greyed out with
-    // nowhere to go), 'playlist' (only while it has one: Player.hasPlaylist)
-    // or 'never'; `hidden`, the BAR_BUTTONS left off. Play is always there.
     setButtons(previousNext, hidden) {
         this._previousNext = previousNext;
         this._hidden = hidden;
@@ -544,13 +474,11 @@ export const ControlBar = GObject.registerClass({
         this.sync();
     }
 
-    // The end of the seek row: the time left, or the whole length.
     setShowLength(show) {
         this._showLength = show;
         this._tick();
     }
 
-    // The clock line under the title, or not.
     setClock(show) {
         this._showClock = show;
         this._clock.visible = show;
@@ -558,8 +486,7 @@ export const ControlBar = GObject.registerClass({
         this._updateTicking();
     }
 
-    // The sleep timer button, labelled by `text()` as it runs; null for no
-    // button at all.
+    // `text()` labels the sleep button as it runs; null hides it.
     setSleep(text) {
         this._sleepText = text;
         this._sleep.visible = !!text;
@@ -598,8 +525,7 @@ export const ControlBar = GObject.registerClass({
 
             this._rate.visible = p.hasRate && !this._hidden.includes('rate');
             this._rate.label = rateLabel(p.rate);
-            // The accessible name takes the label's place, so it says the
-            // value too; the sleep timer's likewise (_tick).
+            // The accessible name replaces the label, so it carries the value.
             this._rate.accessible_name = `Playback speed: ${this._rate.label}`;
         } finally {
             this._syncing = false;
@@ -640,10 +566,8 @@ export const ControlBar = GObject.registerClass({
         }
     }
 
-    // A timer only while there is something on the bar that moves: the
-    // running time while playing, every TICK_MS; otherwise the clock and the
-    // sleep countdown, which move by the minute, so once a second will do —
-    // with `stay-while-paused` a paused bar can be up for hours.
+    // Only while something on the bar moves: the running time every TICK_MS,
+    // the clock and the sleep countdown once a second.
     _updateTicking() {
         let mode = null;
         if (this.visible && this._player?.playing)
@@ -677,20 +601,13 @@ export const ControlBar = GObject.registerClass({
         p.setRate(allowed[at === -1 ? 0 : at]);
     }
 
-    // ------------------------------------------------------------------
-    // Coming and going
-    // ------------------------------------------------------------------
     reveal() {
-        // Arriving already, or here. The pointer asks again every 100 ms
-        // while it moves, and restarting the ease each time kept it from
-        // ever settling (the opacity stalls at 254 as it is rounded down).
+        // Restarting the ease on every pointer poll stalled the opacity at 254 (docs/notes.md).
         if (this._shown)
             return;
         this._shown = true;
         if (!this._unredirectOff) {
-            // Over a fullscreen window the compositor may be sending that
-            // window straight to the screen; the shell's OSD turns that off
-            // while it is up, and so does this.
+            // As the OSD does: a fullscreen window scanned out directly would hide the bar.
             setUnredirect(false);
             this._unredirectOff = true;
         }
@@ -699,7 +616,7 @@ export const ControlBar = GObject.registerClass({
             this.translation_y = (this._top ? -RISE : RISE) * scaleFactor();
             this.show();
         }
-        // Above whatever chrome came after it, as the OSD raises itself.
+        // Above later chrome, as osdWindow.js does.
         this.get_parent()?.set_child_above_sibling(this, null);
         this.ease({
             opacity: 255,
@@ -739,7 +656,6 @@ export const ControlBar = GObject.registerClass({
         });
     }
 
-    // Where the keyboard lands when the bar is opened with it.
     focusDefault() {
         this._play.grab_key_focus();
     }

@@ -1,17 +1,5 @@
-// What the bar can be asked to do, and the pad buttons that can ask it.
-//
-// Pure data: prefs.js imports this too, and runs outside the shell, so nothing
-// here may import St, Clutter or the shell's own modules.
-//
-// A pad reaches us through libmanette, which maps whatever was plugged in —
-// Xbox, PlayStation, Switch, 8BitDo, a Steam Deck — onto the kernel's standard
-// gamepad buttons (Documentation/input/gamepad.rst), so a button is named by
-// its *position* on the standard layout and carries that code. The face
-// buttons are compass points because the letters on them disagree: the one at
-// the bottom is A on an Xbox pad, Cross on a PlayStation and B on a Nintendo.
+// Pure data, also imported by prefs.js: no St, Clutter or shell imports.
 
-// `repeats`: a pad button held down does it again and again, as a held key
-// would (gamepads.js).
 export const ACTIONS = [
     {id: 'none', title: 'Nothing'},
     {id: 'play-pause', title: 'Play or pause'},
@@ -27,8 +15,6 @@ export const ACTIONS = [
     {id: 'show-bar', title: 'Show the bar'},
     {id: 'hide-bar', title: 'Hide the bar'},
     {id: 'toggle-length', title: 'Time left or length'},
-    // Opens the bar holding the keyboard and the pad: the d-pad then moves
-    // the highlight, the bottom button presses, the right one goes back.
     {id: 'navigate', title: 'Move around the bar'},
     {id: 'tracks', title: 'Audio and subtitles'},
     {id: 'cycle-audio', title: 'Next audio track'},
@@ -41,9 +27,7 @@ export const ACTIONS = [
 
 export const repeats = action => !!ACTIONS.find(a => a.id === action)?.repeats;
 
-// While the bar holds the focus, these buttons move around it instead of
-// doing what they are set to — the keys they stand for are what a keyboard
-// would press. The arrows repeat while held; Return and Escape do not.
+// While the bar holds the focus, these buttons press keys instead of their actions.
 export const NAVIGATION = {
     'dpad-up': 'Up',
     'dpad-down': 'Down',
@@ -53,8 +37,6 @@ export const NAVIGATION = {
     'east': 'Escape',
 };
 
-// The bar's buttons that can be left off it (`hidden-buttons`); Previous and
-// Next have a setting of their own (`previous-next`), and play never goes.
 export const BAR_BUTTONS = [
     {id: 'skip', title: 'Skip back and forward'},
     {id: 'volume', title: 'Volume'},
@@ -62,15 +44,13 @@ export const BAR_BUTTONS = [
     {id: 'close', title: 'Close the player'},
 ];
 
-// The sleep timer's steps (`sleep-timer-mode`): minutes, then the end of the
-// file; or a number of files, this one counted, pausing at the end of the
-// last. One more press turns it off.
 export const SLEEP_MINUTES = [15, 30, 45, 60, 90, 120, 'end'];
 export const SLEEP_EPISODES = [1, 2, 3, 4, 5];
 
-// How far one press of Subtitles earlier/later moves them, in ms.
 export const SUBTITLE_SHIFT_MS = 100;
 
+// The kernel's standard gamepad codes, named by position: the letters on the
+// face buttons differ between makers.
 export const BUTTONS = [
     {id: 'south', code: 0x130, title: 'Bottom face button', hint: 'A · Cross · B on Nintendo'},
     {id: 'east', code: 0x131, title: 'Right face button', hint: 'B · Circle · A on Nintendo'},
@@ -93,18 +73,13 @@ export const BUTTONS = [
 
 export const buttonForCode = code => BUTTONS.find(b => b.code === code) ?? null;
 
-// The steps the rate moves through: the Slower and Faster actions and the
-// rate button all walk this list, never a free value.
 export const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-// Where `rate` sits among RATES moved `by` steps, clamped to the ends and to
-// what the player itself accepts.
+// The step nearest `rate` moved `by` steps, within what the player accepts.
 export function stepRate(rate, by, min = 0, max = Infinity) {
     const allowed = RATES.filter(r => r >= min && r <= max);
     if (!allowed.length)
         return rate;
-    // The nearest step to the rate now, so a player that was set to 1.1 by
-    // something else lands back on the list.
     let at = 0;
     allowed.forEach((r, i) => {
         if (Math.abs(r - rate) < Math.abs(allowed[at] - rate))
@@ -114,9 +89,7 @@ export function stepRate(rate, by, min = 0, max = Infinity) {
     return allowed[to];
 }
 
-// "1:05:09" / "4:02" — hours only when there are any, as the shell's own
-// clocks and every player write a running time. A time that is not a number
-// (a malformed length or rate) is 0:00, not "NaN:NaN".
+// "1:05:09" or "4:02"; a time that is not a number is 0:00.
 export function formatTime(seconds) {
     seconds = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
     const h = Math.floor(seconds / 3600);
@@ -125,17 +98,13 @@ export function formatTime(seconds) {
     return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
 }
 
-// A name as it is compared: lower case, without a .desktop suffix.
 export const normaliseName = name => (name ?? '').toLowerCase().replace(/\.desktop$/, '');
 
-// Every name a player goes by, normalised: its desktop entry, the name it
-// gives itself, and its bus name without the per-instance part. Chrome, for
-// one, names no desktop entry and calls itself "Chrome", but is
+// Chrome names no desktop entry and calls itself "Chrome", but is
 // org.mpris.MediaPlayer2.chromium.instance123 on the bus.
 export function playerNames({desktopEntry, identity, busName}) {
     const suffix = (busName ?? '').replace(/^org\.mpris\.MediaPlayer2\./, '').replace(/\.instance[\w-]*$/, '');
     return [...new Set([desktopEntry, identity, suffix].filter(Boolean).map(normaliseName))];
 }
 
-// Ignored if any of its names is on the list.
 export const isIgnored = (player, list) => playerNames(player).some(name => list.includes(name));
