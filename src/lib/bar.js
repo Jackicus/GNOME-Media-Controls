@@ -1,7 +1,6 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
-import Meta from 'gi://Meta';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
 
@@ -25,21 +24,6 @@ const ICON_SIZE = 16;
 const PLAY_ICON_SIZE = 22;
 
 const scaleFactor = () => St.ThemeContext.get_for_stage(global.stage).scale_factor;
-
-// The unredirection API differs by shell version (global.compositor vs.
-// Meta.*_unredirect_for_display); use whichever this shell has.
-function setUnredirect(allowed) {
-    if (global.compositor?.disable_unredirect) {
-        if (allowed)
-            global.compositor.enable_unredirect();
-        else
-            global.compositor.disable_unredirect();
-    } else if (allowed) {
-        Meta.enable_unredirect_for_display(global.display);
-    } else {
-        Meta.disable_unredirect_for_display(global.display);
-    }
-}
 
 // The shell's formatting follows the 12/24-hour setting; its `%l` is space-padded.
 const clockTime = dateTime => formatClock(dateTime, {timeOnly: true}).trim();
@@ -608,7 +592,7 @@ export const ControlBar = GObject.registerClass({
         this._shown = true;
         if (!this._unredirectOff) {
             // As the OSD does: a fullscreen window scanned out directly would hide the bar.
-            setUnredirect(false);
+            global.compositor.disable_unredirect();
             this._unredirectOff = true;
         }
         this.remove_all_transitions();
@@ -640,7 +624,7 @@ export const ControlBar = GObject.registerClass({
             this.translation_y = 0;
             this._updateTicking();
             if (this._unredirectOff) {
-                setUnredirect(true);
+                global.compositor.enable_unredirect();
                 this._unredirectOff = false;
             }
         };
@@ -670,7 +654,7 @@ export const ControlBar = GObject.registerClass({
             this._tickMode = null;
         }
         if (this._unredirectOff) {
-            setUnredirect(true);
+            global.compositor.enable_unredirect();
             this._unredirectOff = false;
         }
         global.focus_manager.remove_group(this.panel);

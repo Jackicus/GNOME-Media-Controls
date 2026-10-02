@@ -47,7 +47,7 @@ link — its recursive delete follows symlinks into `src/`.
 | Key | Now | Note |
 |---|---|---|
 | `uuid` | `media-controls@jackicus` | Fixed once uploaded — this is the EGO entry |
-| `shell-version` | `["50"]` | The only version run. 48 and 49 pass an audit against the shell's sources (CLAUDE.md, Gotchas) but haven't been booted, so they stay off the list until they have |
+| `shell-version` | `["50"]` | The only version run, and the only one the code is written for; another is added with `gnome-ext:port-shell-version` |
 | `settings-schema` | set | `getSettings()` is called with no arguments in both `app.js` and `prefs.js` |
 | `version-name` | `"1.0"` | Must match `/^(?!^[. ]+$)[a-zA-Z0-9 .]{1,16}$/` (letters, digits, space, period) — `"1.0"` qualifies. Bump it with each upload |
 | `version` | absent | Correct — EGO assigns this |

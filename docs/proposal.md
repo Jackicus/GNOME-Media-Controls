@@ -140,8 +140,7 @@ too, and win on specificity; that holds with or without this proposal.
 ## Checking it
 
 1. Confirm `.screenshot-ui-panel`, `.screenshot-ui-type-button` and
-   `.button.default` and their paint in the 48 and 49 sources, as the rest of
-   the 48 floor was audited.
+   `.button.default` and their paint in the Shell 50 sources.
 2. In a nested shell with the test clip, screenshot the bar in
    dark, light (`org.gnome.desktop.interface color-scheme`) and High Contrast
    (`org.gnome.desktop.a11y.interface high-contrast`), beside

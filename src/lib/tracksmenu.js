@@ -15,7 +15,7 @@ import {PausedError} from './vlcremote.js';
 
 // NO_DOT keeps an unpicked radio item lined up with the picked one's dot.
 const PICKED = PopupMenu.Ornament.DOT;
-const UNPICKED = PopupMenu.Ornament.NO_DOT ?? PopupMenu.Ornament.NONE;
+const UNPICKED = PopupMenu.Ornament.NO_DOT;
 
 function formatDelay(ms) {
     if (!ms)

@@ -7,9 +7,8 @@ over a **fullscreen video player**: a replacement for VLC's own fullscreen
 controller that works the same way over mpv, Celluloid or anything else that
 speaks MPRIS, and that for VLC adds audio and subtitle tracks, subtitle timing
 and chapters. It is a bar the shell draws over the player's window, not a
-player. `metadata.json` claims shell 50, the version it has been run on; 48
-and 49 pass an audit against the shell's sources (Traps, below) and can be
-claimed once booted.
+player. `metadata.json` claims shell 50, the version it has been run on, and
+the code is written for 50 alone; another version is `gnome-ext:port-shell-version`'s.
 
 It stands alone: it depends on no other extension and knows of none. If another
 extension has trouble working beside it, that is fixed in that extension's own
@@ -187,13 +186,6 @@ of the seek row is a button out of the focus chain whose click is the
   pop-out opened with the mouse needs one Escape, not two.
 - **An older `make link` install may be a symlink to `src/`** rather than a
   directory of links; `make status` reports it, and `make link` replaces it.
-- **The 48 floor is by audit, not boot.** The APIs used are all present in 48:
-  `St.BoxLayout({orientation})`, `-st-accent-color`, `Slider` with
-  `drag-begin`/`drag-end`, `global.stage.get_event_actor()`,
-  `global.focus_manager.navigate_from_event()`, `EventEmitter` in
-  `misc/signals.js`, `PopupMenu.setSourceAlignment`,
-  `BoxPointer.updateArrowSide`, Clutter virtual input devices.
-  `Ornament.NO_DOT` falls back to `NONE` where missing. Unredirection's API
-  differs by version (`Meta.*_unredirect_for_display` vs.
-  `global.compositor`); `bar.js` `setUnredirect` uses whichever exists.
-  `addChrome()` and `Clutter.Grab` differ too (`.claude/rules/bar.md`).
+- **Shell 50 only**: no fallbacks for other versions (unredirection is
+  `global.compositor`'s, as `osdWindow.js` calls it); 48 and 49 are for
+  `gnome-ext:port-shell-version`.
