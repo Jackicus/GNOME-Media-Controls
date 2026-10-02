@@ -56,6 +56,13 @@ link — its recursive delete follows symlinks into `src/`.
 
 ## The review guidelines, checked against this code
 
+Checked on 2026-10-02, before the 1.0 release, against the
+[Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html)
+and [Best Practices](https://gjs.guide/extensions/review-guidelines/best-practices.html)
+as published that day, on the zip `make pack` builds, and by running it in a
+nested GNOME Shell 50 (enable, VLC full screen, the bar, disable and enable
+again, no errors in the log). No blockers.
+
 **Only static resources at initialization: meets.** `src/extension.js` has no
 constructor; `enable()`/`disable()` build and tear down `MediaControlsApp`.
 Every module-scope value under `lib/` is a constant or pure function — no
@@ -142,6 +149,33 @@ the build on anything in the zip beyond the list above.
 **Use a linter: meets.** `make lint` runs ESLint with gjs.guide's
 configuration (`eslint.config.mjs`) over the whole repository (`src/` and
 the GJS scripts beside it); 0 errors (some warnings).
+
+**`GObject.Object.run_dispose()`: twice, each with its reason.** The
+virtual keyboard in `MediaControlsApp.disable()` (`src/lib/app.js`), so it
+leaves the seat at once, and the libmanette monitor in `Gamepads.disable()`
+(`src/lib/gamepads.js`, and the Controllers page in `src/prefs.js`), so every
+pad's evdev node is closed at once rather than at garbage collection.
+
+**Session modes: `user` only.** No `session-modes` key; screen lock disables
+the extension.
+
+**Clipboard, telemetry, privileged subprocesses: none.** Nothing reads or
+writes the clipboard, nothing is sent anywhere, nothing runs through `pkexec`.
+
+**Readable, explainable code: meets.** Comments are about 4% of `src/`'s
+lines and say only why; no `try` around `destroy()`, `disconnect()` or
+`GLib.source_remove()`, no `_destroyed` or `_enabled` flags, no checks for
+other shell versions; `./scripts/dev.sh size` holds `src/` to its budget.
+
+**Copyrights and trademarks: no logos or artwork.** Every icon is a theme
+symbolic icon. Players (VLC, mpv, Celluloid) and controller makers (Xbox,
+PlayStation, Nintendo, Switch, 8BitDo, Steam Deck, in the Controllers page's
+button hints) are named in text only, to say what the extension works with.
+
+**Best practices.** `St.Icon` in the shell and `Gtk.Image` in the preferences,
+no emoji as icons; no line over 200 characters; `enable()` and `disable()`
+side by side; each class removes the sources it adds next to where it adds
+them; `settings-schema` in `metadata.json`, `getSettings()` with no argument.
 
 ## Private API
 
