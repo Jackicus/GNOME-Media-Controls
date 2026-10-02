@@ -10,7 +10,6 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {SUBTITLE_SHIFT_MS} from './actions.js';
-import {typeName} from './gtype.js';
 
 // NO_DOT keeps an unpicked radio item lined up with the picked one's dot.
 const PICKED = PopupMenu.Ornament.DOT;
@@ -23,9 +22,7 @@ function formatDelay(ms) {
     return `${sign}${(Math.abs(ms) / 1000).toFixed(ms % 100 ? 2 : 1)} s`;
 }
 
-const ButtonRow = GObject.registerClass({
-    GTypeName: typeName('ButtonRow'),
-}, class ButtonRow extends PopupMenu.PopupBaseMenuItem {
+const ButtonRow = GObject.registerClass(class MediaControlsButtonRow extends PopupMenu.PopupBaseMenuItem {
     constructor(title) {
         super({activate: false, hover: false, can_focus: false, style_class: 'mc-menu-row'});
         this.label = new St.Label({
@@ -35,13 +32,12 @@ const ButtonRow = GObject.registerClass({
         });
         this.add_child(this.label);
         this.label_actor = this.label;
+        this._buttons = [];
     }
 
     setIconSize(size) {
-        for (const child of this.get_children()) {
-            if (child instanceof St.Button && child.child instanceof St.Icon)
-                child.child.icon_size = size;
-        }
+        for (const button of this._buttons)
+            button.child.icon_size = size;
     }
 
     addButton(iconName, accessibleName, onClick) {
@@ -54,7 +50,7 @@ const ButtonRow = GObject.registerClass({
         });
         button.connect('clicked', onClick);
         this.add_child(button);
-        return button;
+        this._buttons.push(button);
     }
 
     addValue() {
@@ -81,7 +77,8 @@ export class TracksMenu extends PopupMenu.PopupMenu {
         this._audio = new PopupMenu.PopupMenuSection();
         this._subtitles = new PopupMenu.PopupMenuSection();
         // A section's itemActivated closes the menu too.
-        this._audio.itemActivated = this._subtitles.itemActivated = () => {};
+        this._audio.itemActivated = () => {};
+        this._subtitles.itemActivated = () => {};
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem('Audio'));
         this.addMenuItem(this._audio);
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem('Subtitles'));
@@ -143,13 +140,14 @@ export class TracksMenu extends PopupMenu.PopupMenu {
     _fill({audio, subtitles, chapter}) {
         const unread = 'Play for a moment: VLC lists its tracks only while playing';
         this._fillList(this._audio, this._audioItems, audio?.filter(t => t.id !== -1) ?? [],
-            audio ? 'No audio tracks' : unread, id => this._remote?.setAudio(id).catch(() => {}));
+            audio ? 'No audio tracks' : unread, id => this._remote?.setTrack('audio', id).catch(() => {}));
         this._fillList(this._subtitles, this._subtitleItems, subtitles ?? [],
-            subtitles ? 'No subtitles' : unread, id => this._remote?.setSubtitles(id).catch(() => {}));
+            subtitles ? 'No subtitles' : unread, id => this._remote?.setTrack('subtitles', id).catch(() => {}));
         this._sync.visible = !!subtitles?.some(t => t.id !== -1);
         this._syncDelay();
         const hasChapters = chapter.count > 1;
-        this._chapterSeparator.visible = this._chapters.visible = hasChapters;
+        this._chapterSeparator.visible = hasChapters;
+        this._chapters.visible = hasChapters;
         this._chapterState = chapter;
         this._syncChapter();
     }

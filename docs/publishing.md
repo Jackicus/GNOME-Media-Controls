@@ -30,8 +30,7 @@ prefs.js
 stylesheet.css
 schemas/org.gnome.shell.extensions.media-controls.gschema.xml
 lib/actions.js  lib/anim.js  lib/app.js  lib/bar.js  lib/gamepads.js
-lib/gtype.js  lib/log.js  lib/mpris.js  lib/tracksmenu.js  lib/vlcconfig.js
-lib/vlcremote.js
+lib/mpris.js  lib/tracksmenu.js  lib/vlcconfig.js  lib/vlcremote.js
 ```
 
 `scripts/`, `docs/`, `README.md`, `CLAUDE.md`, `.claude/` and the screenshots
@@ -97,12 +96,10 @@ packed.
 
 **Code must not be obfuscated: meets.** Plain ES modules, unminified.
 
-**No excessive logging: meets.** `src/lib/log.js`'s `note()` only prints when
-`setVerbose(true)` has been called, which only `scripts/dev-extension.js`
-does; the shipped `src/extension.js` never calls it, so a normal install logs
-nothing on enable, disable, lock or unlock. Every `console.warn`/
-`console.error` in `src/lib/` is on a failure path (a player that refused a
-call, a `ListNames` failure, a vlcrc write, libmanette missing).
+**No excessive logging: meets.** An install logs nothing on enable, disable,
+lock or unlock. Every `console.warn`/`console.error` in `src/` is on a failure
+path (a player that refused a call, a `ListNames` failure, a vlcrc write,
+libmanette missing).
 
 **No subprocesses: meets.** No `Gio.Subprocess` or `GLib.spawn*` anywhere in
 `src/`.

@@ -67,8 +67,8 @@ class Cleanup {
 
 // Why vlcrc cannot be written, or null. The extension writes it from the shell,
 // where a failure reaches only the journal.
-function vlcrcUnwritable(path = vlcrcPath()) {
-    let file = Gio.File.new_for_path(path);
+function vlcrcUnwritable() {
+    let file = Gio.File.new_for_path(vlcrcPath());
     // Replacing the file writes its folder too.
     const checks = file.query_exists(null) ? [file, file.get_parent()] : [];
     if (!checks.length) {
@@ -290,7 +290,8 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
 
         const running = new Adw.PreferencesGroup({
             title: 'Running now',
-            description: 'Media players that speak MPRIS. The bar appears over the one whose fullscreen window has focus. VLC needs its D-Bus control on (--dbus); mpv needs mpv-mpris.',
+            description: 'Media players that speak MPRIS. The bar appears over the one whose fullscreen ' +
+                'window has focus. VLC needs its D-Bus control on (--dbus); mpv needs mpv-mpris.',
         });
         page.add(running);
         page.add(this._vlcGroup(settings));
@@ -338,9 +339,9 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                 const title = meta['xesam:title'] || '';
                 const status = info.player.PlaybackStatus || 'Stopped';
                 const row = new Adw.SwitchRow({
-                    title: GLib.markup_escape_text(info.root.Identity || busName, -1),
-                    subtitle: GLib.markup_escape_text(
-                        [title ? `${status} · ${title}` : status, names.join(' · ')].join('\n'), -1),
+                    title: info.root.Identity || busName,
+                    subtitle: [title ? `${status} · ${title}` : status, names.join(' · ')].join('\n'),
+                    use_markup: false,
                     active: !names.some(n => normalised.includes(n)),
                     subtitle_lines: 2,
                 });
@@ -363,7 +364,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                 ? `${notRunning.length} not running now. Browsers are here by default: they draw their own controls.`
                 : 'None';
             for (const key of notRunning) {
-                const row = new Adw.SwitchRow({title: GLib.markup_escape_text(key, -1), active: false});
+                const row = new Adw.SwitchRow({title: key, use_markup: false, active: false});
                 row.connect('notify::active', () => row.active && setIgnored([normaliseName(key)], false));
                 ignoredExpander.add_row(row);
                 ignoredRows.push(row);
@@ -470,12 +471,12 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             subtitle: 'Lets the bar list and switch VLC\'s tracks and fix subtitle timing, over a private socket',
             active: readVlcState().trackControl,
         });
-        const failed = new Adw.ActionRow({title: 'Could not change VLC\'s settings', visible: false});
+        const failed = new Adw.ActionRow({title: 'Could not change VLC\'s settings', use_markup: false, visible: false});
         // The tracks switch's failed write, else what would stop the extension writing the hide switch.
         let tracksError = null;
         const showFailed = () => {
             const problem = tracksError ?? (hide.active ? vlcrcUnwritable() : null);
-            failed.subtitle = GLib.markup_escape_text(problem ?? '', -1);
+            failed.subtitle = problem ?? '';
             failed.visible = problem !== null;
         };
         hide.connect('notify::active', showFailed);
@@ -503,7 +504,9 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         const page = new Adw.PreferencesPage({title: 'Controllers', icon_name: 'input-gaming-symbolic'});
 
         const general = new Adw.PreferencesGroup({
-            description: 'Game controllers work the bar while a fullscreen player has focus, and do nothing anywhere else. Every mapped pad — Xbox, PlayStation, Switch, 8BitDo, Steam Deck — has the same buttons here.',
+            description: 'Game controllers work the bar while a fullscreen player has focus, and do nothing ' +
+                'anywhere else. Every mapped pad — Xbox, PlayStation, Switch, 8BitDo, Steam Deck — has the ' +
+                'same buttons here.',
         });
         page.add(general);
         const use = new Adw.SwitchRow({title: 'Use game controllers'});
@@ -518,7 +521,9 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
 
         const buttons = new Adw.PreferencesGroup({
             title: 'Buttons',
-            description: 'Named by where they sit, since the letters on them differ between makers. After "Move around the bar" (Start, to begin with), the d-pad moves the highlight, the bottom button presses and the right one goes back.',
+            description: 'Named by where they sit, since the letters on them differ between makers. After ' +
+                '"Move around the bar" (Start, to begin with), the d-pad moves the highlight, the bottom ' +
+                'button presses and the right one goes back.',
         });
         const resetButtons = new Gtk.Button({
             label: 'Reset',
@@ -582,21 +587,17 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         const showNoPads = () => showPlaceholder('No controllers connected',
             'Plug one in or pair it over Bluetooth; it appears here as soon as it is.');
 
-        const timers = new Set();
+        const timers = new Map();
         cleanup.add(() => timers.forEach(id => GLib.source_remove(id)));
         const flash = (widget, apply, undo) => {
             apply();
-            if (widget._flashId) {
-                GLib.source_remove(widget._flashId);
-                timers.delete(widget._flashId);
-            }
-            const id = widget._flashId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, FLASH_MS, () => {
-                timers.delete(id);
-                widget._flashId = 0;
+            if (timers.has(widget))
+                GLib.source_remove(timers.get(widget));
+            timers.set(widget, GLib.timeout_add(GLib.PRIORITY_DEFAULT, FLASH_MS, () => {
+                timers.delete(widget);
                 undo();
                 return GLib.SOURCE_REMOVE;
-            });
-            timers.add(id);
+            }));
         };
 
         if (!Manette) {
@@ -617,8 +618,9 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                 return;
             const guid = device.get_guid();
             const row = new Adw.SwitchRow({
-                title: GLib.markup_escape_text(device.get_name() || 'Controller', -1),
-                subtitle: GLib.markup_escape_text(describe(device), -1),
+                title: device.get_name() || 'Controller',
+                subtitle: describe(device),
+                use_markup: false,
                 subtitle_lines: 2,
                 active: !settings.get_strv('ignored-gamepads').includes(guid),
             });
@@ -635,10 +637,10 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                 const pressed = button ? button.title : `Button ${event.get_hardware_code()} (not mapped)`;
                 // Two lines, as the row's own subtitle, so the page does not jump.
                 flash(row, () => {
-                    row.subtitle = GLib.markup_escape_text(`Pressed: ${pressed}\n${guid}`, -1);
+                    row.subtitle = `Pressed: ${pressed}\n${guid}`;
                     row.add_css_class('accent');
                 }, () => {
-                    row.subtitle = GLib.markup_escape_text(describe(device), -1);
+                    row.subtitle = describe(device);
                     row.remove_css_class('accent');
                 });
                 const buttonRow = button && buttonRows.get(button.id);

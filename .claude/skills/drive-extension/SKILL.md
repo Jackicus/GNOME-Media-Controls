@@ -30,7 +30,7 @@ volume, rate, title): the bar showing a pause is not the player pausing.
 | `pad [HOLD] BUTTON...` | Plug in a virtual Xbox 360 pad, wait HOLD s (default 1.5) for libmanette to open it, press each BUTTON, unplug. Buttons are the `gamepad-buttons` ids: `south` `east` `west` `north` `dpad-left` `dpad-right` `dpad-up` `dpad-down` `left-shoulder` `right-shoulder` `left-trigger` `right-trigger` `select` `start` `mode` `left-stick` `right-stick`, any of them as `BUTTON:SECS` to hold it down (`dpad-right:2` scrubs forward), plus `wait:SECS`. |
 | `do` … `scroll X Y up\|down [N]` | The kit's step; over the bar, the panel skips by `seek-step` per notch. |
 | `preview` | `start` (if none runs), the test clip, the bar up, a shot in `dist/preview.png` |
-| `logs` | `[Media Controls]` lines are ours; `Attached to <player> (pid N)` says which player the bar belongs to. |
+| `logs` | `[Media Controls]` lines are ours: failures, and the development entry point's `Enabled from …`. Which player the bar is attached to is seen in a `shot`. |
 
 The preferences: `run gnome-extensions prefs media-controls@jackicus`. A shell
 started from a Claude Code session stops itself after 10 minutes with no
