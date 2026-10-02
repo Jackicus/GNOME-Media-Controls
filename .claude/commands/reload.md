@@ -17,8 +17,7 @@ which is the user's to do.
 3. `./scripts/nested.sh logs 40` and report whether it came up clean. A healthy
    reload ends with `[Media Controls] Enabled from
    /run/user/1000/media-controls/shell-<pid>/lib-<stamp>` (a new stamp when
-   `lib/` changed), and `[Media Controls] Attached to <player> (pid N)` once a
-   fullscreen player has focus. Anything with `Failed to load`, `Error during
+   `lib/` changed); whether the bar attached is seen, not logged. Anything with `Failed to load`, `Error during
    disable`, `already registered`, or a JS stack trace under a `[Media
    Controls]` line is a real failure: quote it and say which file it points at.
 

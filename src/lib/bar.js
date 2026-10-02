@@ -12,7 +12,6 @@ import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
 
 import {RATES, formatTime} from './actions.js';
 import {Duration, Ease, RISE} from './anim.js';
-import {typeName} from './gtype.js';
 import {TracksMenu} from './tracksmenu.js';
 
 // Logical px on each side; the panel's max-width caps the width on a large monitor.
@@ -30,9 +29,7 @@ const clockTime = dateTime => formatClock(dateTime, {timeOnly: true}).trim();
 
 // [start | centre | end] with the centre on the row's middle however long the
 // title is, unless the end needs more than its half: then the title gives way.
-const CentredRowLayout = GObject.registerClass({
-    GTypeName: typeName('CentredRowLayout'),
-}, class CentredRowLayout extends Clutter.LayoutManager {
+const CentredRowLayout = GObject.registerClass(class MediaControlsCentredRowLayout extends Clutter.LayoutManager {
     vfunc_get_preferred_width(container, forHeight) {
         const [start, centre, end] = container.get_children();
         const [cMin, cNat] = centre.get_preferred_width(forHeight);
@@ -107,11 +104,8 @@ function arrowKeys(bar, slider, forward, back) {
 
 // Greyed out and out of the focus chain together, as popupMenu.js syncSensitive does.
 function setSensitive(actor, on) {
-    actor.reactive = actor.can_focus = on;
-}
-
-function rateLabel(rate) {
-    return `${Number(rate.toFixed(2))}×`;
+    actor.reactive = on;
+    actor.can_focus = on;
 }
 
 function volumeIcon(volume) {
@@ -125,9 +119,8 @@ function volumeIcon(volume) {
 }
 
 export const ControlBar = GObject.registerClass({
-    GTypeName: typeName('ControlBar'),
     Signals: {'action': {param_types: [GObject.TYPE_STRING]}},
-}, class ControlBar extends Clutter.Actor {
+}, class MediaControlsBar extends Clutter.Actor {
     // The OSD's arrangement (osdWindow.js): the constraint sizes the actor to the
     // monitor, and the alignment shrinks it around the panel.
     constructor() {
@@ -151,7 +144,6 @@ export const ControlBar = GObject.registerClass({
         this._tickMode = null;          // 'playing', 'idle' or null
         this._shown = false;            // arriving or here, not leaving
         this._unredirectOff = false;
-        this._scale = 1;
         this._top = false;
         this._monitorIndex = 0;
         this._showClock = false;
@@ -411,13 +403,13 @@ export const ControlBar = GObject.registerClass({
 
     // Every size in the stylesheet is in em, so one font size scales the lot.
     setScale(percent) {
-        this._scale = percent / 100;
+        const scale = percent / 100;
         const style = percent === 100 ? null : `font-size: ${percent}%;`;
         this.panel.style = style;
         this.tracksMenu.actor.style = style;
         for (const [icon, size] of this._icons)
-            icon.icon_size = Math.round(size * this._scale);
-        this.tracksMenu.setIconSize(Math.round(ICON_SIZE * this._scale));
+            icon.icon_size = Math.round(size * scale);
+        this.tracksMenu.setIconSize(Math.round(ICON_SIZE * scale));
         this.setMonitor(this._monitorIndex);
     }
 
@@ -507,7 +499,7 @@ export const ControlBar = GObject.registerClass({
         this._mute.accessible_name = p.muted ? 'Unmute' : 'Mute';
 
         this._rate.visible = p.hasRate && !this._hidden.includes('rate');
-        this._rate.label = rateLabel(p.rate);
+        this._rate.label = `${Number(p.rate.toFixed(2))}×`;
         // The accessible name replaces the label, so it carries the value.
         this._rate.accessible_name = `Playback speed: ${this._rate.label}`;
         this._syncing = false;

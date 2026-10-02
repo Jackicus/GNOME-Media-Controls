@@ -15,8 +15,7 @@ import {
 } from './actions.js';
 import {ControlBar} from './bar.js';
 import {Gamepads} from './gamepads.js';
-import {note} from './log.js';
-import {PlayerRegistry} from './mpris.js';
+import {PlayerRegistry, clock} from './mpris.js';
 import {readVlcState, writeVlcState} from './vlcconfig.js';
 import {VlcRemote} from './vlcremote.js';
 
@@ -28,8 +27,6 @@ const REMOTE_RETRY = 10;
 const SLEEP_END_MARGIN = 0.5;
 // A file left this near its end was watched: room for the credits and a lagging reckoning.
 const SLEEP_WATCHED_MARGIN = 30;
-
-const clock = () => GLib.get_monotonic_time() / 1e6;
 
 export class MediaControlsApp {
     constructor(extension) {
@@ -63,9 +60,21 @@ export class MediaControlsApp {
         this._bar.connect('action', (_bar, action) => this.perform(action));
         this._bar.panel.connect('notify::hover', () => this._armHide());
         this._bar.tracksMenu.connect('open-state-changed', () => this._armHide());
-        this._bar.setScale(this._settings.get_int('bar-scale'));
-        this._syncPosition();
-        this._syncButtons();
+        const settings = this._settings;
+        const syncButtons = () =>
+            this._bar.setButtons(settings.get_string('previous-next'), settings.get_strv('hidden-buttons'));
+        const barSettings = {
+            'bar-scale': () => this._bar.setScale(settings.get_int('bar-scale')),
+            'bar-position': () => this._bar.setTop(settings.get_string('bar-position') === 'top'),
+            'previous-next': syncButtons,
+            'hidden-buttons': syncButtons,
+            'show-clock': () => this._bar.setClock(settings.get_boolean('show-clock')),
+            'show-length': () => this._bar.setShowLength(settings.get_boolean('show-length')),
+        };
+        for (const [key, apply] of Object.entries(barSettings)) {
+            apply();
+            settings.connectObject(`changed::${key}`, apply, this);
+        }
         // trackFullscreen stays off (the default), so the bar is shown over fullscreen windows.
         Main.layoutManager.addChrome(this._bar);
 
@@ -97,12 +106,6 @@ export class MediaControlsApp {
             'changed::ignored-players', () => this._queueUpdate(),
             'changed::pointer-reveal', () => this._syncPointerWatch(),
             'changed::gamepads', () => this._syncGamepads(),
-            'changed::bar-scale', () => this._bar.setScale(this._settings.get_int('bar-scale')),
-            'changed::bar-position', () => this._syncPosition(),
-            'changed::previous-next', () => this._syncButtons(),
-            'changed::hidden-buttons', () => this._syncButtons(),
-            'changed::show-clock', () => this._syncClock(),
-            'changed::show-length', () => this._syncLength(),
             'changed::sleep-timer', () => this._syncSleep(),
             'changed::hide-vlc-controls', () => this._setVlcControls(this._settings.get_boolean('hide-vlc-controls')),
             'changed::sleep-timer-mode', () => {
@@ -110,8 +113,6 @@ export class MediaControlsApp {
                 this._syncSleep();
             },
             this);
-        this._syncClock();
-        this._syncLength();
         this._syncSleep();
 
         Main.wm.addKeybinding('toggle-bar', this._settings, Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
@@ -228,7 +229,6 @@ export class MediaControlsApp {
             this._syncPointerWatch();
             return;
         }
-        note(`Attached to ${player.identity || player.busName} (pid ${player.pid})`);
         this._bar.setMonitor(window.get_monitor());
         let status = player.status;
         let url = player.url;
@@ -319,18 +319,6 @@ export class MediaControlsApp {
         this._reveal();
     }
 
-    _syncLength() {
-        this._bar.setShowLength(this._settings.get_boolean('show-length'));
-    }
-
-    _syncPosition() {
-        this._bar.setTop(this._settings.get_string('bar-position') === 'top');
-    }
-
-    _syncButtons() {
-        this._bar.setButtons(this._settings.get_string('previous-next'), this._settings.get_strv('hidden-buttons'));
-    }
-
     _toggleFocus() {
         if (this._grab)
             this._conceal();
@@ -389,8 +377,8 @@ export class MediaControlsApp {
         case 'navigate': this._toggleFocus(); return true;
         case 'tracks': this._openTracks(); return true;
         // No reveal: the subtitles being timed are under the bar.
-        case 'cycle-audio': this._remote?.cycleAudio(); return true;
-        case 'cycle-subtitles': this._remote?.cycleSubtitles(); return true;
+        case 'cycle-audio': this._remote?.cycle('audio'); return true;
+        case 'cycle-subtitles': this._remote?.cycle('subtitles'); return true;
         case 'subtitles-earlier': this._remote?.shiftSubtitles(-SUBTITLE_SHIFT_MS); return true;
         case 'subtitles-later': this._remote?.shiftSubtitles(SUBTITLE_SHIFT_MS); return true;
         case 'sleep-timer':
@@ -509,10 +497,6 @@ export class MediaControlsApp {
         const time = GLib.get_monotonic_time();
         this._keyboard.notify_keyval(time, keyval, Clutter.KeyState.PRESSED);
         this._keyboard.notify_keyval(time, keyval, Clutter.KeyState.RELEASED);
-    }
-
-    _syncClock() {
-        this._bar.setClock(this._settings.get_boolean('show-clock'));
     }
 
     _syncSleep() {

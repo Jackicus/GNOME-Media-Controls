@@ -40,8 +40,8 @@ function valueOf(lines, name) {
 
 const modulesOf = value => (value ?? '').split(/[:,]/).map(m => m.trim()).filter(Boolean);
 
-export function readVlcState(path = vlcrcPath()) {
-    const lines = readLines(path);
+export function readVlcState() {
+    const lines = readLines(vlcrcPath());
     return {
         hideControls: valueOf(lines, 'qt-fs-controller') === '0',
         trackControl: modulesOf(valueOf(lines, 'extraintf')).includes(RC_MODULE) &&
@@ -77,7 +77,8 @@ function setValue(lines, name, value) {
 }
 
 // Returns the state the file was left in; throws if it could not be written.
-export function writeVlcState({hideControls, trackControl}, path = vlcrcPath()) {
+export function writeVlcState({hideControls, trackControl}) {
+    const path = vlcrcPath();
     const lines = readLines(path) ?? ['# Written by Media Controls; VLC fills in the rest.', ''];
     if (hideControls !== undefined)
         setValue(lines, 'qt-fs-controller', hideControls ? '0' : null);
@@ -97,5 +98,5 @@ export function writeVlcState({hideControls, trackControl}, path = vlcrcPath()) 
         text += '\n';
     file.replace_contents(new TextEncoder().encode(text), null, true,
         Gio.FileCreateFlags.NONE, null);
-    return readVlcState(path);
+    return readVlcState();
 }

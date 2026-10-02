@@ -22,10 +22,9 @@ preferences window's lines included). Head the answer "real session
 (read-only)": it is what Media Controls did on the user's desktop, not in the
 nested shell.
 
-Summarise rather than dump: how many enable/disable cycles (`Enabled from …`),
-which players the bar attached to (`Attached to … (pid N)`), which controllers
-came and went, and any errors or stack traces in full with the file they point
-at. Only `[Media Controls]` lines are this extension's; other extensions' errors
+Summarise rather than dump: how many enable/disable cycles (`Enabled from …`,
+the development entry point's), and any errors or stack traces in full with the
+file they point at; the extension itself logs failures only. Only `[Media Controls]` lines are this extension's; other extensions' errors
 at the nested shell's startup are not. Exceptions inside a GNOME extension only
 ever surface in these logs, never in a terminal, so this is the place to look
 when the bar silently never shows.

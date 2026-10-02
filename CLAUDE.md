@@ -48,9 +48,6 @@ src/lib/actions.js    pure data shared with prefs.js: ACTIONS, BAR_BUTTONS,
                       SLEEP_EPISODES, SUBTITLE_SHIFT_MS, and the helpers
                       over them (formatTime, playerNames, isIgnored, …)
 src/lib/anim.js       the only durations and curves
-src/lib/gtype.js      typeName(): our GObject type names, prefixed, apart per load
-src/lib/log.js        note(): `Attached to …` and the like, on only under
-                      dev-extension.js (the shipped extension logs failures only)
 src/prefs.js          Bar / Players (with the VLC switches) / Controllers pages
 src/stylesheet.css    paint only, every size in em
 src/schemas/          org.gnome.shell.extensions.media-controls
@@ -80,9 +77,10 @@ the pad in the nested shell).
 ## make check
 
 `make check` is what CI runs: `make lint` (ESLint; its present warnings are
-known, add none) and the schema under `--strict` (`EXT_CHECKS` is empty). No
-headless tests exist; behaviour is checked in the nested shell. It ends with
-`size`: budget 4000 lines (today's size, provisional).
+known: two `complexity`, add none) and the schema under `--strict`
+(`EXT_CHECKS` is empty). No headless tests exist; behaviour is checked in the
+nested shell. It ends with `size`: budget 3400 lines, the 3307 left after the
+simplify pass rounded up; raising it is the owner's call.
 
 ## How it fits together
 
@@ -186,6 +184,10 @@ of the seek row is a button out of the focus chain whose click is the
   pop-out opened with the mouse needs one Escape, not two.
 - **An older `make link` install may be a symlink to `src/`** rather than a
   directory of links; `make status` reports it, and `make link` replaces it.
+- **No `GTypeName`**: the shell names a GObject class after its module's path,
+  `Gjs_lib_bar_MediaControlsBar` installed and `Gjs_lib-<checksum>_bar_…` per
+  stage, so a reload after an edit registers a new name. A fixed `GTypeName`
+  fails with "already registered"; the `MediaControls` class name is the prefix.
 - **Shell 50 only**: no fallbacks for other versions (unredirection is
   `global.compositor`'s, as `osdWindow.js` calls it); 48 and 49 are for
   `gnome-ext:port-shell-version`.

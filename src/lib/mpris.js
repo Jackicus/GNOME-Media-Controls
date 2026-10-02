@@ -18,9 +18,9 @@ const CALL_TIMEOUT = 5000;
 // each seek twice, ~150 ms apart (docs/notes.md).
 const SEEK_SETTLE = 1;
 
-const clock = () => GLib.get_monotonic_time() / 1e6;
+export const clock = () => GLib.get_monotonic_time() / 1e6;
 
-function isCancelled(e) {
+export function isCancelled(e) {
     return e instanceof GLib.Error && e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED);
 }
 
@@ -38,11 +38,11 @@ function nameFromUrl(url) {
 
 // One per unique bus name, however many well-known names it holds.
 export class Player extends EventEmitter {
-    constructor(registry, owner) {
+    constructor(registry, owner, busName) {
         super();
         this._registry = registry;
         this.owner = owner;
-        this.busName = null;
+        this.busName = busName;
         this.pid = 0;
         this.identity = '';
         this.desktopEntry = '';
@@ -349,20 +349,18 @@ export class PlayerRegistry extends EventEmitter {
                 }),
         ];
 
-        bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus', 'ListNames',
-            null, new GLib.VariantType('(as)'), Gio.DBusCallFlags.NONE, CALL_TIMEOUT, this._cancellable,
-            (_bus, result) => {
-                let names;
-                try {
-                    [names] = bus.call_finish(result).deep_unpack();
-                } catch (e) {
-                    if (!isCancelled(e))
-                        console.warn(`[Media Controls] Could not list media players: ${e.message}`);
-                    return;
-                }
-                for (const name of names.filter(n => n.startsWith(`${ROOT}.`)))
-                    this._lookUpOwner(name);
-            });
+        this._busCall('ListNames', null, '(as)', (_bus, result) => {
+            let names;
+            try {
+                [names] = bus.call_finish(result).deep_unpack();
+            } catch (e) {
+                if (!isCancelled(e))
+                    console.warn(`[Media Controls] Could not list media players: ${e.message}`);
+                return;
+            }
+            for (const name of names.filter(n => n.startsWith(`${ROOT}.`)))
+                this._lookUpOwner(name);
+        });
     }
 
     disable() {
@@ -399,41 +397,41 @@ export class PlayerRegistry extends EventEmitter {
         this.emit('changed', player);
     }
 
+    _busCall(method, args, replyType, onReply) {
+        this._bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus', method, args,
+            new GLib.VariantType(replyType), Gio.DBusCallFlags.NONE, CALL_TIMEOUT, this._cancellable, onReply);
+    }
+
     _lookUpOwner(name) {
-        this._bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus', 'GetNameOwner',
-            new GLib.Variant('(s)', [name]), new GLib.VariantType('(s)'), Gio.DBusCallFlags.NONE, CALL_TIMEOUT,
-            this._cancellable, (bus, result) => {
-                try {
-                    const [owner] = bus.call_finish(result).deep_unpack();
-                    this._addName(name, owner);
-                } catch {
-                    // Gone again already, or cancelled: nothing to follow.
-                }
-            });
+        this._busCall('GetNameOwner', new GLib.Variant('(s)', [name]), '(s)', (bus, result) => {
+            try {
+                const [owner] = bus.call_finish(result).deep_unpack();
+                this._addName(name, owner);
+            } catch {
+                // Gone again already, or cancelled: nothing to follow.
+            }
+        });
     }
 
     _addName(name, owner) {
         this._names.set(name, owner);
         if (this._players.has(owner))
             return;
-        const player = new Player(this, owner);
-        player.busName = name;
+        const player = new Player(this, owner, name);
         this._players.set(owner, player);
         this._readAll(player, ROOT);
         this._readAll(player, PLAYER);
         // A player without one answers with an error, which is dropped.
         this._readAll(player, TRACKLIST);
-        this._bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
-            'GetConnectionUnixProcessID', new GLib.Variant('(s)', [owner]), new GLib.VariantType('(u)'),
-            Gio.DBusCallFlags.NONE, CALL_TIMEOUT, this._cancellable, (bus, result) => {
-                try {
-                    [player.pid] = bus.call_finish(result).deep_unpack();
-                } catch {
-                    return;
-                }
-                if (this._players.get(owner) === player)
-                    this._changed(player);
-            });
+        this._busCall('GetConnectionUnixProcessID', new GLib.Variant('(s)', [owner]), '(u)', (bus, result) => {
+            try {
+                [player.pid] = bus.call_finish(result).deep_unpack();
+            } catch {
+                return;
+            }
+            if (this._players.get(owner) === player)
+                this._changed(player);
+        });
         this.emit('added', player);
     }
 

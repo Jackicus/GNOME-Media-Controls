@@ -4,7 +4,6 @@
 import GLib from 'gi://GLib';
 
 import {buttonForCode} from './actions.js';
-import {note} from './log.js';
 
 // ms: a held key's feel, a little slower, since each repeat is a call to the player.
 const REPEAT_DELAY = 400;
@@ -60,7 +59,6 @@ export class Gamepads {
         if (this._devices.has(device))
             return;
         this._devices.add(device);
-        note(`Controller connected: ${device.get_name()}`);
         device.connectObject(
             'button-press-event', (_device, event) => this._pressed(device, event),
             'button-release-event', (_device, event) => this._released(device, event),
@@ -73,7 +71,6 @@ export class Gamepads {
         if (this._held?.device === device)
             this._stopRepeat();
         device.disconnectObject(this);
-        note(`Controller disconnected: ${device.get_name()}`);
     }
 
     _pressed(device, event) {

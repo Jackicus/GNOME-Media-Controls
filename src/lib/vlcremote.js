@@ -7,6 +7,7 @@ import GLib from 'gi://GLib';
 
 import {EventEmitter} from 'resource:///org/gnome/shell/misc/signals.js';
 
+import {isCancelled} from './mpris.js';
 import {SOCKET_PATH} from './vlcconfig.js';
 
 const REPLY_TIMEOUT_MS = 2000;
@@ -15,10 +16,10 @@ const encoder = new TextEncoder();
 
 // VLC's own subtitle-delay hotkeys move it by 50 ms a press.
 const SUBTITLE_STEP_MS = 50;
-
-function isCancelled(e) {
-    return e instanceof GLib.Error && e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED);
-}
+const TRACKS = {
+    audio: {command: 'atrack', hotkey: 'key-audio-track'},
+    subtitles: {command: 'strack', hotkey: 'key-subtitle-track'},
+};
 
 // "Japanese - [Japanese]" → "Japanese"; "Track 1 - [English]" → "English";
 // "Signs & Songs - [English]" → "Signs & Songs · English".
@@ -134,15 +135,8 @@ export class VlcRemote extends EventEmitter {
         return match ? {current: Number(match[1]), count: Number(match[2])} : {current: 0, count: 0};
     }
 
-    setAudio(id) {
-        return this._setTrack('audio', 'atrack', 'key-audio-track', id);
-    }
-
-    setSubtitles(id) {
-        return this._setTrack('subtitles', 'strack', 'key-subtitle-track', id);
-    }
-
-    async _setTrack(kind, command, hotkey, id) {
+    async setTrack(kind, id) {
+        const {command, hotkey} = TRACKS[kind];
         const reply = await this._command(`${command} ${id}`);
         if (reply.includes(PAUSED)) {
             // Press VLC's cycle hotkey until it gets there. Audio cycling skips
@@ -175,12 +169,8 @@ export class VlcRemote extends EventEmitter {
         this.emit('changed');
     }
 
-    cycleAudio() {
-        this._send('key key-audio-track');
-    }
-
-    cycleSubtitles() {
-        this._send('key key-subtitle-track');
+    cycle(kind) {
+        this._send(`key ${TRACKS[kind].hotkey}`);
     }
 
     // Paused, VLC cannot be asked where it landed: the count is moved on here.
@@ -244,7 +234,8 @@ export class VlcRemote extends EventEmitter {
     _next() {
         if (this._pending || !this._queue.length)
             return;
-        const pending = this._pending = this._queue.shift();
+        const pending = this._queue.shift();
+        this._pending = pending;
         pending.timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REPLY_TIMEOUT_MS, () => {
             pending.timeoutId = 0;
             if (this._pending === pending)
@@ -313,7 +304,9 @@ export class VlcRemote extends EventEmitter {
         this._cancellable.cancel();
         this._writes = [];
         this._connection?.close_async(GLib.PRIORITY_DEFAULT, null, null);
-        this._connection = this._input = this._output = null;
+        this._connection = null;
+        this._input = null;
+        this._output = null;
     }
 
     _fail(error) {
