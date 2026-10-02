@@ -54,17 +54,7 @@ export class MediaControlsApp {
         this._sleepId = 0;
     }
 
-    // The shell never disables after a throwing enable(): take down what was built.
     enable() {
-        try {
-            this._enable();
-        } catch (e) {
-            this.disable();
-            throw e;
-        }
-    }
-
-    _enable() {
         this._settings = this._extension.getSettings();
         if (this._settings.get_boolean('hide-vlc-controls'))
             this._setVlcControls(true);
@@ -131,44 +121,39 @@ export class MediaControlsApp {
         this._update();
     }
 
-    // Each step on its own, so one that throws cannot leave the rest running.
     disable() {
-        const steps = [
-            () => Main.wm.removeKeybinding('toggle-bar'),
-            () => this._setSleep(null),
-            () => this._dropRemote(),
-            () => this._ungrab(),
-            () => this._keyboard?.run_dispose(),
-            () => this._pads?.disable(),
-            () => this._stopPointerWatch(),
-            () => this._hideId && GLib.source_remove(this._hideId),
-            () => this._updateId && GLib.source_remove(this._updateId),
-            () => this._watchWindow(null),
-            () => this._player?.disconnectObject(this),
-            () => global.display.disconnectObject(this),
-            () => Main.overview.disconnectObject(this),
-            () => Main.layoutManager.disconnectObject(this),
-            () => this._settings?.disconnectObject(this),
-            () => this._registry?.disconnectObject(this),
-            () => this._registry?.disable(),
-            () => this._bar?.destroy(),
-            // Not at a lock: the unlock enables again, and no VLC starts between.
-            () => !Main.sessionMode.isLocked && this._settings?.get_boolean('hide-vlc-controls') &&
-                this._setVlcControls(false),
-        ];
-        for (const step of steps) {
-            try {
-                step();
-            } catch (e) {
-                console.error('[Media Controls] Error during disable:', e);
-            }
-        }
-        this._pads = null;
-        this._hideId = this._updateId = 0;
-        this._player = this._window = null;
+        Main.wm.removeKeybinding('toggle-bar');
+        this._setSleep(null);
+        this._dropRemote();
+        this._ungrab();
+        // Disposed now, so the virtual keyboard leaves the seat at once.
+        this._keyboard?.run_dispose();
         this._keyboard = null;
+        this._pads?.disable();
+        this._pads = null;
+        this._stopPointerWatch();
+        this._watchWindow(null);
+        this._player?.disconnectObject(this);
+        this._player = null;
+        this._window = null;
+        global.display.disconnectObject(this);
+        Main.overview.disconnectObject(this);
+        Main.layoutManager.disconnectObject(this);
+        this._settings.disconnectObject(this);
+        this._registry.disconnectObject(this);
+        this._registry.disable();
         this._registry = null;
+        this._bar.destroy();
         this._bar = null;
+        if (this._hideId)
+            GLib.source_remove(this._hideId);
+        this._hideId = 0;
+        if (this._updateId)
+            GLib.source_remove(this._updateId);
+        this._updateId = 0;
+        // Not at a lock: the unlock enables again, and no VLC starts between.
+        if (!Main.sessionMode.isLocked && this._settings.get_boolean('hide-vlc-controls'))
+            this._setVlcControls(false);
         this._settings = null;
     }
 

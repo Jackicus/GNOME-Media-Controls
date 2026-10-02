@@ -63,16 +63,14 @@ Every module-scope value under `lib/` is a constant or pure function — no
 timer, connection or D-Bus proxy runs before `enable()`.
 
 **Destroy all objects, disconnect all signals, remove main loop sources:
-meets.** `MediaControlsApp.disable()` (`src/lib/app.js`) runs teardown as a
-list of independent steps, each caught on its own, so one throwing doesn't
-skip the rest: removes the keybinding, cancels the sleep timer and its
+meets.** `MediaControlsApp.disable()` (`src/lib/app.js`) undoes `enable()`
+in plain calls: removes the keybinding, cancels the sleep timer and its
 signals (`_setSleep(null)`), drops the VLC remote, releases the grab,
-disposes the virtual keyboard, disables the pad watcher, stops the pointer
-watch, removes the hide and update sources, stops watching the window, and
+disposes the virtual keyboard (commented: it leaves the seat at once),
+disables the pad watcher, stops the pointer watch, stops watching the window,
 disconnects every `connectObject` group (`_player`, `global.display`,
-`Main.overview`, `Main.layoutManager`, `_settings`, `_registry`) before
-destroying the bar.
-Last, with `hide-vlc-controls` on and the session not locked, it puts
+`Main.overview`, `Main.layoutManager`, `_settings`, `_registry`), destroys the
+bar, then removes the hide and update sources. Last, with `hide-vlc-controls` on and the session not locked, it puts
 `qt-fs-controller` back in vlcrc (see *Modifying another application's
 files*).
 `ControlBar._onDestroy()` (`src/lib/bar.js`) disconnects the player, removes
@@ -103,7 +101,7 @@ packed.
 does; the shipped `src/extension.js` never calls it, so a normal install logs
 nothing on enable, disable, lock or unlock. Every `console.warn`/
 `console.error` in `src/lib/` is on a failure path (a player that refused a
-call, a `ListNames` failure, a disable step that threw, libmanette missing).
+call, a `ListNames` failure, a vlcrc write, libmanette missing).
 
 **No subprocesses: meets.** No `Gio.Subprocess` or `GLib.spawn*` anywhere in
 `src/`.
