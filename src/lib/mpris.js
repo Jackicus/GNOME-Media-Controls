@@ -190,8 +190,7 @@ export class Player extends EventEmitter {
     }
 
     quit() {
-        if (this.canQuit)
-            this._call(ROOT, 'Quit');
+        this._call(ROOT, 'Quit');
     }
 
     refreshPosition() {
@@ -370,7 +369,7 @@ export class PlayerRegistry extends EventEmitter {
         for (const id of this._subscriptions)
             this._bus.signal_unsubscribe(id);
         this._subscriptions = [];
-        this._cancellable?.cancel();
+        this._cancellable.cancel();
         this._cancellable = null;
         this._players.clear();
         this._names.clear();
@@ -379,8 +378,6 @@ export class PlayerRegistry extends EventEmitter {
 
     // `onError` gets any error but a cancellation.
     call(owner, iface, method, args, replyType, onReply, onError) {
-        if (!this._bus)
-            return;
         this._bus.call(owner, MPRIS_PATH, iface, method, args,
             replyType ? new GLib.VariantType(replyType) : null, Gio.DBusCallFlags.NONE, CALL_TIMEOUT,
             this._cancellable, (bus, result) => {

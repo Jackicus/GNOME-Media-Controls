@@ -84,10 +84,11 @@ focus group. `VlcRemote.close()` (`src/lib/vlcremote.js`) cancels its
 
 **No GTK in the shell, no shell libraries in the preferences: meets.** Every
 file under `src/lib` imports only `Clutter`, `GLib`, `GObject`, `Gio`, `Meta`,
-`Pango`, `Shell`, `St`, shell `resource:///` modules and — dynamically, in
-`gamepads.js`, so a system without it keeps the bar — `Manette` — no `Gtk`,
+`Pango`, `Shell`, `St`, shell `resource:///` modules and — with an awaited
+`import()` in a `try` at the top of `gamepads.js`, so a system without it keeps
+the bar — `Manette` — no `Gtk`,
 `Gdk` or `Adw`. `src/prefs.js` imports `Adw`, `Gdk`, `Gio`, `GLib`, `Gtk`,
-`Manette` (dynamically, for the Controllers page) plus `lib/actions.js` and
+`Manette` (the same way, for the Controllers page) plus `lib/actions.js` and
 `lib/vlcconfig.js`, both pure GLib/Gio with no shell import.
 
 **Avoid interfering with the extension system: meets.** The module-cache

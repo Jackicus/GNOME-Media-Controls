@@ -483,37 +483,34 @@ export const ControlBar = GObject.registerClass({
         if (!p)
             return;
         this._syncing = true;
-        try {
-            this._title.text = p.title || p.identity || 'Unknown';
-            const subtitle = p.artist || (p.title ? p.identity : '');
-            this._subtitle.text = subtitle;
-            this._subtitle.visible = !!subtitle;
+        this._title.text = p.title || p.identity || 'Unknown';
+        const subtitle = p.artist || (p.title ? p.identity : '');
+        this._subtitle.text = subtitle;
+        this._subtitle.visible = !!subtitle;
 
-            this._play.icon_name = p.playing ? 'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
-            this._play.accessible_name = p.playing ? 'Pause' : 'Play';
-            setSensitive(this._previous, p.canGoPrevious);
-            setSensitive(this._next, p.canGoNext);
-            // Both or neither, so play stays in the middle of the transport.
-            const previousNext = this._previousNext === 'always' ||
-                (this._previousNext === 'playlist' && p.hasPlaylist);
-            this._previous.visible = previousNext;
-            this._next.visible = previousNext;
-            setSensitive(this._back, p.canSeek);
-            setSensitive(this._forward, p.canSeek);
-            setSensitive(this._seek, p.canSeek && p.length > 0);
+        this._play.icon_name = p.playing ? 'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
+        this._play.accessible_name = p.playing ? 'Pause' : 'Play';
+        setSensitive(this._previous, p.canGoPrevious);
+        setSensitive(this._next, p.canGoNext);
+        // Both or neither, so play stays in the middle of the transport.
+        const previousNext = this._previousNext === 'always' ||
+            (this._previousNext === 'playlist' && p.hasPlaylist);
+        this._previous.visible = previousNext;
+        this._next.visible = previousNext;
+        setSensitive(this._back, p.canSeek);
+        setSensitive(this._forward, p.canSeek);
+        setSensitive(this._seek, p.canSeek && p.length > 0);
 
-            if (!this._volumeDragging)
-                this._volume.value = Math.min(1, p.volume);
-            this._mute.icon_name = volumeIcon(p.volume);
-            this._mute.accessible_name = p.muted ? 'Unmute' : 'Mute';
+        if (!this._volumeDragging)
+            this._volume.value = Math.min(1, p.volume);
+        this._mute.icon_name = volumeIcon(p.volume);
+        this._mute.accessible_name = p.muted ? 'Unmute' : 'Mute';
 
-            this._rate.visible = p.hasRate && !this._hidden.includes('rate');
-            this._rate.label = rateLabel(p.rate);
-            // The accessible name replaces the label, so it carries the value.
-            this._rate.accessible_name = `Playback speed: ${this._rate.label}`;
-        } finally {
-            this._syncing = false;
-        }
+        this._rate.visible = p.hasRate && !this._hidden.includes('rate');
+        this._rate.label = rateLabel(p.rate);
+        // The accessible name replaces the label, so it carries the value.
+        this._rate.accessible_name = `Playback speed: ${this._rate.label}`;
+        this._syncing = false;
         this._tick();
         this._updateTicking();
     }
@@ -578,8 +575,6 @@ export const ControlBar = GObject.registerClass({
 
     _cycleRate() {
         const p = this._player;
-        if (!p?.hasRate)
-            return;
         const allowed = RATES.filter(r => r >= p.minRate && r <= p.maxRate);
         const at = allowed.findIndex(r => r > p.rate + 1e-6);
         p.setRate(allowed[at === -1 ? 0 : at]);
@@ -601,7 +596,7 @@ export const ControlBar = GObject.registerClass({
             this.show();
         }
         // Above later chrome, as osdWindow.js does.
-        this.get_parent()?.set_child_above_sibling(this, null);
+        this.get_parent().set_child_above_sibling(this, null);
         this.ease({
             opacity: 255,
             translation_y: 0,
@@ -647,16 +642,10 @@ export const ControlBar = GObject.registerClass({
     _onDestroy() {
         this.tracksMenu.destroy();
         this._player?.disconnectObject(this);
-        this._player = null;
-        if (this._tickId) {
+        if (this._tickId)
             GLib.source_remove(this._tickId);
-            this._tickId = 0;
-            this._tickMode = null;
-        }
-        if (this._unredirectOff) {
+        if (this._unredirectOff)
             global.compositor.enable_unredirect();
-            this._unredirectOff = false;
-        }
         global.focus_manager.remove_group(this.panel);
     }
 });

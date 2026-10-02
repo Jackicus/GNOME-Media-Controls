@@ -13,6 +13,14 @@ const MPRIS_PATH = '/org/mpris/MediaPlayer2';
 const PROPERTIES = 'org.freedesktop.DBus.Properties';
 const FLASH_MS = 1200;
 
+// Optional: without it the Controllers page says so.
+let Manette = null;
+try {
+    ({default: Manette} = await import('gi://Manette?version=0.2'));
+} catch {
+    // Not installed.
+}
+
 const POSITIONS = [
     {id: 'bottom', title: 'Bottom'},
     {id: 'top', title: 'Top'},
@@ -39,21 +47,15 @@ const REVEALS = [
 class Cleanup {
     constructor(window) {
         this._jobs = [];
-        this.closed = false;
         window.connect('close-request', () => {
-            this.closed = true;
             for (const job of this._jobs.splice(0).reverse())
                 job();
             return false;
         });
     }
 
-    // A job added after the close runs at once (an import that resolved late).
     add(job) {
-        if (this.closed)
-            job();
-        else
-            this._jobs.push(job);
+        this._jobs.push(job);
     }
 
     connect(object, ...args) {
@@ -577,7 +579,6 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             placeholder = new Adw.ActionRow({title, subtitle});
             group.add(placeholder);
         };
-        showPlaceholder('Looking for controllers…', '');
         const showNoPads = () => showPlaceholder('No controllers connected',
             'Plug one in or pair it over Bluetooth; it appears here as soon as it is.');
 
@@ -598,99 +599,84 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             timers.add(id);
         };
 
-        import('gi://Manette?version=0.2').then(({default: Manette}) => {
-            // The window can close before the import lands.
-            if (cleanup.closed)
-                return;
-            let alive = true;
-            cleanup.add(() => {
-                alive = false;
-            });
-            const monitor = new Manette.Monitor();
-            const devices = new Map();
-            let connectedId = 0, disconnectedId = 0;
-            // Registered at once, so a throw below still lets the monitor go.
-            cleanup.add(() => {
-                if (connectedId)
-                    monitor.disconnect(connectedId);
-                if (disconnectedId)
-                    monitor.disconnect(disconnectedId);
-                for (const [device, id] of devices)
-                    device.disconnect(id);
-                devices.clear();
-                monitor.run_dispose();
-            });
-
-            const describe = device => {
-                const kind = device.get_device_type() === Manette.DeviceType.STEAM_DECK ? 'Steam Deck · ' : '';
-                const mapped = device.get_mapping() ? 'Mapped' : 'No mapping known — buttons may not match';
-                return `${kind}${mapped}\n${device.get_guid()}`;
-            };
-            const addDevice = device => {
-                if (!alive || devices.has(device))
-                    return;
-                const guid = device.get_guid();
-                const row = new Adw.SwitchRow({
-                    title: GLib.markup_escape_text(device.get_name() || 'Controller', -1),
-                    subtitle: GLib.markup_escape_text(describe(device), -1),
-                    subtitle_lines: 2,
-                    active: !settings.get_strv('ignored-gamepads').includes(guid),
-                });
-                row.add_prefix(new Gtk.Image({icon_name: 'input-gaming-symbolic'}));
-                row.connect('notify::active', () => {
-                    const list = settings.get_strv('ignored-gamepads').filter(g => g !== guid);
-                    if (!row.active)
-                        list.push(guid);
-                    settings.set_strv('ignored-gamepads', list);
-                });
-                const id = device.connect('button-press-event', (_device, event) => {
-                    const [ok, code] = event.get_button();
-                    const button = ok ? buttonForCode(code) : null;
-                    const pressed = button ? button.title : `Button ${event.get_hardware_code()} (not mapped)`;
-                    // Two lines, as the row's own subtitle, so the page does not jump.
-                    flash(row, () => {
-                        row.subtitle = GLib.markup_escape_text(`Pressed: ${pressed}\n${guid}`, -1);
-                        row.add_css_class('accent');
-                    }, () => {
-                        row.subtitle = GLib.markup_escape_text(describe(device), -1);
-                        row.remove_css_class('accent');
-                    });
-                    const buttonRow = button && buttonRows.get(button.id);
-                    if (buttonRow) {
-                        flash(buttonRow, () => buttonRow.add_css_class('accent'),
-                            () => buttonRow.remove_css_class('accent'));
-                    }
-                });
-                devices.set(device, id);
-                rows.set(device, row);
-                group.add(row);
-                showPlaceholder();
-            };
-            const removeDevice = device => {
-                const row = rows.get(device);
-                if (row)
-                    group.remove(row);
-                rows.delete(device);
-                const id = devices.get(device);
-                if (id)
-                    device.disconnect(id);
-                devices.delete(device);
-                showNoPads();
-            };
-
-            const it = monitor.iterate();
-            for (let [ok, device] = it.next(); ok; [ok, device] = it.next())
-                addDevice(device);
-            connectedId = monitor.connect('device-connected', (_m, device) => addDevice(device));
-            disconnectedId = monitor.connect('device-disconnected', (_m, device) => removeDevice(device));
-            showNoPads();
-        }, () => {
-            // Only the import itself: libmanette is not there.
+        if (!Manette) {
             showPlaceholder('libmanette is not installed',
                 'Game controllers need it: the libmanette package on most distributions.');
-        }).catch(e => {
-            console.error('[Media Controls] Could not list controllers:', e);
-            showPlaceholder('Could not list controllers', GLib.markup_escape_text(e.message ?? String(e), -1));
+            return;
+        }
+        const monitor = new Manette.Monitor();
+        const devices = new Map();
+
+        const describe = device => {
+            const kind = device.get_device_type() === Manette.DeviceType.STEAM_DECK ? 'Steam Deck · ' : '';
+            const mapped = device.get_mapping() ? 'Mapped' : 'No mapping known — buttons may not match';
+            return `${kind}${mapped}\n${device.get_guid()}`;
+        };
+        const addDevice = device => {
+            if (devices.has(device))
+                return;
+            const guid = device.get_guid();
+            const row = new Adw.SwitchRow({
+                title: GLib.markup_escape_text(device.get_name() || 'Controller', -1),
+                subtitle: GLib.markup_escape_text(describe(device), -1),
+                subtitle_lines: 2,
+                active: !settings.get_strv('ignored-gamepads').includes(guid),
+            });
+            row.add_prefix(new Gtk.Image({icon_name: 'input-gaming-symbolic'}));
+            row.connect('notify::active', () => {
+                const list = settings.get_strv('ignored-gamepads').filter(g => g !== guid);
+                if (!row.active)
+                    list.push(guid);
+                settings.set_strv('ignored-gamepads', list);
+            });
+            const id = device.connect('button-press-event', (_device, event) => {
+                const [ok, code] = event.get_button();
+                const button = ok ? buttonForCode(code) : null;
+                const pressed = button ? button.title : `Button ${event.get_hardware_code()} (not mapped)`;
+                // Two lines, as the row's own subtitle, so the page does not jump.
+                flash(row, () => {
+                    row.subtitle = GLib.markup_escape_text(`Pressed: ${pressed}\n${guid}`, -1);
+                    row.add_css_class('accent');
+                }, () => {
+                    row.subtitle = GLib.markup_escape_text(describe(device), -1);
+                    row.remove_css_class('accent');
+                });
+                const buttonRow = button && buttonRows.get(button.id);
+                if (buttonRow) {
+                    flash(buttonRow, () => buttonRow.add_css_class('accent'),
+                        () => buttonRow.remove_css_class('accent'));
+                }
+            });
+            devices.set(device, id);
+            rows.set(device, row);
+            group.add(row);
+            showPlaceholder();
+        };
+        const removeDevice = device => {
+            const row = rows.get(device);
+            if (row)
+                group.remove(row);
+            rows.delete(device);
+            const id = devices.get(device);
+            if (id)
+                device.disconnect(id);
+            devices.delete(device);
+            showNoPads();
+        };
+
+        const it = monitor.iterate();
+        for (let [ok, device] = it.next(); ok; [ok, device] = it.next())
+            addDevice(device);
+        const connectedId = monitor.connect('device-connected', (_m, device) => addDevice(device));
+        const disconnectedId = monitor.connect('device-disconnected', (_m, device) => removeDevice(device));
+        cleanup.add(() => {
+            monitor.disconnect(connectedId);
+            monitor.disconnect(disconnectedId);
+            for (const [device, id] of devices)
+                device.disconnect(id);
+            // Closes every pad's evdev node now rather than at garbage collection.
+            monitor.run_dispose();
         });
+        showNoPads();
     }
 }

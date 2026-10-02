@@ -9,8 +9,9 @@ paths:
 # Pads: libmanette, and the pad on the bar
 
 - **libmanette** (`gi://Manette?version=0.2`, the library WebKitGTK reads
-  gamepads with) is imported when enabled, so a system without it loses the
-  pads and keeps the bar. It watches udev, opens each pad's evdev node on the
+  gamepads with) is imported once, at module scope inside a `try`, in
+  `gamepads.js` and `prefs.js`, so a system without it loses the pads and
+  keeps the bar. It watches udev, opens each pad's evdev node on the
   main loop, and maps whatever was plugged in onto the kernel's standard
   buttons with the SDL controller database, so a button is named by
   **position** (`south`, `east`, `dpad-left`, `left-trigger`, …, `BUTTONS` in
