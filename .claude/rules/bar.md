@@ -23,10 +23,9 @@ paths:
   back from the theme node (already physical). Off the stage the panel has no
   style, so `setMonitor` runs again on `style-changed`. The row gap
   (`CentredRowLayout`) is the row's `spacing`, read the same way.
-- **Unredirection is off while it is shown**, as the OSD does it, so a
-  fullscreen window scanned out directly cannot hide it (`setUnredirect`).
-- `addChrome()` is called without `affectsInputRegion`: 48's default for it is
-  `true`, so omitting it is right on 48 as well as 50.
+- **Unredirection is off while it is shown**, as the OSD does it
+  (`global.compositor.disable_unredirect()`), so a fullscreen window scanned
+  out directly cannot hide it.
 - **The pop-out keeps to the panel as it rises**: a `BoxPointer` places itself
   from its source's transformed position only when laid out, which a
   translation does not cause, so `notify::translation-y` calls

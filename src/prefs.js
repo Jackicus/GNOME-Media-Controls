@@ -622,7 +622,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             });
 
             const describe = device => {
-                const kind = device.get_device_type?.() === Manette.DeviceType.STEAM_DECK ? 'Steam Deck · ' : '';
+                const kind = device.get_device_type() === Manette.DeviceType.STEAM_DECK ? 'Steam Deck · ' : '';
                 const mapped = device.get_mapping() ? 'Mapped' : 'No mapping known — buttons may not match';
                 return `${kind}${mapped}\n${device.get_guid()}`;
             };
