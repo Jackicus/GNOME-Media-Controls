@@ -10,28 +10,28 @@ import {note} from './log.js';
 const REPEAT_DELAY = 400;
 const REPEAT_INTERVAL = 150;
 
+// Optional: without it the pads are off and the bar stays.
+let Manette = null;
+try {
+    ({default: Manette} = await import('gi://Manette?version=0.2'));
+} catch {
+    // Not installed.
+}
+
 export class Gamepads {
     constructor(settings, onButton) {
         this._settings = settings;
         this._onButton = onButton;
         this._monitor = null;
         this._devices = new Set();
-        this._generation = 0;
         this._held = null;              // {device, id, source}: repeating
     }
 
-    async enable() {
-        const generation = ++this._generation;
-        let Manette;
-        try {
-            ({default: Manette} = await import('gi://Manette?version=0.2'));
-        } catch {
+    enable() {
+        if (!Manette) {
             console.warn('[Media Controls] libmanette is not installed, so game controllers are off');
             return;
         }
-        // Disabled, or disabled and enabled again, while the import ran.
-        if (generation !== this._generation)
-            return;
         this._monitor = new Manette.Monitor();
         const it = this._monitor.iterate();
         for (let [ok, device] = it.next(); ok; [ok, device] = it.next())
@@ -43,7 +43,6 @@ export class Gamepads {
     }
 
     disable() {
-        this._generation++;
         this._stopRepeat();
         for (const device of this._devices)
             device.disconnectObject(this);

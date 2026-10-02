@@ -249,8 +249,6 @@ export class MediaControlsApp {
     }
 
     _reveal() {
-        if (!this._player)
-            return;
         if (!this._bar.visible) {
             this._player.refreshPosition();
             this._player.refreshTrackList();
@@ -275,7 +273,7 @@ export class MediaControlsApp {
         if (this._hideId)
             GLib.source_remove(this._hideId);
         this._hideId = 0;
-        if (!this._bar?.visible)
+        if (!this._bar.visible)
             return;
         this._hideId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
             this._settings.get_int('hide-delay') * 1000, () => {
@@ -308,8 +306,6 @@ export class MediaControlsApp {
     }
 
     _pointerMoved(x, y) {
-        if (!this._window)
-            return;
         const monitor = Main.layoutManager.monitors[this._window.get_monitor()];
         if (!monitor || x < monitor.x || x >= monitor.x + monitor.width ||
             y < monitor.y || y >= monitor.y + monitor.height)
@@ -415,13 +411,13 @@ export class MediaControlsApp {
         if (this._player.canQuit)
             this._player.quit();
         else
-            window?.delete(global.get_current_time());
+            window.delete(global.get_current_time());
     }
 
     // A VLC still busy with a connection from before (a reload) gets one retry.
     _connectRemote(player, retry = true) {
         this._dropRemote();
-        if (!player?.pid || !playerNames(player).includes('vlc'))
+        if (!player.pid || !playerNames(player).includes('vlc'))
             return;
         this._remoteTriedAt = clock();
         const remote = new VlcRemote();
@@ -463,12 +459,12 @@ export class MediaControlsApp {
         this._remote = null;
         remote.close();
         remote.disconnectObject(this);
-        this._bar?.setRemote(null);
+        this._bar.setRemote(null);
     }
 
     // VLC lists tracks only while playing: read them for a pop-out opened paused.
     _readTracks() {
-        if (this._remote && this._player?.playing)
+        if (this._remote && this._player.playing)
             this._remote.state().catch(() => {});
     }
 
@@ -563,7 +559,7 @@ export class MediaControlsApp {
         for (const id of this._sleep?.signals ?? [])
             this._sleep.player.disconnect(id);
         this._sleep = null;
-        if (!timer || !this._player)
+        if (!timer)
             return;
         const player = this._player;
         this._sleep = {...timer, player, url: player.url, signals: []};
@@ -605,8 +601,8 @@ export class MediaControlsApp {
             GLib.source_remove(this._sleepId);
             this._sleepId = 0;
         }
-        const p = this._sleep?.player;
-        if (this._sleep?.episodes !== 1 || !p.playing || !p.length)
+        const p = this._sleep.player;
+        if (this._sleep.episodes !== 1 || !p.playing || !p.length)
             return;
         const left = Math.max(0, (p.length - p.now) / (p.rate || 1) - SLEEP_END_MARGIN);
         this._sleepId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, Math.round(left * 1000), () => {
@@ -617,17 +613,16 @@ export class MediaControlsApp {
     }
 
     _sleepEnded() {
-        const player = this._sleep?.player;
+        const {player} = this._sleep;
         this._setSleep(null);
-        if (player && this._registry.players.includes(player))
-            player.pause();
+        player.pause();
     }
 
     _syncGamepads() {
         const want = this._settings.get_boolean('gamepads');
         if (want && !this._pads) {
             this._pads = new Gamepads(this._settings, (button, action) => this._onPadButton(button, action));
-            this._pads.enable().catch(e => console.error('[Media Controls] Could not watch controllers:', e));
+            this._pads.enable();
         } else if (!want && this._pads) {
             this._pads.disable();
             this._pads = null;

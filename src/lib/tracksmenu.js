@@ -11,7 +11,6 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {SUBTITLE_SHIFT_MS} from './actions.js';
 import {typeName} from './gtype.js';
-import {PausedError} from './vlcremote.js';
 
 // NO_DOT keeps an unpicked radio item lined up with the picked one's dot.
 const PICKED = PopupMenu.Ornament.DOT;
@@ -129,18 +128,8 @@ export class TracksMenu extends PopupMenu.PopupMenu {
     // With `focus`, the current audio track takes the keyboard.
     async openFresh({focus = false} = {}) {
         const remote = this._remote;
-        if (!remote)
-            return;
-        let state;
-        try {
-            state = await remote.state();
-        } catch (e) {
-            if (!(e instanceof PausedError))
-                return;
-            // Paused before VLC was ever asked: say why the lists are empty.
-            state = {audio: null, subtitles: null, chapter: {current: 0, count: 0}};
-        }
-        if (this._remote !== remote || !this.sourceActor.mapped)
+        const state = await remote.state().catch(() => null);
+        if (!state || this._remote !== remote || !this.sourceActor.mapped)
             return;
         this._fill(state);
         this._aim();
@@ -205,24 +194,20 @@ export class TracksMenu extends PopupMenu.PopupMenu {
     }
 
     _syncDelay() {
-        this._delay.text = formatDelay(this._remote?.subtitleDelay ?? 0);
+        this._delay.text = formatDelay(this._remote.subtitleDelay);
     }
 
     _syncChapter() {
-        const {current, count} = this._chapterState ?? {current: 0, count: 0};
+        const {current, count} = this._chapterState;
         // VLC counts chapters from 0.
         this._chapters.label.text = `Chapter ${current + 1} of ${count}`;
     }
 
     async _chapter(delta) {
-        try {
-            const chapter = await this._remote?.chapter(delta);
-            if (chapter) {
-                this._chapterState = chapter;
-                this._syncChapter();
-            }
-        } catch {
-            // The player went; the menu goes with the bar.
+        const chapter = await this._remote?.chapter(delta).catch(() => null);
+        if (chapter) {
+            this._chapterState = chapter;
+            this._syncChapter();
         }
     }
 
