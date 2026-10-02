@@ -1,43 +1,21 @@
-// The media players on the session bus, as far as they have told us, and the
-// few things the bar asks of them.
-//
-// MPRIS is the D-Bus interface VLC (with --dbus, its default), mpv (with
-// mpv-mpris), Celluloid, Showtime and the browsers speak, and what the shell's
-// own media controls read. It says when a player comes and goes, what it has
-// open, how long that is, whether it is playing, its volume and rate, and when
-// it seeks — and, from a player that keeps its playlist on the bus (VLC does,
-// whatever its HasTrackList says), how many files that playlist holds. It
-// never says where playback has got to unless asked. So the
-// position is read, and the clock reading it was taken at kept beside it;
-// where playback is at any moment is that position moved on by the clock
-// while playing (`Player.now`). A reading is taken when the bar comes up,
-// when a player starts playing and when it moves to a new file; a seek
-// announces its own — and for a moment after a seek of ours, a reading from
-// before it is told apart and dropped (`Player.reading`).
-//
-// Nothing here blocks a player: every call is asynchronous and cancelled on
-// disable, and a player that never answers leaves a stale row, not a frozen
-// shell.
+// The MPRIS players on the session bus. MPRIS never announces the position, so
+// it is reckoned from the last reading by the clock while playing.
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {EventEmitter} from 'resource:///org/gnome/shell/misc/signals.js';
 
-// The bus-name namespace is the root interface's name as well.
 const ROOT = 'org.mpris.MediaPlayer2';
 const MPRIS_PATH = '/org/mpris/MediaPlayer2';
 const PLAYER = 'org.mpris.MediaPlayer2.Player';
 const TRACKLIST = 'org.mpris.MediaPlayer2.TrackList';
 const PROPERTIES = 'org.freedesktop.DBus.Properties';
 const NO_TRACK = '/org/mpris/MediaPlayer2/TrackList/NoTrack';
-// Long enough for a busy player, short enough that a hung one is given up on
-// well before GDBus's own 25 s default.
+// Well under GDBus's 25 s default, so a hung player is given up on.
 const CALL_TIMEOUT = 5000;
-// How long after a seek of ours a reading may still be from before it, in
-// seconds. VLC announces each seek twice, the second time ~150 ms on, which
-// in a run of seeks (a held pad button, a fast scroll) arrives after the
-// next seek has gone.
+// Seconds a reading may still be from before a seek of ours: VLC announces
+// each seek twice, ~150 ms apart (docs/notes.md).
 const SEEK_SETTLE = 1;
 
 const clock = () => GLib.get_monotonic_time() / 1e6;
@@ -46,8 +24,7 @@ function isCancelled(e) {
     return e instanceof GLib.Error && e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED);
 }
 
-// The last part of a URL, decoded — what a file is called when its metadata
-// has no title. A string operation, so it never touches the file.
+// What a file is called when its metadata has no title.
 function nameFromUrl(url) {
     if (typeof url !== 'string' || !url)
         return '';
@@ -59,9 +36,7 @@ function nameFromUrl(url) {
     }
 }
 
-// One player: one unique bus name, however many well-known names it holds
-// (VLC takes a second per instance). Emits 'changed' whenever anything it
-// shows changed, and 'seeked' when the player announces a jump.
+// One per unique bus name, however many well-known names it holds.
 export class Player extends EventEmitter {
     constructor(registry, owner) {
         super();
@@ -69,11 +44,9 @@ export class Player extends EventEmitter {
         this.owner = owner;
         this.busName = null;
         this.pid = 0;
-        // org.mpris.MediaPlayer2
         this.identity = '';
         this.desktopEntry = '';
         this.canQuit = false;
-        // org.mpris.MediaPlayer2.Player
         this.status = 'Stopped';
         this.trackId = null;
         this.url = '';
@@ -87,16 +60,13 @@ export class Player extends EventEmitter {
         this.canSeek = false;
         this.canGoNext = false;
         this.canGoPrevious = false;
-        // org.mpris.MediaPlayer2.TrackList: how many files the playlist
-        // holds, or null from a player that does not list them.
+        // Null from a player that keeps no TrackList.
         this.playlistLength = null;
         this.position = 0;
         this.readAt = clock();
-        // The last seek of ours, {from, to, at}, while a reading may still
-        // be from before it.
+        // {from, to, at}: the last seek of ours.
         this._seek = null;
-        // How far the file before this one got, {length, reached}: for the
-        // sleep timer, to tell one watched to its end from one skipped.
+        // {length, reached} of the file before: the sleep timer tells watched from skipped.
         this.lastFile = null;
         // What Mute puts back: MPRIS has a volume but no mute.
         this._unmuted = null;
@@ -106,7 +76,6 @@ export class Player extends EventEmitter {
         return this.status === 'Playing';
     }
 
-    // Where playback is now, in seconds.
     get now() {
         let position = this.position;
         if (this.playing)
@@ -114,9 +83,8 @@ export class Player extends EventEmitter {
         return this.length ? Math.min(position, this.length) : position;
     }
 
-    // Whether there is a playlist to move through. A player's CanGoNext and
-    // CanGoPrevious are no guide (VLC and mpv say true with one file open),
-    // so its track list is, where it keeps one.
+    // CanGoNext is no guide (VLC and mpv say true with one file open); the
+    // track list is, where the player keeps one.
     get hasPlaylist() {
         if (this.playlistLength)
             return this.playlistLength > 1;
@@ -136,14 +104,13 @@ export class Player extends EventEmitter {
         this.readAt = clock();
     }
 
-    // Take the clock's reckoning as read, before what it runs on changes.
+    // Takes the reckoning as read, before what it runs on changes.
     settle() {
         this.read(this.now);
     }
 
-    // A position the player announced (Seeked) or was asked for. Shortly
-    // after a seek of ours, one nearer where it jumped from than where it
-    // went is from before it: it is dropped, and false returned.
+    // Shortly after a seek of ours, a position nearer where it jumped from than
+    // where it went is from before it: dropped, and false returned.
     reading(position) {
         const seek = this._seek;
         if (seek && clock() - seek.at < SEEK_SETTLE) {
@@ -155,9 +122,6 @@ export class Player extends EventEmitter {
         return true;
     }
 
-    // ------------------------------------------------------------------
-    // What the bar asks of it
-    // ------------------------------------------------------------------
     playPause() {
         this._call(PLAYER, 'PlayPause');
     }
@@ -177,8 +141,7 @@ export class Player extends EventEmitter {
             this._call(PLAYER, 'Previous');
     }
 
-    // Absolute where the player names its track, as MPRIS asks; relative
-    // where it does not. Either way in microseconds.
+    // SetPosition where the player names its track, as MPRIS asks; Seek otherwise.
     seekTo(seconds) {
         if (!this.canSeek)
             return;
@@ -231,8 +194,6 @@ export class Player extends EventEmitter {
             this._call(ROOT, 'Quit');
     }
 
-    // One exact reading of the position, for when the clock's reckoning is
-    // about to be shown after a while unseen.
     refreshPosition() {
         this._registry.call(this.owner, PROPERTIES, 'Get',
             new GLib.Variant('(ss)', [PLAYER, 'Position']), '(v)', reply => {
@@ -242,9 +203,7 @@ export class Player extends EventEmitter {
             });
     }
 
-    // The track list's length again, from a player that keeps one: VLC's is
-    // empty until playback has begun, and it announces the list as it was
-    // made, not as it fills.
+    // VLC's list is empty until playback begins, and announced only as it was made.
     refreshTrackList() {
         if (this.playlistLength === null)
             return;
@@ -266,9 +225,6 @@ export class Player extends EventEmitter {
             e => console.warn(`[Media Controls] ${this.identity || this.owner} refused ${prop}: ${e.message}`));
     }
 
-    // ------------------------------------------------------------------
-    // What it says
-    // ------------------------------------------------------------------
     applyRoot(props) {
         if ('Identity' in props)
             this.identity = props.Identity ?? '';
@@ -287,10 +243,7 @@ export class Player extends EventEmitter {
             this.minRate = props.MinimumRate;
         if ('MaximumRate' in props)
             this.maxRate = props.MaximumRate;
-        // Where the clock's reckoning may be furthest from the truth, one
-        // exact reading is taken: a new file (the next in a playlist does not
-        // always start at 0), and playing again after a buffering pause, or
-        // in a player that only reports Playing once the first frame is out.
+        // A new file or playing again is where the reckoning may be furthest off.
         let refresh = false;
         if ('Metadata' in props) {
             const meta = props.Metadata ?? {};
@@ -303,8 +256,7 @@ export class Player extends EventEmitter {
                 refresh = true;
             }
             this.url = url;
-            // A track id that is not an object path (some shims send a plain
-            // string) cannot go into SetPosition; the player gets Seek.
+            // Some shims send a plain string, which SetPosition cannot take.
             const trackId = meta['mpris:trackid'];
             this.trackId = typeof trackId === 'string' && GLib.variant_is_object_path(trackId) ? trackId : null;
             this.length = Math.max(0, meta['mpris:length'] ?? 0) / 1e6;
@@ -339,15 +291,13 @@ export class Player extends EventEmitter {
     }
 }
 
-// Every player on the bus. Emits 'added' and 'removed' with the Player, and
-// 'changed' with the Player whenever one of them changed.
 export class PlayerRegistry extends EventEmitter {
     constructor() {
         super();
         this._bus = null;
         this._cancellable = null;
         this._subscriptions = [];
-        // Unique bus name -> Player, and each well-known name -> its owner.
+        // Unique name -> Player; well-known name -> unique name.
         this._players = new Map();
         this._names = new Map();
     }
@@ -385,11 +335,7 @@ export class PlayerRegistry extends EventEmitter {
                         player.applyTrackList(changed);
                     else
                         return;
-                    // A player that only says a property changed, not what
-                    // to, is asked for the lot. The track list's Tracks is
-                    // always announced that way (MPRIS: "invalidates"), and
-                    // only the count is kept; TrackList's own signals, which
-                    // come with it, are not followed.
+                    // Invalidated properties, as TrackList's Tracks always is, are read again.
                     if (invalidated.length)
                         this._readAll(player, iface);
                     this._changed(player);
@@ -404,8 +350,6 @@ export class PlayerRegistry extends EventEmitter {
                 }),
         ];
 
-        // The players already up: after an unlock, the one that was playing
-        // through it.
         bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus', 'ListNames',
             null, new GLib.VariantType('(as)'), Gio.DBusCallFlags.NONE, CALL_TIMEOUT, this._cancellable,
             (_bus, result) => {
@@ -433,8 +377,7 @@ export class PlayerRegistry extends EventEmitter {
         this._bus = null;
     }
 
-    // An asynchronous call on a player's object; `onReply` gets the unpacked
-    // reply, `onError` any error but a cancellation.
+    // `onError` gets any error but a cancellation.
     call(owner, iface, method, args, replyType, onReply, onError) {
         if (!this._bus)
             return;
@@ -459,9 +402,6 @@ export class PlayerRegistry extends EventEmitter {
         this.emit('changed', player);
     }
 
-    // ------------------------------------------------------------------
-    // Players coming and going
-    // ------------------------------------------------------------------
     _lookUpOwner(name) {
         this._bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus', 'GetNameOwner',
             new GLib.Variant('(s)', [name]), new GLib.VariantType('(s)'), Gio.DBusCallFlags.NONE, CALL_TIMEOUT,
@@ -486,7 +426,6 @@ export class PlayerRegistry extends EventEmitter {
         this._readAll(player, PLAYER);
         // A player without one answers with an error, which is dropped.
         this._readAll(player, TRACKLIST);
-        // Which process it is, to find its window by (app.js `_playerFor`).
         this._bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
             'GetConnectionUnixProcessID', new GLib.Variant('(s)', [owner]), new GLib.VariantType('(u)'),
             Gio.DBusCallFlags.NONE, CALL_TIMEOUT, this._cancellable, (bus, result) => {

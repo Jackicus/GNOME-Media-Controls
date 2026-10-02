@@ -1,7 +1,5 @@
-// GObject type names are global to the shell, so ours carry the extension's
-// prefix. They also last as long as the process, and under the development
-// link lib/ is loaded afresh after every edit (scripts/dev-extension.js), so
-// each load of this module names its classes apart. An install loads it once.
+// GObject type names are global and outlive a module: ours are prefixed, and
+// apart per load, since development loads lib/ afresh after every edit.
 
 import GLib from 'gi://GLib';
 

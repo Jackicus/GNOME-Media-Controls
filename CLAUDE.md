@@ -67,11 +67,10 @@ scripts/demo-clip.sh  `make demo-clip`: docs/media/big-buck-bunny-demo.mkv, the
                       README screenshots' film, with docs/media/captions/
 ```
 
-`docs/proposal.md` is a live proposal (taking the bar's colours from the shell's
-theme classes instead of copying the OSD's), not yet done. `docs/publishing.md`
-covers building the EGO zip (`make pack` refuses a stray file, naming it) and checks
-the code against the review guidelines. `TODO.md` is the user's list of what is left
-to test.
+`docs/proposal.md` is a live proposal (the bar's colours from the shell's theme
+classes), not yet done. `docs/publishing.md` covers the EGO zip (`make pack` refuses
+a stray file) and the review guidelines; `docs/notes.md` the measurements the code
+keeps. `TODO.md` is the user's list of what is left to test.
 
 Area detail is in `.claude/rules/`, loaded with the files it covers: `bar.md`
 (the widget, its placement, keys and sizes), `mpris.md` (position, playlists),
