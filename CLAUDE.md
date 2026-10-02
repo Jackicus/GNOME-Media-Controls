@@ -83,7 +83,8 @@ the pad in the nested shell).
 
 `make check` is what CI runs: `make lint` (ESLint; its present warnings are
 known, add none) and the schema under `--strict` (`EXT_CHECKS` is empty). No
-headless tests exist; behaviour is checked in the nested shell.
+headless tests exist; behaviour is checked in the nested shell. It ends with
+`size`: budget 4000 lines (today's size, provisional).
 
 ## How it fits together
 
