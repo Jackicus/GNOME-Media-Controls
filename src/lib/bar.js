@@ -393,6 +393,8 @@ export const ControlBar = GObject.registerClass({
         const monitor = Main.layoutManager.monitors[index];
         if (!monitor)
             return;
+        if (index !== this._monitorIndex)
+            this.tracksMenu.close();
         this._monitorIndex = index;
         this._constraint.index = index;
         if (!this.panel.get_stage())
