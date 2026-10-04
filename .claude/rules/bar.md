@@ -46,6 +46,18 @@ paths:
 - A scroll anywhere on the panel skips as the buttons do; the volume slider
   keeps its own scroll.
 
+## Touch
+
+- **`PointerWatcher` never sees a finger** (it polls the pointer), so while it
+  runs `app.js` also watches the stage's `captured-event` for `TOUCH_BEGIN` and
+  treats it as a pointer move to where it landed, edge band and monitor test
+  included.
+- **A press or touch outside the bar closes it under its grab**: the panel's
+  `captured-event` takes `BUTTON_PRESS` and `TOUCH_BEGIN` alike, as the shell's
+  popup menus do.
+- Driven in the nested shell with the kit's `tap` step (kit #40), or a local
+  copy of it, which `nested_driver.py` does not have yet.
+
 ## Sizes and redraws
 
 - **`bar-scale` scales the icons by hand**: `bar.js` sets `icon_size` from `ICON_SIZE` (16) or `PLAY_ICON_SIZE` (22) × the setting, the

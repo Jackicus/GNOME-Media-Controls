@@ -45,6 +45,7 @@ export class MediaControlsApp {
         this._hideId = 0;
         this._grab = null;
         this._pressId = 0;
+        this._touchId = 0;
         this._updateId = 0;
         this._watched = null;
         this._remote = null;
@@ -302,15 +303,25 @@ export class MediaControlsApp {
 
     _syncPointerWatch() {
         const want = !!this._player && this._settings.get_string('pointer-reveal') !== 'never';
-        if (want && !this._pointerWatch)
+        if (want && !this._pointerWatch) {
             this._pointerWatch = getPointerWatcher().addWatch(POINTER_INTERVAL, (x, y) => this._pointerMoved(x, y));
-        else if (!want)
+            // The pointer watcher never sees a finger: a touch is a move to where it lands.
+            this._touchId = global.stage.connect('captured-event', (_stage, event) => {
+                if (event.type() === Clutter.EventType.TOUCH_BEGIN)
+                    this._pointerMoved(...event.get_coords());
+                return Clutter.EVENT_PROPAGATE;
+            });
+        } else if (!want) {
             this._stopPointerWatch();
+        }
     }
 
     _stopPointerWatch() {
         this._pointerWatch?.remove();
         this._pointerWatch = null;
+        if (this._touchId)
+            global.stage.disconnect(this._touchId);
+        this._touchId = 0;
     }
 
     _pointerMoved(x, y) {
@@ -339,9 +350,11 @@ export class MediaControlsApp {
             return;
         this._reveal();
         this._grab = Main.pushModal(this._bar.panel, {actionMode: Shell.ActionMode.POPUP});
-        // Under the grab every press reaches the panel; one outside it closes the bar.
-        this._pressId = this._bar.panel.connect('button-press-event', (actor, event) => {
-            if (!actor.contains(global.stage.get_event_actor(event)))
+        // Under the grab every press or touch reaches the panel; one outside it closes the bar.
+        this._pressId = this._bar.panel.connect('captured-event', (actor, event) => {
+            const type = event.type();
+            if ((type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN) &&
+                !actor.contains(global.stage.get_event_actor(event)))
                 this._conceal();
             return Clutter.EVENT_PROPAGATE;
         });

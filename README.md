@@ -12,8 +12,9 @@ media controls.
 - **Audio, subtitles and timing.** Pick the audio track and subtitles, nudge
   out-of-sync subtitles until they line up, and move between chapters. (VLC,
   and mpv or Celluloid with their control socket.)
-- **Any controller.** Xbox, PlayStation, Switch, 8BitDo, Steam Deck. Buttons go
-  by where they sit, so every pad works the same.
+- **Any controller, and touch.** Xbox, PlayStation, Switch, 8BitDo, Steam Deck.
+  Buttons go by where they sit, so every pad works the same. On a touchscreen,
+  tap the video to bring the bar up and tap outside it to put it away.
 - **Sized for the room.** One slider makes the whole bar bigger for a TV. Put
   it at the top of the screen to keep it clear of subtitles.
 - **Clock and sleep timer.** See when the film will end, or have it pause after
