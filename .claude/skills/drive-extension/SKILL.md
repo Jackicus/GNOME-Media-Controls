@@ -86,6 +86,15 @@ installed `extension.js` link at it for one `start`, then point it back.
 - **Two players:** `player --windowed` starts a second VLC in a window on top;
   `key f` makes the focused VLC fullscreen. The bar follows focus.
 
+## Two monitors
+
+`start --monitors 2` puts a second 1600×900 monitor to the right: coordinates
+there are +1600 in x, and a `shot` is 3200 wide (crop it). `player` opens on the
+first. With the bar up and not holding the keyboard, `key Shift+Super+Right`
+moves the fullscreen VLC to the second monitor and the bar follows it. Under
+the bar's grab (Super+C, or the pop-out opened with the mouse) that key does
+nothing: press Escape first, which closes the pop-out.
+
 ## Never
 
 - **Close (1197) quits the player**, and **Escape reaches VLC** when the bar
