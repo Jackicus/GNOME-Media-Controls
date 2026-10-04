@@ -75,10 +75,9 @@ signals (`_setSleep(null)`), drops the VLC remote, releases the grab,
 disposes the virtual keyboard (commented: it leaves the seat at once),
 disables the pad watcher, stops the pointer watch, stops watching the window,
 disconnects every `connectObject` group (`_player`, `global.display`,
-`Main.overview`, `Main.layoutManager`, `_settings`, `_registry`), destroys the
-bar, then removes the hide and update sources. Last, with `hide-vlc-controls` on and the session not locked, it puts
-`qt-fs-controller` back in vlcrc (see *Modifying another application's
-files*).
+`Main.overview`, `Main.layoutManager`, `global.window_manager`, `_settings`,
+`_registry`), destroys the bar, then removes the hide and update sources. Last, it
+shows VLC's controller window again if `hide-vlc-controls` had hidden it.
 `ControlBar._onDestroy()` (`src/lib/bar.js`) disconnects the player, removes
 its own redraw timer, restores unredirection, and removes the panel from the
 focus group. `VlcRemote.close()` (`src/lib/vlcremote.js`) cancels its
@@ -124,12 +123,9 @@ session bus and this one path.
 
 **Modifying another application's files: only on an explicit switch, and only
 these options.** `lib/vlcconfig.js`'s `writeVlcState()` edits
-`~/.config/vlc/vlcrc`. "Hide VLC's controls" is the `hide-vlc-controls`
-setting, which `src/lib/app.js` applies only while the extension is enabled
-and only when it is on: it sets, under `[qt]`, `qt-fs-controller=0` (VLC's
-own fullscreen controller off) at enable and puts it back at disable (not at
-a lock, which the unlock would undo), so disabling the extension gives VLC
-its controller back. The "tracks" switch is written by `src/prefs.js`: under
+`~/.config/vlc/vlcrc`. "Hide VLC's controls" (`hide-vlc-controls`) writes
+nothing: `src/lib/app.js` hides VLC's controller window from the shell while
+the extension is enabled. The "tracks" switch is written by `src/prefs.js`: under
 `[core]`/`[oldrc]`, adds `oldrc` to `extraintf`, sets
 `rc-unix=$XDG_RUNTIME_DIR/media-controls-vlc.sock` and `rc-fake-tty=1` when
 "tracks" is on. Turning a switch off removes exactly what it added (or

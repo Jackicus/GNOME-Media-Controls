@@ -16,7 +16,6 @@ import {
 import {ControlBar} from './bar.js';
 import {Gamepads} from './gamepads.js';
 import {PlayerRegistry, clock} from './mpris.js';
-import {readVlcState, writeVlcState} from './vlcconfig.js';
 import {VlcRemote} from './vlcremote.js';
 
 const POINTER_INTERVAL = 100;
@@ -27,6 +26,10 @@ const REMOTE_RETRY = 10;
 const SLEEP_END_MARGIN = 0.5;
 // A file left this near its end was watched: room for the credits and a lagging reckoning.
 const SLEEP_WATCHED_MARGIN = 30;
+
+// VLC's fullscreen controller is an override-redirect window of its own.
+const isVlcController = window =>
+    window.get_window_type() === Meta.WindowType.OVERRIDE_OTHER && window.get_wm_class() === 'vlc';
 
 export class MediaControlsApp {
     constructor(extension) {
@@ -53,8 +56,6 @@ export class MediaControlsApp {
 
     enable() {
         this._settings = this._extension.getSettings();
-        if (this._settings.get_boolean('hide-vlc-controls'))
-            this._setVlcControls(true);
 
         this._bar = new ControlBar();
         this._bar.connect('action', (_bar, action) => this.perform(action));
@@ -107,13 +108,19 @@ export class MediaControlsApp {
             'changed::pointer-reveal', () => this._syncPointerWatch(),
             'changed::gamepads', () => this._syncGamepads(),
             'changed::sleep-timer', () => this._syncSleep(),
-            'changed::hide-vlc-controls', () => this._setVlcControls(this._settings.get_boolean('hide-vlc-controls')),
+            'changed::hide-vlc-controls', () => this._hideVlcControllers(this._settings.get_boolean('hide-vlc-controls')),
             'changed::sleep-timer-mode', () => {
                 this._setSleep(null);
                 this._syncSleep();
             },
             this);
         this._syncSleep();
+
+        this._hideVlcControllers(this._settings.get_boolean('hide-vlc-controls'));
+        global.window_manager.connectObject('map', (_wm, actor) => {
+            if (this._settings.get_boolean('hide-vlc-controls') && isVlcController(actor.meta_window))
+                actor.hide();
+        }, this);
 
         Main.wm.addKeybinding('toggle-bar', this._settings, Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
             Shell.ActionMode.NORMAL | Shell.ActionMode.POPUP, () => this._toggleFocus());
@@ -140,6 +147,7 @@ export class MediaControlsApp {
         global.display.disconnectObject(this);
         Main.overview.disconnectObject(this);
         Main.layoutManager.disconnectObject(this);
+        global.window_manager.disconnectObject(this);
         this._settings.disconnectObject(this);
         this._registry.disconnectObject(this);
         this._registry.disable();
@@ -152,18 +160,14 @@ export class MediaControlsApp {
         if (this._updateId)
             GLib.source_remove(this._updateId);
         this._updateId = 0;
-        // Not at a lock: the unlock enables again, and no VLC starts between.
-        if (!Main.sessionMode.isLocked && this._settings.get_boolean('hide-vlc-controls'))
-            this._setVlcControls(false);
+        this._hideVlcControllers(false);
         this._settings = null;
     }
 
-    _setVlcControls(hide) {
-        try {
-            if (readVlcState().hideControls !== hide)
-                writeVlcState({hideControls: hide});
-        } catch (e) {
-            console.error('[Media Controls] Could not change VLC\'s settings:', e);
+    _hideVlcControllers(hide) {
+        for (const actor of global.get_window_actors()) {
+            if (isVlcController(actor.meta_window))
+                actor.visible = !hide;
         }
     }
 

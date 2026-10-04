@@ -65,30 +65,6 @@ class Cleanup {
     }
 }
 
-// Why vlcrc cannot be written, or null. The extension writes it from the shell,
-// where a failure reaches only the journal.
-function vlcrcUnwritable() {
-    let file = Gio.File.new_for_path(vlcrcPath());
-    // Replacing the file writes its folder too.
-    const checks = file.query_exists(null) ? [file, file.get_parent()] : [];
-    if (!checks.length) {
-        file = file.get_parent();
-        while (file && !file.query_exists(null))
-            file = file.get_parent();
-        checks.push(file);
-    }
-    for (const f of checks.filter(Boolean)) {
-        try {
-            const info = f.query_info('access::can-write', Gio.FileQueryInfoFlags.NONE, null);
-            if (!info.get_attribute_boolean('access::can-write'))
-                return `${f.get_path()} is not writable`;
-        } catch (e) {
-            return `${f.get_path()}: ${e.message}`;
-        }
-    }
-    return null;
-}
-
 function removeAllRows(group, rows) {
     for (const row of rows.splice(0))
         group.remove(row);
@@ -459,11 +435,11 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
     _vlcGroup(settings) {
         const group = new Adw.PreferencesGroup({
             title: 'VLC',
-            description: 'These change VLC\'s own settings, and apply from the next time VLC starts.',
+            description: 'The tracks switch changes VLC\'s own settings, and applies from the next time VLC starts.',
         });
         const hide = new Adw.SwitchRow({
             title: 'Hide VLC\'s own fullscreen controls',
-            subtitle: 'While Media Controls is on, so the bar is the only one over the video. Turning the extension off brings them back',
+            subtitle: 'So the bar is the only one over the video',
         });
         settings.bind('hide-vlc-controls', hide, 'active', Gio.SettingsBindFlags.DEFAULT);
         const tracks = new Adw.SwitchRow({
@@ -472,28 +448,19 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             active: readVlcState().trackControl,
         });
         const failed = new Adw.ActionRow({title: 'Could not change VLC\'s settings', use_markup: false, visible: false});
-        // The tracks switch's failed write, else what would stop the extension writing the hide switch.
-        let tracksError = null;
-        const showFailed = () => {
-            const problem = tracksError ?? (hide.active ? vlcrcUnwritable() : null);
-            failed.subtitle = problem ?? '';
-            failed.visible = problem !== null;
-        };
-        hide.connect('notify::active', showFailed);
         tracks.connect('notify::active', () => {
             if (tracks.active === readVlcState().trackControl)
                 return;
             try {
-                tracks.active = writeVlcState({trackControl: tracks.active}).trackControl;
-                tracksError = null;
+                tracks.active = writeVlcState(tracks.active).trackControl;
+                failed.visible = false;
             } catch (e) {
-                tracksError = `${vlcrcPath()}: ${e.message}`;
+                failed.subtitle = `${vlcrcPath()}: ${e.message}`;
+                failed.visible = true;
                 // The file is as it was, and so is the switch.
                 tracks.active = readVlcState().trackControl;
             }
-            showFailed();
         });
-        showFailed();
         group.add(hide);
         group.add(tracks);
         group.add(failed);

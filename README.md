@@ -78,15 +78,17 @@ show what they did: a pause, a seek or the next file.
 ## VLC
 
 VLC works out of the box for everything but the tracks. Two switches on the
-**Players** page change VLC's own settings file, `~/.config/vlc/vlcrc`, and
-only when you turn them on:
+**Players** page:
 
 - **Hide VLC's own fullscreen controls**, so the bar is the only one over the
-  video. They are turned off while Media Controls is enabled and come back when
-  it is disabled.
+  video. The shell hides VLC's controller window while Media Controls is
+  enabled, and it is back as soon as the switch or the extension is turned
+  off. Nothing in VLC's settings changes.
 - **Audio and subtitle tracks** turns on VLC's remote-control interface on a
   private socket in your runtime folder, which the bar uses for the tracks,
-  subtitle timing and chapters.
+  subtitle timing and chapters. It changes VLC's settings file,
+  `~/.config/vlc/vlcrc`, only when you turn it on, and applies from the next
+  time VLC starts.
 
 VLC reads the file as it starts, so restart VLC after flipping either switch.
 Only one VLC at a time can use the tracks.
@@ -163,8 +165,11 @@ follows the log.
 - **No audio-and-subtitles button.** It is VLC's only. Turn on **Audio and
   subtitle tracks** on the Players page, restart VLC and give it a few seconds.
   A second VLC does not get it while the first holds the socket.
-- **VLC's own controls still show.** The switch applies from the next time VLC
-  starts.
+- **VLC's own controls still show.** Turn on **Hide VLC's own fullscreen
+  controls** on the Players page. It applies to a running VLC at once.
+- **VLC's own controls are missing with the extension off.** An older version
+  hid them by writing `qt-fs-controller=0` into `~/.config/vlc/vlcrc`; delete
+  that line.
 - **Escape left fullscreen.** While the bar does not hold the keyboard, Escape
   goes to the player, and VLC's Escape leaves fullscreen.
 - **Controllers do nothing.** Check that libmanette is installed (the log says

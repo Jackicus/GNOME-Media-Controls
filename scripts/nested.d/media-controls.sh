@@ -3,7 +3,7 @@
 #   ./scripts/nested.sh player [--qt] [--windowed] [--plain] [FILE] [-- VLC ARGS...]
 #                                     play FILE (default: a generated test video) in VLC
 #                                     inside the nested shell, full screen, silent, with
-#                                     MPRIS on and VLC's own bar off; --qt uses VLC's Qt
+#                                     MPRIS on; --qt uses VLC's Qt
 #                                     interface instead of cvlc. Its vlcrc, the nested
 #                                     session's own, gets the tracks socket (the Players
 #                                     page's switch) unless --plain
@@ -100,7 +100,7 @@ cmd_player() {
     # The headless shell has no GPU for Xwayland: VLC's GL outputs fail there
     # and leave it playing with no window, so it draws with plain X11 and
     # decodes in software.
-    local args=("${audio[@]}" --dbus --qt-continue=0 --no-qt-fs-controller --no-video-title-show --loop
+    local args=("${audio[@]}" --dbus --qt-continue=0 --no-video-title-show --loop
                 --vout=xcb_x11 --avcodec-hw=none)
     (( fullscreen )) && args+=(--fullscreen)
     local vlc=cvlc
