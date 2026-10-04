@@ -63,9 +63,9 @@ scripts/demo-clip.sh  `make demo-clip`: docs/media/big-buck-bunny-demo.mkv, the
                       README screenshots' film, with docs/media/captions/
 ```
 
-`docs/publishing.md` covers the EGO zip (`make pack` refuses
-a stray file) and the review guidelines; `docs/notes.md` the measurements the code
-keeps. `TODO.md` is the user's list of what is left to test.
+`docs/compatibility.md` records the reading of Shell 48 and 49 and what a boot
+must check. `docs/publishing.md` covers the EGO zip (`make pack` refuses a stray
+file) and the review guidelines; `docs/notes.md` the measurements the code keeps. `TODO.md` is the user's list of what is left to test.
 
 Area detail is in `.claude/rules/`, loaded with the files it covers: `bar.md`
 (the widget, its placement, keys and sizes), `mpris.md` (position, playlists),
