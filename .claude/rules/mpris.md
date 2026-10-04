@@ -46,6 +46,10 @@ paths:
   player whose `xesam:title` the window's title shows, else the first. For a
   sandboxed player `Player.pid` is xdg-dbus-proxy's and never equals the
   window's, so it is matched by desktop entry.
+- **Showtime freezes on MPRIS `Quit`** (the bar's close button) in the nested
+  shell, and its own ✕ closes the window but leaves the process; the cause is
+  its shutdown here, not the call. `window.delete` instead would leave a
+  `cvlc` playing, so `Quit` stays.
 - **Seen over the three players (Flatpak, Shell 50, nested):** the bar attaches
   over mpv 0.41, Celluloid 0.30 and Showtime 50.0 in fullscreen, and play and
   pause, seek, volume, speed and skip work from it. Each draws its own controls
