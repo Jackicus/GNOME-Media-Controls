@@ -44,6 +44,7 @@ src/lib/lineremote.js LineRemote: a player's line-based control socket
 src/lib/vlcremote.js  VlcRemote: VLC's remote-control socket
 src/lib/mpvremote.js  MpvRemote: mpv's (and Celluloid's) JSON IPC socket
 src/lib/vlcconfig.js  VLC's settings file: the one thing we may change in it
+src/lib/mpvconfig.js  the script that gives mpv and Celluloid a control socket
 src/lib/gamepads.js   libmanette → (button, action)
 src/lib/actions.js    pure data shared with prefs.js: ACTIONS, BAR_BUTTONS,
                       BUTTONS, NAVIGATION, RATES, SLEEP_MINUTES,
@@ -89,7 +90,7 @@ The **action vocabulary** (`ACTIONS` in `actions.js`) is the one list every
 input speaks: the bar's buttons emit an action id, the pads map a button id to
 one (`gamepad-buttons`), and `app.js` `perform()` is the only place an action
 turns into a call. Add an action there and in `ACTIONS`, and both the pads and
-the preferences pick it up. `actions.js` and `vlcconfig.js` are imported by
+the preferences pick it up. `actions.js`, `vlcconfig.js` and `mpvconfig.js` are imported by
 `prefs.js` too.
 
 Three questions, each answered once, in `app.js`:
@@ -137,7 +138,8 @@ button repeats (`.claude/rules/gamepads.md`).
 **Tracks are VLC's and mpv's**. VLC's are over its `oldrc` remote-control socket, which
 `vlcconfig.js` turns on in VLC's own settings file only when the user flips the
 Players page's switch; mpv's and Celluloid's over their JSON IPC socket, found
-from the player's own process (`.claude/rules/mpv.md`); with no socket the bar
+from the player's own process, which the Players page's mpv switch sets up with
+a script (`.claude/rules/mpv.md`); with no socket the bar
 has no tracks button (`.claude/rules/vlc.md`). `hide-vlc-controls` hides VLC's own fullscreen
 controller, a window of its own, from the shell **only while the extension is
 on**; no file is written for it.

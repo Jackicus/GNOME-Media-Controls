@@ -134,6 +134,10 @@ the extension is enabled. The "tracks" switch is written by `src/prefs.js`: unde
 `rc-unix=$XDG_RUNTIME_DIR/media-controls-vlc.sock` and `rc-fake-tty=1` when
 "tracks" is on. Turning a switch off removes exactly what it added (or
 restores the commented default) and never touches other options in the file.
+The "mpv and Celluloid" switch is written by `src/prefs.js` through
+`lib/mpvconfig.js`: it adds one file, `media-controls.lua`, to mpv's and
+Celluloid's `scripts` folders (native and Flatpak) when on, and removes exactly
+that file when off. Nothing else in those folders is touched.
 
 **metadata.json is well-formed, GSettings schema: meets.** See the table
 above; the schema ships as `schemas/*.gschema.xml` only (`make pack` strips

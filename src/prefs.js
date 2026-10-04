@@ -6,6 +6,7 @@ import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 
 import {ACTIONS, BAR_BUTTONS, BUTTONS, buttonForCode, normaliseName, playerNames} from './lib/actions.js';
+import {readMpvState, writeMpvState} from './lib/mpvconfig.js';
 import {readVlcState, vlcrcPath, writeVlcState} from './lib/vlcconfig.js';
 
 const MPRIS_NAMESPACE = 'org.mpris.MediaPlayer2';
@@ -271,6 +272,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
         });
         page.add(running);
         page.add(this._vlcGroup(settings));
+        page.add(this._mpvGroup());
 
         const ignoredGroup = new Adw.PreferencesGroup({title: 'Never shown over'});
         page.add(ignoredGroup);
@@ -462,6 +464,32 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             }
         });
         group.add(hide);
+        group.add(tracks);
+        group.add(failed);
+        return group;
+    }
+
+    _mpvGroup() {
+        const group = new Adw.PreferencesGroup({title: 'mpv and Celluloid'});
+        const tracks = new Adw.SwitchRow({
+            title: 'Audio and subtitle tracks',
+            subtitle: 'Lets the bar list and switch tracks and chapters, and fix subtitle timing. ' +
+                'Adds a small script to their script folders, and applies from the next start',
+            active: readMpvState(),
+        });
+        const failed = new Adw.ActionRow({title: 'Could not change the script folders', use_markup: false, visible: false});
+        tracks.connect('notify::active', () => {
+            if (tracks.active === readMpvState())
+                return;
+            try {
+                tracks.active = writeMpvState(tracks.active);
+                failed.visible = false;
+            } catch (e) {
+                failed.subtitle = e.message;
+                failed.visible = true;
+                tracks.active = readMpvState();
+            }
+        });
         group.add(tracks);
         group.add(failed);
         return group;
