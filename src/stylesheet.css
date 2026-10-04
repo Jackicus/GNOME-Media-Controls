@@ -1,18 +1,16 @@
 /* Paint only: layout is in lib/bar.js. Sizes are in em, so Large Text and
- * bar-scale follow; icons are sized in bar.js. The panel is painted as the
- * shell's OSD, which stays dark in the light theme too. */
+ * bar-scale follow; icons are sized in bar.js. The panel and its buttons wear
+ * the screenshot panel's classes, so their colours come from the shell's theme
+ * (dark in the light theme too, black in High Contrast); this file sets size
+ * and shape, the focus ring, the sliders and the text shades. */
 
 .mc-bar {
-    color: #ffffff;
-    background-color: st-transparentize(#2e2e33, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 1.909em;
     padding: 0.818em 1.227em 0.682em;
     margin-bottom: 2em;
     spacing: 0.273em;
     /* Caps the width on a large monitor, so the slider stays in reach. */
     max-width: 65.455em;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.4);
 }
 
 /* bar-position top: the same distance from the other edge. */
@@ -83,50 +81,29 @@
     spacing: 0.273em;
 }
 
-/* Flat until hovered, as the message list's media player has it. */
+/* The shell's screenshot buttons size in px. */
 .mc-bar .mc-button {
-    color: #ffffff;
-    background-color: transparent;
+    border-radius: 999px;
+    padding: 0.818em;
+    min-height: 1.091em;
+    min-width: 0;
 }
 
-.mc-bar .mc-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.mc-bar .mc-button:active {
-    background-color: rgba(255, 255, 255, 0.16);
-}
-
-/* The theme's .icon-button:focus ring is !important, so ours has to be too. */
+/* The theme's focus ring is !important, so ours has to be too. */
 .mc-bar .mc-button:focus {
     background-color: st-transparentize(-st-accent-color, 0.7);
     box-shadow: inset 0 0 0 2px -st-accent-color !important;
 }
 
-.mc-bar .mc-button:insensitive {
-    color: rgba(255, 255, 255, 0.35);
-    background-color: transparent;
-}
-
 .mc-bar .mc-play {
-    color: -st-accent-fg-color;
-    background-color: -st-accent-color;
     padding: 0.95em;
     margin: 0 0.409em;
-}
-
-.mc-bar .mc-play:hover {
-    background-color: st-lighten(-st-accent-color, 6%);
 }
 
 /* The accent fill hides the usual focus tint, so the ring is white here. */
 .mc-bar .mc-play:focus {
     background-color: st-lighten(-st-accent-color, 6%);
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.9) !important;
-}
-
-.mc-bar .mc-play:active {
-    background-color: st-lighten(-st-accent-color, 10%);
 }
 
 .mc-bar .mc-rate {
