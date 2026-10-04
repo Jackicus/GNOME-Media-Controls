@@ -2,8 +2,8 @@
 
 A control bar for fullscreen video, drawn by GNOME Shell over the player: seek,
 pause, skip, volume and speed, from the mouse, the keyboard or a game controller.
-It works with VLC, mpv, Celluloid and any other player that shows up in GNOME's
-media controls.
+It works with VLC, mpv, Celluloid, Showtime and any other player that shows up in
+GNOME's media controls.
 
 ![Media Controls over Big Buck Bunny playing full screen in VLC: running time, seek slider and time left on top; the title, the playback buttons, the audio-and-subtitles button, volume, speed and close below](docs/screenshots/bar.jpg)
 
@@ -45,10 +45,11 @@ buttons it has. A hidden button still works from the keyboard and controllers.
 
 ![The audio-and-subtitles pop-out standing above the bar: Audio with Stereo · English picked and 5.1 Surround · English; Subtitles with Off, English and Español · Spanish, Español picked; and a Timing row with minus, 0.0 s, plus and reset](docs/screenshots/tracks.jpg)
 
-With VLC, the button next to the volume opens this. Pick an audio track and
-subtitles, then use − and + to move the subtitles by 0.1 s until they line up.
-Files with chapters get a row to move between them. VLC needs one switch turned
-on first (see [VLC](#vlc)).
+With VLC, mpv or Celluloid, the button next to the volume opens this. Pick an
+audio track and subtitles, then use − and + to move the subtitles by 0.1 s until
+they line up. Files with chapters get a row to move between them. Each needs one
+switch turned on first (see [VLC](#vlc) and [mpv and Celluloid](#mpv-and-celluloid)).
+Showtime has no way to give these.
 
 ## Controllers and remotes
 
@@ -89,7 +90,9 @@ VLC works out of the box for everything but the tracks. Switches on the
   private socket in your runtime folder, which the bar uses for the tracks,
   subtitle timing and chapters. It changes VLC's settings file,
   `~/.config/vlc/vlcrc`, only when you turn it on, and applies from the next
-  time VLC starts.
+  time VLC starts. Only one VLC at a time can use the tracks. A Flatpak VLC
+  does not get them yet (it keeps its settings elsewhere); hiding its controls
+  works.
 
 ## mpv and Celluloid
 
@@ -99,13 +102,12 @@ audio, subtitle, timing and chapter controls for them. It adds a small script
 they have run, which makes each player open a control socket in your runtime
 folder; turning the switch off removes it. It applies from the next time the
 player starts. A socket you set yourself (`input-ipc-server`) is used as it is.
-
-VLC reads its settings file as it starts, so restart VLC after flipping the
-tracks switch. Only one VLC at a time can use the tracks.
+Both work as Flatpaks.
 
 ## Requirements
 
-- GNOME Shell 50.
+- GNOME Shell 50. Shell 48 and 49 have been read through but not run, so they
+  are not claimed (`docs/compatibility.md`).
 - A player that shows up in GNOME's media controls (MPRIS): VLC (with its D-Bus
   control on, as it is by default), Celluloid, Showtime (GNOME's video player),
   or mpv with [mpv-mpris](https://github.com/hoyon/mpv-mpris). Run mpv with
@@ -128,8 +130,8 @@ make install
 ```
 
 Log out and back in (Wayland cannot load a new extension into a running
-session), then run `gnome-extensions enable media-controls@jackicus`. For VLC's
-tracks, turn on the switches on the Players page and restart VLC.
+session), then run `gnome-extensions enable media-controls@jackicus`. For the
+tracks, turn on the switches on the Players page and restart the player.
 
 To update: `git pull && make install`, then log out and back in. To remove:
 `make uninstall`.
@@ -141,7 +143,7 @@ To update: `git pull && make install`, then log out and back in. To remove:
 <table>
   <tr>
     <td width="33%"><img src="docs/screenshots/prefs-bar.png" alt="The Bar page: when the pointer shows the bar, how long before it hides, whether it stays while paused, the keyboard shortcut Super+C, then the bar's position, the size slider at 100%, a folded list of its buttons, and the clock and sleep-timer switches"></td>
-    <td width="33%"><img src="docs/screenshots/prefs-players.png" alt="The Players page: VLC media player listed as playing, with its switch on; the VLC group with both switches on, to hide VLC's own fullscreen controls and to allow audio and subtitle tracks; and a folded list of ignored players"></td>
+    <td width="33%"><img src="docs/screenshots/prefs-players.png" alt="The Players page: VLC media player listed as playing, with its switch on; the VLC group with both switches on, to hide VLC's own fullscreen controls and to allow audio and subtitle tracks; the mpv and Celluloid group with its tracks switch on; and a folded list of ignored players"></td>
     <td width="33%"><img src="docs/screenshots/prefs-controllers.png" alt="The Controllers page: an Xbox 360 pad listed as connected, its row lit with 'Pressed: Bottom face button', and below it the list of what each button does, with the bottom face button's row lit too"></td>
   </tr>
   <tr>
@@ -149,8 +151,8 @@ To update: `git pull && make install`, then log out and back in. To remove:
     sits, its size, which buttons it has, the clock, the sleep timer and how far
     a skip or volume step goes.</td>
     <td valign="top"><b>Players</b>: the players running now and which get the
-    bar, the two VLC switches, and the players it never shows over (browsers,
-    by default: they draw their own controls).</td>
+    bar, the VLC and the mpv and Celluloid switches, and the players it never
+    shows over (browsers, by default: they draw their own controls).</td>
     <td valign="top"><b>Controllers</b>: every pad plugged in, each of which
     can be ignored. Press a button to see which one it is, and choose what each
     does.</td>
