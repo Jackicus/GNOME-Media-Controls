@@ -6,7 +6,7 @@
 
 .mc-bar {
     border-radius: 1.909em;
-    padding: 0.818em 1.227em 0.682em;
+    padding: 0.518em 1.227em 0.682em;
     margin-bottom: 2em;
     spacing: 0.273em;
     /* Caps the width on a large monitor, so the slider stays in reach. */
@@ -40,6 +40,10 @@
     text-align: left;
 }
 
+.mc-time-button {
+    padding: 0.6em 0;
+}
+
 .mc-time-button:hover .mc-remaining {
     color: #ffffff;
 }
@@ -62,11 +66,13 @@
     -barlevel-background-color: rgba(255, 255, 255, 0.28);
 }
 
+/* 2.2em is 24 px at the smallest bar-scale, the least a touch target should be. */
 .mc-seek {
-    height: 1.6em;
+    height: 2.2em;
 }
 
 .mc-volume {
+    height: 2.2em;
     width: 6em;
     margin: 0 0.409em 0 0;
 }
@@ -110,7 +116,7 @@
     font-size: 0.818em;
     font-weight: bold;
     font-feature-settings: "tnum";
-    padding: 0.6em 0.9em;
+    padding: 0.75em 0.9em;
     min-width: 2.6em;
 }
 
