@@ -80,9 +80,9 @@ const CentredRowLayout = GObject.registerClass(class MediaControlsCentredRowLayo
     }
 });
 
-function iconButton(iconName, accessibleName, extraClass = '') {
+function iconButton(iconName, accessibleName, styleClass = 'screenshot-ui-type-button mc-button') {
     return new St.Button({
-        style_class: `icon-button mc-button ${extraClass}`.trim(),
+        style_class: styleClass,
         icon_name: iconName,
         accessible_name: accessibleName,
         can_focus: true,
@@ -153,7 +153,7 @@ export const ControlBar = GObject.registerClass({
         this._hidden = [];              // actions.js BAR_BUTTONS ids
 
         this.panel = new St.BoxLayout({
-            style_class: 'mc-bar',
+            style_class: 'screenshot-ui-panel mc-bar',
             orientation: Clutter.Orientation.VERTICAL,
             reactive: true,
             track_hover: true,
@@ -308,7 +308,7 @@ export const ControlBar = GObject.registerClass({
         const transport = new St.BoxLayout({style_class: 'mc-transport'});
         this._previous = iconButton('media-skip-backward-symbolic', 'Previous');
         this._back = iconButton('media-seek-backward-symbolic', 'Skip back');
-        this._play = iconButton('media-playback-start-symbolic', 'Play', 'mc-play');
+        this._play = iconButton('media-playback-start-symbolic', 'Play', 'icon-button default mc-button mc-play');
         this._forward = iconButton('media-seek-forward-symbolic', 'Skip forward');
         this._next = iconButton('media-skip-forward-symbolic', 'Next');
         const actions = [
@@ -325,7 +325,7 @@ export const ControlBar = GObject.registerClass({
         this._tracks.visible = false;
         this._tracks.connect('clicked', () => this.emit('action', 'tracks'));
         this._sleep = new St.Button({
-            style_class: 'icon-button mc-button mc-sleep',
+            style_class: 'screenshot-ui-type-button mc-button mc-sleep',
             accessible_name: 'Sleep timer',
             can_focus: true,
             visible: false,
@@ -357,7 +357,7 @@ export const ControlBar = GObject.registerClass({
         });
         arrowKeys(this, this._volume, 'volume-up', 'volume-down');
         this._rate = new St.Button({
-            style_class: 'icon-button mc-button mc-rate',
+            style_class: 'screenshot-ui-type-button mc-button mc-rate',
             label: '1×',
             accessible_name: 'Playback speed',
             can_focus: true,

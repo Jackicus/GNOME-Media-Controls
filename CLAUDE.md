@@ -63,8 +63,7 @@ scripts/demo-clip.sh  `make demo-clip`: docs/media/big-buck-bunny-demo.mkv, the
                       README screenshots' film, with docs/media/captions/
 ```
 
-`docs/proposal.md` is a live proposal (the bar's colours from the shell's theme
-classes), not yet done. `docs/publishing.md` covers the EGO zip (`make pack` refuses
+`docs/publishing.md` covers the EGO zip (`make pack` refuses
 a stray file) and the review guidelines; `docs/notes.md` the measurements the code
 keeps. `TODO.md` is the user's list of what is left to test.
 
@@ -157,16 +156,19 @@ of the seek row is a button out of the focus chain whose click is the
 ## Design rules
 
 - **The shell's widgets:** the seek and volume sliders are the quick settings'
-  `Slider`, the buttons `icon-button`s, the pop-out a `PopupMenu` with the
+  `Slider`, the buttons the screenshot panel's `screenshot-ui-type-button`s (Play
+  an `icon-button default`), the pop-out a `PopupMenu` with the
   shell's radio ornaments, the placement the OSD's `MonitorConstraint`. The
   only layout of our own is `CentredRowLayout`, which keeps the transport
   centred however long the title is.
-- **Painted as the OSD:** `#2e2e33`, which the shell keeps dark in the light
-  theme too. So buttons and sliders inside the bar carry their own colours
-  (`.mc-bar .mc-button`, `.mc-bar .slider`): the theme's are dark on light in
-  the light theme. The focus highlight is the accent at full strength, to be
-  found from a sofa; its `box-shadow` is `!important`, as the theme's own
-  `.icon-button:focus` ring is.
+- **Painted by the shell's classes:** the panel is a `screenshot-ui-panel`, so its
+  colours and the buttons' follow the theme: dark in the light theme too, black
+  with an outline in High Contrast. The stylesheet sets size and shape in em
+  (the shell's classes size in px), and keeps the focus ring, the sliders and
+  the text shades. The ring is the accent at full strength, to be found from a
+  sofa, and `!important` as the theme's own is. The sliders (`.mc-bar .slider`)
+  stay white: the shell's are dark on light in the light theme. If GNOME
+  renames those classes the panel loses its background.
 - **Motion** (`anim.js`): 200 ms arriving, the bar rising 8 px as it fades in;
   120 ms leaving; both ease-out-quad.
 - **`bar-scale`** (75–200 %) is one `font-size` percentage on the panel and the

@@ -8,7 +8,7 @@ media controls.
 ![Media Controls over Big Buck Bunny playing full screen in VLC: running time, seek slider and time left on top; the title, the playback buttons, the audio-and-subtitles button, volume, speed and close below](docs/screenshots/bar.jpg)
 
 - **Looks like GNOME.** It uses the shell's own sliders, buttons and menus, in
-  your accent colour.
+  your accent colour, and follows High Contrast and shell themes.
 - **Audio, subtitles and timing.** Pick the audio track and subtitles, nudge
   out-of-sync subtitles until they line up, and move between chapters. (VLC
   only.)
