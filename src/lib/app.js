@@ -204,17 +204,20 @@ export class MediaControlsApp {
             this);
     }
 
+    // Several windows of one app (Celluloid) each have a player of their own: the
+    // one whose title the window shows.
     _playerFor(window) {
         const ignored = this._settings.get_strv('ignored-players').map(normaliseName);
         const players = this._registry.players.filter(p => !isIgnored(p, ignored));
+        const choose = found => found.find(p => p.title && window.get_title()?.includes(p.title)) ?? found[0] ?? null;
         const pid = window.get_pid();
-        const byPid = pid > 0 && players.find(p => p.pid === pid);
-        if (byPid)
-            return byPid;
+        const byPid = pid > 0 ? players.filter(p => p.pid === pid) : [];
+        if (byPid.length)
+            return choose(byPid);
         const app = Shell.WindowTracker.get_default().get_window_app(window);
         const ids = [app?.get_id(), window.get_sandboxed_app_id(), window.get_gtk_application_id(),
             window.get_wm_class(), window.get_wm_class_instance()].filter(Boolean).map(normaliseName);
-        return players.find(p => p.desktopEntry && ids.includes(normaliseName(p.desktopEntry))) ?? null;
+        return choose(players.filter(p => p.desktopEntry && ids.includes(normaliseName(p.desktopEntry))));
     }
 
     _attach(player, window) {
@@ -371,8 +374,8 @@ export class MediaControlsApp {
         case 'volume-up': p.setVolume(p.volume + volume); break;
         case 'volume-down': p.setVolume(p.volume - volume); break;
         case 'mute': p.toggleMute(); break;
-        case 'slower': p.setRate(stepRate(p.rate, -1, p.minRate, p.maxRate)); break;
-        case 'faster': p.setRate(stepRate(p.rate, 1, p.minRate, p.maxRate)); break;
+        case 'slower': p.setRate(stepRate(p.rate, -1, p.minRate, p.maxRate, p.refusedRates)); break;
+        case 'faster': p.setRate(stepRate(p.rate, 1, p.minRate, p.maxRate, p.refusedRates)); break;
         case 'quit': this._quit(); return true;
         case 'hide-bar': this._conceal(); return true;
         case 'show-bar': break;
