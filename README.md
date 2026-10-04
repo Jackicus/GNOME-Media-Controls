@@ -99,16 +99,19 @@ they have run, which makes each player open a control socket in your runtime
 folder; turning the switch off removes it. It applies from the next time the
 player starts. A socket you set yourself (`input-ipc-server`) is used as it is.
 
-VLC reads the file as it starts, so restart VLC after flipping either switch.
-Only one VLC at a time can use the tracks.
+VLC reads its settings file as it starts, so restart VLC after flipping the
+tracks switch. Only one VLC at a time can use the tracks.
 
 ## Requirements
 
 - GNOME Shell 50.
 - A player that shows up in GNOME's media controls (MPRIS): VLC (with its D-Bus
-  control on, as it is by default), Celluloid, or mpv with
-  [mpv-mpris](https://github.com/hoyon/mpv-mpris). Run mpv with `--no-osc` so its
-  own controls stay out of the way.
+  control on, as it is by default), Celluloid, Showtime (GNOME's video player),
+  or mpv with [mpv-mpris](https://github.com/hoyon/mpv-mpris). Run mpv with
+  `--no-osc` so its own controls stay out of the way. Celluloid and Showtime
+  draw theirs beside the bar when the pointer moves, and cannot be told not to.
+  Audio and subtitle tracks, subtitle timing and chapters are for VLC, mpv and
+  Celluloid; Showtime has no way to give them.
 - libmanette, for game controllers. Without it the bar works and the
   controllers are off.
 

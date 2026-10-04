@@ -27,12 +27,31 @@ paths:
   one `ListNames` at enable, and followed with `PropertiesChanged` and
   `Seeked`. One `Player` per unique bus name, however many well-known names it
   holds (VLC takes a second per instance).
-- **A player's `CanGoNext` says nothing about a playlist**: VLC and mpv say
-  true with a single file open (VLC certainly under `--loop`, which the nested
-  `player` passes). `hasPlaylist` counts the `TrackList`'s `Tracks` instead,
+- **A player's `CanGoNext` says nothing about a playlist**: VLC says true with a
+  single file open (certainly under `--loop`, which the nested `player` passes);
+  mpv (mpv-mpris 1.2), Celluloid and Showtime say false, Showtime always. `hasPlaylist` counts the `TrackList`'s `Tracks` instead,
   which VLC serves (and announces, as invalidated) although its `HasTrackList`
   says false; a player that keeps no list falls back on `CanGo*`. VLC's list
   is what it started playing with: **empty until playback begins**, announced
   only as it was made, and a file added while it plays is announced but not
   listed, so `Tracks` is read again whenever the bar comes up from hidden
   (`refreshTrackList`).
+- **A player may hold the rate to steps of its own.** Showtime has no 0.75 and
+  rounds a request for it to 1.0, without announcing anything. `setRate`
+  therefore reads `Rate` back after the `Set`; when the player kept another
+  value the bar shows that one and `refusedRates` keeps the step out of
+  `stepRate`, so "Slower" from 1× reaches 0.5×.
+- **Several windows of one app each have a player** (Celluloid: one process,
+  one bus name per window, `…Celluloid.instance-N`). `_playerFor` takes the
+  player whose `xesam:title` the window's title shows, else the first. For a
+  sandboxed player `Player.pid` is xdg-dbus-proxy's and never equals the
+  window's, so it is matched by desktop entry.
+- **Showtime freezes on MPRIS `Quit`** (the bar's close button) in the nested
+  shell, and its own ✕ closes the window but leaves the process; the cause is
+  its shutdown here, not the call. `window.delete` instead would leave a
+  `cvlc` playing, so `Quit` stays.
+- **Seen over the three players (Flatpak, Shell 50, nested):** the bar attaches
+  over mpv 0.41, Celluloid 0.30 and Showtime 50.0 in fullscreen, and play and
+  pause, seek, volume, speed and skip work from it. Each draws its own controls
+  beside the bar when the pointer moves (mpv's `--no-osc` removes mpv's;
+  Celluloid's and Showtime's cannot be turned off from outside).

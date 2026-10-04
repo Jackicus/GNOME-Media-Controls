@@ -56,6 +56,8 @@ export class Player extends EventEmitter {
         this.volume = 1;
         this.rate = 1;
         this.minRate = 1;
+        // Steps the player held at another rate (Showtime has no 0.75).
+        this.refusedRates = new Set();
         this.maxRate = 1;
         this.canSeek = false;
         this.canGoNext = false;
@@ -185,7 +187,15 @@ export class Player extends EventEmitter {
             return;
         this.settle();
         this.rate = rate;
-        this._set('Rate', new GLib.Variant('d', rate));
+        this._set('Rate', new GLib.Variant('d', rate), () => this._registry.call(this.owner, PROPERTIES, 'Get',
+            new GLib.Variant('(ss)', [PLAYER, 'Rate']), '(v)', reply => {
+                const held = reply.recursiveUnpack()[0];
+                if (Math.abs(held - rate) < 0.001)
+                    return;
+                this.refusedRates.add(rate);
+                this.rate = held;
+                this.emit('changed');
+            }));
         this.emit('changed');
     }
 
@@ -218,9 +228,9 @@ export class Player extends EventEmitter {
             e => console.warn(`[Media Controls] ${this.identity || this.owner} refused ${method}: ${e.message}`));
     }
 
-    _set(prop, value) {
+    _set(prop, value, onReply = null) {
         this._registry.call(this.owner, PROPERTIES, 'Set', new GLib.Variant('(ssv)', [PLAYER, prop, value]),
-            null, null,
+            null, onReply,
             e => console.warn(`[Media Controls] ${this.identity || this.owner} refused ${prop}: ${e.message}`));
     }
 

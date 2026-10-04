@@ -76,8 +76,8 @@ export const buttonForCode = code => BUTTONS.find(b => b.code === code) ?? null;
 export const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 // The step nearest `rate` moved `by` steps, within what the player accepts.
-export function stepRate(rate, by, min, max) {
-    const allowed = RATES.filter(r => r >= min && r <= max);
+export function stepRate(rate, by, min, max, refused) {
+    const allowed = RATES.filter(r => r >= min && r <= max && !refused.has(r));
     if (!allowed.length)
         return rate;
     let at = 0;
