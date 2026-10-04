@@ -40,7 +40,9 @@ src/lib/mpris.js      PlayerRegistry + Player: the players on the bus, their
 src/lib/bar.js        ControlBar: the St widget (seek row, transport, tracks,
                       sleep, volume, rate, close, clock line) and CentredRowLayout
 src/lib/tracksmenu.js TracksMenu: the audio-and-subtitles pop-out (a PopupMenu)
+src/lib/lineremote.js LineRemote: a player's line-based control socket
 src/lib/vlcremote.js  VlcRemote: VLC's remote-control socket
+src/lib/mpvremote.js  MpvRemote: mpv's (and Celluloid's) JSON IPC socket
 src/lib/vlcconfig.js  VLC's settings file: the one thing we may change in it
 src/lib/gamepads.js   libmanette → (button, action)
 src/lib/actions.js    pure data shared with prefs.js: ACTIONS, BAR_BUTTONS,
@@ -69,7 +71,7 @@ file) and the review guidelines; `docs/notes.md` the measurements the code keeps
 
 Area detail is in `.claude/rules/`, loaded with the files it covers: `bar.md`
 (the widget, its placement, keys and sizes), `mpris.md` (position, playlists),
-`vlc.md` (the remote, vlcrc, the pop-out), `gamepads.md` (libmanette, the
+`vlc.md` (the remote, vlcrc, the pop-out), `mpv.md` (the IPC socket), `gamepads.md` (libmanette, the
 virtual pad), `sleep-timer.md` (counting episodes), `nested-shell.md` (VLC and
 the pad in the nested shell).
 
@@ -132,10 +134,11 @@ virtual keyboard**, only ever while the bar or the pop-out holds the grab, so
 they never land on the player. Every other button keeps its own action; a held
 button repeats (`.claude/rules/gamepads.md`).
 
-**Tracks are VLC's alone**, over its `oldrc` remote-control socket, which
+**Tracks are VLC's and mpv's**. VLC's are over its `oldrc` remote-control socket, which
 `vlcconfig.js` turns on in VLC's own settings file only when the user flips the
-Players page's switch; with no socket the bar has no tracks button
-(`.claude/rules/vlc.md`). `hide-vlc-controls` hides VLC's own fullscreen
+Players page's switch; mpv's and Celluloid's over their JSON IPC socket, found
+from the player's own process (`.claude/rules/mpv.md`); with no socket the bar
+has no tracks button (`.claude/rules/vlc.md`). `hide-vlc-controls` hides VLC's own fullscreen
 controller, a window of its own, from the shell **only while the extension is
 on**; no file is written for it.
 

@@ -118,8 +118,12 @@ when the user turns on the Players page's VLC-tracks switch. `open()` checks
 the connection's peer credentials (`get_credentials().get_unix_pid()`)
 against the VLC process the bar is attached to and closes the connection if
 they don't match, so a socket held by an unrelated VLC is never trusted.
-Nothing else opens a socket, makes an HTTP request, or reaches outside the
-session bus and this one path.
+`MpvRemote.open()` (`src/lib/mpvremote.js`) does the same for mpv and
+Celluloid, at the Unix socket that the player's own process listens on (read
+from `/proc/<pid>/fd` and `/proc/<pid>/net/unix`, nothing else under `/proc`),
+with the same peer check against the window's process. Nothing else opens a
+socket, makes an HTTP request, or reaches outside the session bus and these
+sockets.
 
 **Modifying another application's files: only on an explicit switch, and only
 these options.** `lib/vlcconfig.js`'s `writeVlcState()` edits

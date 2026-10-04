@@ -10,8 +10,8 @@ media controls.
 - **Looks like GNOME.** It uses the shell's own sliders, buttons and menus, in
   your accent colour, and follows High Contrast and shell themes.
 - **Audio, subtitles and timing.** Pick the audio track and subtitles, nudge
-  out-of-sync subtitles until they line up, and move between chapters. (VLC
-  only.)
+  out-of-sync subtitles until they line up, and move between chapters. (VLC,
+  and mpv or Celluloid with their control socket.)
 - **Any controller.** Xbox, PlayStation, Switch, 8BitDo, Steam Deck. Buttons go
   by where they sit, so every pad works the same.
 - **Sized for the room.** One slider makes the whole bar bigger for a TV. Put
@@ -162,7 +162,8 @@ follows the log.
   with the overview closed. The Players page lists the players it can see: one
   missing there does not speak MPRIS (mpv needs mpv-mpris), and one under
   Ignored players never gets the bar.
-- **No audio-and-subtitles button.** It is VLC's only. Turn on **Audio and
+- **No audio-and-subtitles button.** It is for VLC, and mpv or Celluloid with a
+  control socket (`input-ipc-server`). For VLC, turn on **Audio and
   subtitle tracks** on the Players page, restart VLC and give it a few seconds.
   A second VLC does not get it while the first holds the socket.
 - **VLC's own controls still show.** Turn on **Hide VLC's own fullscreen
