@@ -2,17 +2,13 @@
 // "<command>: returned". Paused, VLC answers "Press pause to continue." to
 // almost everything but still takes hotkeys, so the lists read while playing are kept.
 
-import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
-import {EventEmitter} from 'resource:///org/gnome/shell/misc/signals.js';
-
-import {isCancelled} from './mpris.js';
+import {LineRemote} from './lineremote.js';
 import {SOCKET_PATH} from './vlcconfig.js';
 
 const REPLY_TIMEOUT_MS = 2000;
 const PAUSED = 'Press pause to continue.';
-const encoder = new TextEncoder();
 
 // VLC's own subtitle-delay hotkeys move it by 50 ms a press.
 const SUBTITLE_STEP_MS = 50;
@@ -52,16 +48,11 @@ function parseTracks(lines) {
     return tracks;
 }
 
-export class VlcRemote extends EventEmitter {
+export class VlcRemote extends LineRemote {
     constructor() {
         super();
-        this._cancellable = new Gio.Cancellable();
-        this._connection = null;
-        this._input = null;
-        this._output = null;
         this._pending = null;     // {verb, lines, resolve, reject, timeoutId}
         this._queue = [];
-        this._writes = [];
         // False when VLC was ours but busy with a connection from before.
         this.answered = null;
         // {audio, subtitles, chapter} as last read while playing this file.
@@ -71,46 +62,19 @@ export class VlcRemote extends EventEmitter {
         this.subtitleDelay = 0;
     }
 
-    // Resolves true once connected to the VLC with process id `pid`. Not
-    // `connect`, which connectObject builds on.
-    open(pid) {
-        return new Promise(resolve => {
-            const client = new Gio.SocketClient();
-            client.connect_async(Gio.UnixSocketAddress.new(SOCKET_PATH), this._cancellable, (_c, result) => {
-                let connection, peer;
-                try {
-                    connection = client.connect_finish(result);
-                    peer = connection.get_socket().get_credentials().get_unix_pid();
-                } catch {
-                    // No socket: VLC is not set up for it, or not running.
-                    resolve(false);
-                    return;
-                }
-                if (this._cancellable.is_cancelled() || peer !== pid) {
-                    connection.close_async(GLib.PRIORITY_DEFAULT, null, null);
-                    resolve(false);
-                    return;
-                }
-                this._connection = connection;
-                this._input = new Gio.DataInputStream({
-                    base_stream: connection.get_input_stream(),
-                    close_base_stream: false,
-                });
-                this._output = connection.get_output_stream();
-                this._readLine();
-                this._command('atrack').then(() => resolve(true), () => {
-                    // Connected, and ours, but not answered.
-                    this.answered = false;
-                    this.close();
-                    resolve(false);
-                });
-            });
-        });
-    }
-
-    close() {
-        this._shut();
-        this._fail(new Error('closed'));
+    // Resolves true once connected to the VLC with process id `pid` and it answers.
+    async open(pid) {
+        if (!await this._dial(SOCKET_PATH, pid))
+            return false;
+        try {
+            await this._command('atrack');
+            return true;
+        } catch {
+            // Connected, and ours, but not answered.
+            this.answered = false;
+            this.close();
+            return false;
+        }
     }
 
     // {audio, subtitles, chapter}: fresh while playing, the last reading while
@@ -189,36 +153,6 @@ export class VlcRemote extends EventEmitter {
         return chapter ?? null;
     }
 
-    // One write at a time: a GIO stream refuses a second while one is pending.
-    _send(text) {
-        if (!this._output)
-            return;
-        this._writes.push(text);
-        if (this._writes.length === 1)
-            this._write();
-    }
-
-    _write() {
-        const text = this._writes[0];
-        if (text === undefined)
-            return;
-        const bytes = new GLib.Bytes(encoder.encode(`${text}\n`));
-        this._output.write_bytes_async(bytes, GLib.PRIORITY_DEFAULT, this._cancellable, (stream, result) => {
-            try {
-                stream.write_bytes_finish(result);
-            } catch (e) {
-                this._writes = [];
-                if (!isCancelled(e))
-                    this._lost();
-                return;
-            }
-            if (this._cancellable.is_cancelled())
-                return;
-            this._writes.shift();
-            this._write();
-        });
-    }
-
     // One command at a time: replies are matched to commands by verb.
     _command(text) {
         return new Promise((resolve, reject) => {
@@ -245,28 +179,8 @@ export class VlcRemote extends EventEmitter {
         this._send(pending.text);
     }
 
-    _readLine() {
-        this._input.read_line_async(GLib.PRIORITY_DEFAULT, this._cancellable, (stream, result) => {
-            let line;
-            try {
-                [line] = stream.read_line_finish_utf8(result);
-            } catch (e) {
-                if (!isCancelled(e))
-                    this._lost();
-                return;
-            }
-            if (this._cancellable.is_cancelled())
-                return;
-            if (line === null) {
-                this._lost();
-                return;
-            }
-            this._onLine(line.replace(/\r$/, '').replace(/^> ?/, ''));
-            this._readLine();
-        });
-    }
-
-    _onLine(line) {
+    _onLine(raw) {
+        const line = raw.replace(/^> ?/, '');
         if (line.startsWith('status change:')) {
             if (line.includes('new input:')) {
                 this._inputs++;
@@ -289,24 +203,6 @@ export class VlcRemote extends EventEmitter {
         } else {
             pending.lines.push(line);
         }
-    }
-
-    _lost(error = new Error('VLC closed the connection')) {
-        if (this._cancellable.is_cancelled())
-            return;
-        this._shut();
-        this._fail(error);
-        this.emit('lost');
-    }
-
-    // Closing at once frees VLC for its next client.
-    _shut() {
-        this._cancellable.cancel();
-        this._writes = [];
-        this._connection?.close_async(GLib.PRIORITY_DEFAULT, null, null);
-        this._connection = null;
-        this._input = null;
-        this._output = null;
     }
 
     _fail(error) {

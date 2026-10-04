@@ -16,6 +16,7 @@ import {
 import {ControlBar} from './bar.js';
 import {Gamepads} from './gamepads.js';
 import {PlayerRegistry, clock} from './mpris.js';
+import {MpvRemote} from './mpvremote.js';
 import {VlcRemote} from './vlcremote.js';
 
 const POINTER_INTERVAL = 100;
@@ -407,14 +408,18 @@ export class MediaControlsApp {
     }
 
     // A VLC still busy with a connection from before (a reload) gets one retry.
+    // The window's process is the player's: a sandboxed player's bus connection is its proxy's.
     _connectRemote(player, retry = true) {
         this._dropRemote();
-        if (!player.pid || !playerNames(player).includes('vlc'))
+        const pid = this._window.get_pid();
+        const names = playerNames(player);
+        const mpv = names.some(name => name === 'mpv' || name.includes('celluloid'));
+        if (pid <= 0 || !mpv && !names.includes('vlc'))
             return;
         this._remoteTriedAt = clock();
-        const remote = new VlcRemote();
+        const remote = mpv ? new MpvRemote() : new VlcRemote();
         this._remote = remote;
-        remote.open(player.pid).then(ok => {
+        remote.open(pid, this._window.get_sandboxed_app_id()).then(ok => {
             if (this._remote !== remote)
                 return;
             if (!ok) {
