@@ -1,6 +1,7 @@
 // The audio-and-subtitles pop-out. Picking a track leaves it open, so audio and
 // subtitles can be chosen in one go.
 
+import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
@@ -33,6 +34,12 @@ const ButtonRow = GObject.registerClass(class MediaControlsButtonRow extends Pop
         this.add_child(this.label);
         this.label_actor = this.label;
         this._buttons = [];
+    }
+
+    // Reading a button then also reads the value it changes.
+    describeButtonsBy(label) {
+        for (const button of this._buttons)
+            button.get_accessible().add_relationship(Atk.RelationType.DESCRIBED_BY, label.get_accessible());
     }
 
     setIconSize(size) {
@@ -92,6 +99,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
             () => this._remote?.shiftSubtitles(SUBTITLE_SHIFT_MS));
         this._sync.addButton('edit-undo-symbolic', 'Reset subtitle timing',
             () => this._remote?.resetSubtitles());
+        this._sync.describeButtonsBy(this._delay);
         this.addMenuItem(this._sync);
 
         this._chapterSeparator = new PopupMenu.PopupSeparatorMenuItem('Chapters');
@@ -99,6 +107,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
         this._chapters = new ButtonRow('');
         this._chapters.addButton('go-previous-symbolic', 'Previous chapter', () => this._chapter(-1));
         this._chapters.addButton('go-next-symbolic', 'Next chapter', () => this._chapter(1));
+        this._chapters.describeButtonsBy(this._chapters.label);
         this.addMenuItem(this._chapters);
     }
 
