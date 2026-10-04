@@ -27,9 +27,6 @@ is done and was seen in the nested shell; open issues hold the rest.
 
 ## Your call
 
-- [ ] The size budget: `src/` is over 3400 lines now (the mpv remote, its
-      setup, touch and the rest are about 300 of them). Raise it in `scripts/ext.conf` or ask for a
-      simplify pass
 - [ ] Open decisions: a paused bar that cannot be dismissed (#78), controlling a
       player on another monitor while focus is elsewhere (#77)
 - [ ] Publish on extensions.gnome.org (`docs/publishing.md`)
