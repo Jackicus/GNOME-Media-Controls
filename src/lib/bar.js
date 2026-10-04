@@ -1,3 +1,4 @@
+import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
@@ -154,6 +155,8 @@ export const ControlBar = GObject.registerClass({
 
         this.panel = new St.BoxLayout({
             style_class: 'screenshot-ui-panel mc-bar',
+            accessible_role: Atk.Role.TOOL_BAR,
+            accessible_name: 'Media controls',
             orientation: Clutter.Orientation.VERTICAL,
             reactive: true,
             track_hover: true,
@@ -225,17 +228,17 @@ export const ControlBar = GObject.registerClass({
         this._seek.accessible_name = 'Position';
         this._remaining = new St.Label({style_class: 'mc-time mc-remaining', y_align: Clutter.ActorAlign.CENTER});
         // Out of the focus chain: the slider's Left and Right skip, Up and Down leave the row.
-        const remainingButton = new St.Button({
+        this._lengthToggle = new St.Button({
             style_class: 'mc-time-button',
+            accessible_name: 'Time remaining',
             child: this._remaining,
             can_focus: false,
             y_align: Clutter.ActorAlign.CENTER,
         });
-        remainingButton.label_actor = this._remaining;
-        remainingButton.connect('clicked', () => this.emit('action', 'toggle-length'));
+        this._lengthToggle.connect('clicked', () => this.emit('action', 'toggle-length'));
         row.add_child(this._elapsed);
         row.add_child(this._seek);
-        row.add_child(remainingButton);
+        row.add_child(this._lengthToggle);
         this.panel.add_child(row);
 
         this._seek.connect('drag-begin', () => {
@@ -452,6 +455,7 @@ export const ControlBar = GObject.registerClass({
 
     setShowLength(show) {
         this._showLength = show;
+        this._lengthToggle.accessible_name = show ? 'Total length' : 'Time remaining';
         this._tick();
     }
 
