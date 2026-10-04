@@ -86,6 +86,20 @@ installed `extension.js` link at it for one `start`, then point it back.
 - **Two players:** `player --windowed` starts a second VLC in a window on top;
   `key f` makes the focused VLC fullscreen. The bar follows focus.
 
+## Other players (Flatpak, user-level)
+
+mpv, Celluloid and Showtime are installed as `flatpak --user` apps
+(`io.mpv.Mpv`, `io.github.celluloid_player.Celluloid`, `org.gnome.Showtime`).
+Start one through `./scripts/nested.sh run setsid flatpak run
+--filesystem=<scratchpad> <id> … FILE` (the sandbox sees nothing outside its own
+folders and `/tmp` unless told), then `F11` in a `do` to make it fullscreen.
+`mpv` wants `--vo=x11 --hwdec=no --ao=null` here. Their config is under
+`~/.var/app/<id>/`, which the nested shell does *not* redirect: the Players
+page's mpv switch, flipped in the nested preferences, writes there for real, so
+flip it off again when done. A sandbox's runtime folder is
+`$XDG_RUNTIME_DIR/.flatpak/<id>/xdg-run/`. Each player's own overlay shows
+beside the bar when the pointer moves; that is theirs.
+
 ## Two monitors
 
 `start --monitors 2` puts a second 1600×900 monitor to the right: coordinates

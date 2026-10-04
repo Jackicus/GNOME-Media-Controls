@@ -2,6 +2,7 @@
 paths:
   - "src/lib/mpvremote.js"
   - "src/lib/lineremote.js"
+  - "src/lib/mpvconfig.js"
 ---
 
 # mpv and Celluloid: the JSON IPC socket
@@ -29,5 +30,15 @@ read a line).
   not. A decrement of `chapter` may restart the current chapter.
 - **`chapter` is unavailable on a file with no chapters**: it is only asked when
   `chapter-list` is not empty.
+- **The Players page's mpv switch** writes `media-controls.lua` into mpv's and
+  Celluloid's `scripts/` folders (`~/.config/mpv`, `~/.config/celluloid` if it
+  exists, and `~/.var/app/<id>/config/…` of an installed Flatpak that has run
+  once) and removes it when turned off. The script sets `input-ipc-server` to
+  `$XDG_RUNTIME_DIR/mc-mpv-<pid>-<random>.sock` unless the user set one, for each
+  mpv core, since Celluloid runs several in one process. mpv reads it at start.
+- **A Unix socket path is at most 107 bytes**, and a sandbox's folder is 70 of
+  them on the host (`/run/user/1000/.flatpak/<app-id>/xdg-run/`), so the name is
+  short: the first one, `media-controls-mpv-<pid>-<time>-<random>.sock`, failed
+  to connect for Celluloid's long app id ("AF_UNIX path too long").
 - **The IPC socket can run commands** (`run`), so it must stay in a private
   directory. Never an abstract socket: it has no permission check.

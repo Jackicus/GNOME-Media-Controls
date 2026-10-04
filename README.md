@@ -77,7 +77,7 @@ show what they did: a pause, a seek or the next file.
 
 ## VLC
 
-VLC works out of the box for everything but the tracks. Two switches on the
+VLC works out of the box for everything but the tracks. Switches on the
 **Players** page:
 
 - **Hide VLC's own fullscreen controls**, so the bar is the only one over the
@@ -89,6 +89,15 @@ VLC works out of the box for everything but the tracks. Two switches on the
   subtitle timing and chapters. It changes VLC's settings file,
   `~/.config/vlc/vlcrc`, only when you turn it on, and applies from the next
   time VLC starts.
+
+## mpv and Celluloid
+
+The **mpv and Celluloid** switch on the **Players** page turns on the same
+audio, subtitle, timing and chapter controls for them. It adds a small script
+(`media-controls.lua`) to their `scripts` folders, also for their Flatpaks once
+they have run, which makes each player open a control socket in your runtime
+folder; turning the switch off removes it. It applies from the next time the
+player starts. A socket you set yourself (`input-ipc-server`) is used as it is.
 
 VLC reads the file as it starts, so restart VLC after flipping either switch.
 Only one VLC at a time can use the tracks.
@@ -162,10 +171,12 @@ follows the log.
   with the overview closed. The Players page lists the players it can see: one
   missing there does not speak MPRIS (mpv needs mpv-mpris), and one under
   Ignored players never gets the bar.
-- **No audio-and-subtitles button.** It is for VLC, and mpv or Celluloid with a
-  control socket (`input-ipc-server`). For VLC, turn on **Audio and
-  subtitle tracks** on the Players page, restart VLC and give it a few seconds.
-  A second VLC does not get it while the first holds the socket.
+- **No audio-and-subtitles button.** It is for VLC, mpv and Celluloid. Turn on
+  **Audio and subtitle tracks** (VLC) or the **mpv and Celluloid** switch on the
+  Players page, restart the player and give it a few seconds. A second VLC does
+  not get it while the first holds the socket. A Flatpak Celluloid or mpv that
+  has never been run has no config folder yet: run it once, then turn the switch
+  off and on.
 - **VLC's own controls still show.** Turn on **Hide VLC's own fullscreen
   controls** on the Players page. It applies to a running VLC at once.
 - **VLC's own controls are missing with the extension off.** An older version
