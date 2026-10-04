@@ -105,7 +105,7 @@
         <key name="hide-vlc-controls" type="b">
             <default>false</default>
             <summary>Hide VLC's own fullscreen controls while the extension is on</summary>
-            <description>Turned off in VLC's settings file (qt-fs-controller) when the extension is enabled, and put back when it is disabled. VLC reads the file as it starts, so a change applies from the next VLC.</description>
+            <description>VLC's fullscreen controller is hidden from the shell, in a VLC that is already running too, and shown again when this is turned off or the extension is disabled. VLC's settings are not changed.</description>
         </key>
 
         <!-- Game controllers -->

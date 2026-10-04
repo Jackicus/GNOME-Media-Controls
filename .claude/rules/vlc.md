@@ -12,14 +12,16 @@ MPRIS has no audio or subtitle tracks, no subtitle timing and no chapters, so
 those come from VLC's C remote-control interface (`oldrc`) on a Unix socket at
 `$XDG_RUNTIME_DIR/media-controls-vlc.sock`: one path, since a settings file
 cannot name one per instance. `vlcconfig.js` turns it on in VLC's own settings
-file when the user flips the Players page's switch.
+file when the user flips the Players page's switch, and writes nothing else.
 
-- **`hide-vlc-controls`** (`qt-fs-controller` under `[qt]`) is applied by
-  `app.js` **only while the extension is on**: off at enable, back on at
-  disable, except at a lock, which the unlock's enable would only undo. With
-  the setting off the file is never touched, so VLC's own choice stands. The
-  shell does not disable on logout, shutdown or a crash, so a session that ends
-  with the setting on leaves VLC's controls off until the next enable.
+- **`hide-vlc-controls`** hides VLC's fullscreen controller from the shell, not
+  in its settings: the controller is an override-redirect window of its own
+  (class `vlc`, no title, `Meta.WindowType.OVERRIDE_OTHER`) that VLC keeps
+  mapped and fades in and out. `app.js` hides its actor at enable and on each
+  `map`, and shows it again at disable and when the setting goes off, so it
+  applies to a VLC already running and a crash or logout leaves nothing behind.
+  Menus and tooltips have window types of their own and are not matched. VLC 3
+  with the Qt interface is what this was seen on.
 - **`VlcRemote` keeps a connection only if** the socket's peer credentials are
   the attached VLC's pid and VLC then **answers** a harmless `atrack`: it
   serves one client at a time, and a second connection is accepted by the

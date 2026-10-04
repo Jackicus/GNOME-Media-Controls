@@ -1,5 +1,5 @@
-// VLC's settings file (vlcrc) and the two switches this extension may change in
-// it. Pure GLib and Gio: prefs.js imports it too.
+// VLC's settings file (vlcrc) and the remote-control socket this extension may
+// switch on in it. Pure GLib and Gio: prefs.js imports it too.
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -10,7 +10,6 @@ export const SOCKET_PATH = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'm
 const RC_MODULE = 'oldrc';
 // VLC reads an option only under its module's section.
 const SECTION = {
-    'qt-fs-controller': 'qt',
     'extraintf': 'core',
     'rc-unix': 'oldrc',
     'rc-fake-tty': 'oldrc',
@@ -43,7 +42,6 @@ const modulesOf = value => (value ?? '').split(/[:,]/).map(m => m.trim()).filter
 export function readVlcState() {
     const lines = readLines(vlcrcPath());
     return {
-        hideControls: valueOf(lines, 'qt-fs-controller') === '0',
         trackControl: modulesOf(valueOf(lines, 'extraintf')).includes(RC_MODULE) &&
             valueOf(lines, 'rc-unix') === SOCKET_PATH &&
             valueOf(lines, 'rc-fake-tty') === '1',
@@ -77,18 +75,14 @@ function setValue(lines, name, value) {
 }
 
 // Returns the state the file was left in; throws if it could not be written.
-export function writeVlcState({hideControls, trackControl}) {
+export function writeVlcState(trackControl) {
     const path = vlcrcPath();
     const lines = readLines(path) ?? ['# Written by Media Controls; VLC fills in the rest.', ''];
-    if (hideControls !== undefined)
-        setValue(lines, 'qt-fs-controller', hideControls ? '0' : null);
-    if (trackControl !== undefined) {
-        const others = modulesOf(valueOf(lines, 'extraintf')).filter(m => m !== RC_MODULE);
-        const modules = trackControl ? [...others, RC_MODULE] : others;
-        setValue(lines, 'extraintf', modules.length ? modules.join(':') : null);
-        setValue(lines, 'rc-unix', trackControl ? SOCKET_PATH : null);
-        setValue(lines, 'rc-fake-tty', trackControl ? '1' : null);
-    }
+    const others = modulesOf(valueOf(lines, 'extraintf')).filter(m => m !== RC_MODULE);
+    const modules = trackControl ? [...others, RC_MODULE] : others;
+    setValue(lines, 'extraintf', modules.length ? modules.join(':') : null);
+    setValue(lines, 'rc-unix', trackControl ? SOCKET_PATH : null);
+    setValue(lines, 'rc-fake-tty', trackControl ? '1' : null);
     GLib.mkdir_with_parents(GLib.path_get_dirname(path), 0o700);
     const file = Gio.File.new_for_path(path);
     // VLC drops the last character of every line as its newline, the last

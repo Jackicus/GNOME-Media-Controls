@@ -41,7 +41,7 @@ src/lib/bar.js        ControlBar: the St widget (seek row, transport, tracks,
                       sleep, volume, rate, close, clock line) and CentredRowLayout
 src/lib/tracksmenu.js TracksMenu: the audio-and-subtitles pop-out (a PopupMenu)
 src/lib/vlcremote.js  VlcRemote: VLC's remote-control socket
-src/lib/vlcconfig.js  VLC's settings file: the two things we may change in it
+src/lib/vlcconfig.js  VLC's settings file: the one thing we may change in it
 src/lib/gamepads.js   libmanette → (button, action)
 src/lib/actions.js    pure data shared with prefs.js: ACTIONS, BAR_BUTTONS,
                       BUTTONS, NAVIGATION, RATES, SLEEP_MINUTES,
@@ -136,8 +136,9 @@ button repeats (`.claude/rules/gamepads.md`).
 **Tracks are VLC's alone**, over its `oldrc` remote-control socket, which
 `vlcconfig.js` turns on in VLC's own settings file only when the user flips the
 Players page's switch; with no socket the bar has no tracks button
-(`.claude/rules/vlc.md`). `hide-vlc-controls` turns VLC's own fullscreen
-controller off in that file **only while the extension is on**.
+(`.claude/rules/vlc.md`). `hide-vlc-controls` hides VLC's own fullscreen
+controller, a window of its own, from the shell **only while the extension is
+on**; no file is written for it.
 
 **Settings that are off by default**: `show-clock` (a line under the title,
 "21∶40 · ends at 23∶12", formatted by the shell's own `dateUtils.formatTime`, so

@@ -17,7 +17,7 @@ Media Controls' own is in `./scripts/nested.d/media-controls.sh`: `player`,
   `nested_env`, whose `XDG_CONFIG_HOME` is `$(config_dir)` (kept under
   `~/.local/state/gnome-extensions-nested/media-controls/config`, or the
   stand-in's), so `$(config_dir)/vlc/vlcrc` is the file the nested extension
-  applies `hide-vlc-controls` to and the nested preferences' switches write;
+  the nested preferences' tracks switch writes;
   `~/.config/vlc` is never touched. It sets that vlcrc up with
   `./scripts/vlc-setup.js` (the preferences' own `vlcconfig.js`; `--plain` skips
   it), and points VLC's `XDG_DATA_HOME` at `$RUN_DIR/vlc/data` (VLC keeps a
