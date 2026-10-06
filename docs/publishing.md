@@ -169,7 +169,7 @@ writes the clipboard, nothing is sent anywhere, nothing runs through `pkexec`.
 **Readable, explainable code: meets.** Comments are about 4% of `src/`'s
 lines and say only why; no `try` around `destroy()`, `disconnect()` or
 `GLib.source_remove()`, no `_destroyed` or `_enabled` flags, no checks for
-other shell versions; `./scripts/dev.sh size` holds `src/` to its budget.
+other shell versions; `./scripts/dev.sh size` reports what `src/` comes to.
 
 **Copyrights and trademarks: no logos or artwork.** Every icon is a theme
 symbolic icon. Players (VLC, mpv, Celluloid) and controller makers (Xbox,
