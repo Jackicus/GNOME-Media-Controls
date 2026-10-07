@@ -52,7 +52,8 @@
     color: #ffffff;
     -barlevel-height: 0.273em;
     -barlevel-background-color: rgba(255, 255, 255, 0.15);
-    -barlevel-active-background-color: -st-accent-color;
+    /* The plain accent is under 3:1 on the panel for purple (docs/notes.md). */
+    -barlevel-active-background-color: st-mix(-st-accent-color, #ffffff, 80%);
 }
 
 .mc-bar .slider:insensitive {
@@ -95,10 +96,10 @@
     min-width: 0;
 }
 
-/* The theme's focus ring is !important, so ours has to be too. */
+/* The theme's focus ring is !important, so ours has to be too. Its colour is the theme's own. */
 .mc-bar .mc-button:focus {
     background-color: st-transparentize(-st-accent-color, 0.7);
-    box-shadow: inset 0 0 0 2px -st-accent-color !important;
+    box-shadow: inset 0 0 0 2px st-mix(-st-accent-color, #ffffff, 60%) !important;
 }
 
 .mc-bar .mc-play {
