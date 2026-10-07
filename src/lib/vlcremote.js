@@ -4,7 +4,7 @@
 
 import GLib from 'gi://GLib';
 
-import {LineRemote} from './lineremote.js';
+import {LineRemote, hostPath} from './lineremote.js';
 import {SOCKET_PATH} from './vlcconfig.js';
 
 const REPLY_TIMEOUT_MS = 2000;
@@ -62,9 +62,10 @@ export class VlcRemote extends LineRemote {
         this.subtitleDelay = 0;
     }
 
-    // Resolves true once connected to the VLC with process id `pid` and it answers.
-    async open(pid) {
-        if (!await this._dial(SOCKET_PATH, pid))
+    // Resolves true once connected to the VLC with process id `pid` and it answers
+    // (a sandboxed VLC's id is `sandboxId`).
+    async open(pid, sandboxId) {
+        if (!await this._dial(hostPath(SOCKET_PATH, sandboxId), pid))
             return false;
         try {
             await this._command('atrack');

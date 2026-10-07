@@ -4,7 +4,7 @@
 
 import GLib from 'gi://GLib';
 
-import {LineRemote} from './lineremote.js';
+import {LineRemote, hostPath} from './lineremote.js';
 
 const REPLY_TIMEOUT_MS = 2000;
 const decoder = new TextDecoder();
@@ -27,14 +27,6 @@ function listeningSocket(pid) {
             return field[7];
     }
     return null;
-}
-
-// A sandbox sees its own folder as the runtime directory; the shell sees it here.
-function hostPath(path, sandboxId) {
-    const runtime = GLib.get_user_runtime_dir();
-    if (sandboxId && path.startsWith(`${runtime}/`))
-        return `${runtime}/.flatpak/${sandboxId}/xdg-run/${path.slice(runtime.length + 1)}`;
-    return path;
 }
 
 function trackLabel({title, lang, id}) {

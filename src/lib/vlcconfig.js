@@ -5,6 +5,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 // A Unix socket path is at most 107 bytes; $XDG_RUNTIME_DIR is short and private.
+// A Flatpak VLC sees its own runtime folder at the same path (lineremote.js hostPath).
 export const SOCKET_PATH = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'media-controls-vlc.sock']);
 
 const RC_MODULE = 'oldrc';
@@ -15,8 +16,15 @@ const SECTION = {
     'rc-fake-tty': 'oldrc',
 };
 
-export function vlcrcPath() {
-    return GLib.build_filenamev([GLib.get_user_config_dir(), 'vlc', 'vlcrc']);
+const FLATPAK = 'org.videolan.VLC';
+
+// The Flatpak's own, once it has run, besides the one in $XDG_CONFIG_HOME.
+export function vlcrcPaths() {
+    const paths = [GLib.build_filenamev([GLib.get_user_config_dir(), 'vlc', 'vlcrc'])];
+    const app = GLib.build_filenamev([GLib.get_home_dir(), '.var', 'app', FLATPAK]);
+    if (GLib.file_test(app, GLib.FileTest.IS_DIR))
+        paths.push(GLib.build_filenamev([app, 'config', 'vlc', 'vlcrc']));
+    return paths;
 }
 
 function readLines(path) {
@@ -39,13 +47,15 @@ function valueOf(lines, name) {
 
 const modulesOf = value => (value ?? '').split(/[:,]/).map(m => m.trim()).filter(Boolean);
 
-export function readVlcState() {
-    const lines = readLines(vlcrcPath());
-    return {
-        trackControl: modulesOf(valueOf(lines, 'extraintf')).includes(RC_MODULE) &&
-            valueOf(lines, 'rc-unix') === SOCKET_PATH &&
-            valueOf(lines, 'rc-fake-tty') === '1',
-    };
+function isOn(path) {
+    const lines = readLines(path);
+    return modulesOf(valueOf(lines, 'extraintf')).includes(RC_MODULE) &&
+        valueOf(lines, 'rc-unix') === SOCKET_PATH &&
+        valueOf(lines, 'rc-fake-tty') === '1';
+}
+
+export function readVlcState(paths = vlcrcPaths()) {
+    return {trackControl: paths.every(isOn)};
 }
 
 // `value` null puts `name` back to VLC's default.
@@ -74,23 +84,23 @@ function setValue(lines, name, value) {
     }
 }
 
-// Returns the state the file was left in; throws if it could not be written.
-export function writeVlcState(trackControl) {
-    const path = vlcrcPath();
-    const lines = readLines(path) ?? ['# Written by Media Controls; VLC fills in the rest.', ''];
-    const others = modulesOf(valueOf(lines, 'extraintf')).filter(m => m !== RC_MODULE);
-    const modules = trackControl ? [...others, RC_MODULE] : others;
-    setValue(lines, 'extraintf', modules.length ? modules.join(':') : null);
-    setValue(lines, 'rc-unix', trackControl ? SOCKET_PATH : null);
-    setValue(lines, 'rc-fake-tty', trackControl ? '1' : null);
-    GLib.mkdir_with_parents(GLib.path_get_dirname(path), 0o700);
-    const file = Gio.File.new_for_path(path);
-    // VLC drops the last character of every line as its newline, the last
-    // line's included: a file that does not end in one loses a letter.
-    let text = lines.join('\n');
-    if (!text.endsWith('\n'))
-        text += '\n';
-    file.replace_contents(new TextEncoder().encode(text), null, true,
-        Gio.FileCreateFlags.NONE, null);
-    return readVlcState();
+// Returns the state the files were left in; throws if one could not be written.
+export function writeVlcState(trackControl, paths = vlcrcPaths()) {
+    for (const path of paths) {
+        const lines = readLines(path) ?? ['# Written by Media Controls; VLC fills in the rest.', ''];
+        const others = modulesOf(valueOf(lines, 'extraintf')).filter(m => m !== RC_MODULE);
+        const modules = trackControl ? [...others, RC_MODULE] : others;
+        setValue(lines, 'extraintf', modules.length ? modules.join(':') : null);
+        setValue(lines, 'rc-unix', trackControl ? SOCKET_PATH : null);
+        setValue(lines, 'rc-fake-tty', trackControl ? '1' : null);
+        GLib.mkdir_with_parents(GLib.path_get_dirname(path), 0o700);
+        // VLC drops the last character of every line as its newline, the last
+        // line's included: a file that does not end in one loses a letter.
+        let text = lines.join('\n');
+        if (!text.endsWith('\n'))
+            text += '\n';
+        Gio.File.new_for_path(path).replace_contents(new TextEncoder().encode(text), null, true,
+            Gio.FileCreateFlags.NONE, null);
+    }
+    return readVlcState(paths);
 }

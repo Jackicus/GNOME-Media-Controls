@@ -89,10 +89,9 @@ VLC works out of the box for everything but the tracks. Switches on the
 - **Audio and subtitle tracks** turns on VLC's remote-control interface on a
   private socket in your runtime folder, which the bar uses for the tracks,
   subtitle timing and chapters. It changes VLC's settings file,
-  `~/.config/vlc/vlcrc`, only when you turn it on, and applies from the next
-  time VLC starts. Only one VLC at a time can use the tracks. A Flatpak VLC
-  does not get them yet (it keeps its settings elsewhere); hiding its controls
-  works.
+  `~/.config/vlc/vlcrc`, and the Flatpak VLC's own once it has run, only when
+  you turn it on, and applies from the next time VLC starts. Only one VLC at a
+  time can use the tracks.
 
 ## mpv and Celluloid
 
@@ -180,9 +179,9 @@ follows the log.
 - **No audio-and-subtitles button.** It is for VLC, mpv and Celluloid. Turn on
   **Audio and subtitle tracks** (VLC) or the **mpv and Celluloid** switch on the
   Players page, restart the player and give it a few seconds. A second VLC does
-  not get it while the first holds the socket. A Flatpak Celluloid or mpv that
-  has never been run has no config folder yet: run it once, then turn the switch
-  off and on.
+  not get it while the first holds the socket. A Flatpak VLC, Celluloid or mpv
+  that has never been run has no config folder yet: run it once, then turn the
+  switch off and on.
 - **VLC's own controls still show.** Turn on **Hide VLC's own fullscreen
   controls** on the Players page. It applies to a running VLC at once.
 - **VLC's own controls are missing with the extension off.** An older version
