@@ -6,5 +6,5 @@
   "settings-schema": "org.gnome.shell.extensions.media-controls",
   "shell-version": [ "50" ],
   "url": "https://github.com/Jackicus/GNOME-Media-Controls",
-  "version-name": "1.0"
+  "version-name": "1.1"
 }
