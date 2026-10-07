@@ -27,6 +27,8 @@ const REMOTE_RETRY = 10;
 const SLEEP_END_MARGIN = 0.5;
 // A file left this near its end was watched: room for the credits and a lagging reckoning.
 const SLEEP_WATCHED_MARGIN = 30;
+// Milliseconds a player has to leave once its window is closed, before it is asked to quit.
+const QUIT_DELAY = 1000;
 
 // VLC's fullscreen controller is an override-redirect window of its own.
 const isVlcController = window =>
@@ -54,6 +56,7 @@ export class MediaControlsApp {
         this._keyboard = null;
         this._sleep = null;
         this._sleepId = 0;
+        this._quitId = 0;
     }
 
     enable() {
@@ -162,6 +165,9 @@ export class MediaControlsApp {
         if (this._updateId)
             GLib.source_remove(this._updateId);
         this._updateId = 0;
+        if (this._quitId)
+            GLib.source_remove(this._quitId);
+        this._quitId = 0;
         this._hideVlcControllers(false);
         this._settings = null;
     }
@@ -414,13 +420,21 @@ export class MediaControlsApp {
         return true;
     }
 
+    // The window is closed first, as its own close button would: Showtime's MPRIS
+    // Quit can leave it frozen full screen. A player still there a moment later
+    // (cvlc) is asked to quit.
     _quit() {
-        const window = this._window;
+        const player = this._player;
         this._conceal();
-        if (this._player.canQuit)
-            this._player.quit();
-        else
-            window.delete(global.get_current_time());
+        this._window.delete(global.get_current_time());
+        if (!player.canQuit || this._quitId)
+            return;
+        this._quitId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, QUIT_DELAY, () => {
+            this._quitId = 0;
+            if (this._registry.players.includes(player))
+                player.quit();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     // A VLC still busy with a connection from before (a reload) gets one retry.
