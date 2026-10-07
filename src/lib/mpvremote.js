@@ -140,7 +140,7 @@ export class MpvRemote extends LineRemote {
         if (!request)
             return;
         this._requests.delete(message.request_id);
-        GLib.source_remove(request.timeoutId);
+        GLib.Source.remove(request.timeoutId);
         if (message.error === 'success')
             request.resolve(message.data);
         else
@@ -149,7 +149,7 @@ export class MpvRemote extends LineRemote {
 
     _fail(error) {
         for (const request of this._requests.values()) {
-            GLib.source_remove(request.timeoutId);
+            GLib.Source.remove(request.timeoutId);
             request.reject(error);
         }
         this._requests.clear();

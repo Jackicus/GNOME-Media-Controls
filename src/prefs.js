@@ -359,7 +359,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                 return GLib.SOURCE_REMOVE;
             });
         };
-        cleanup.add(() => rebuildId && GLib.source_remove(rebuildId));
+        cleanup.add(() => rebuildId && GLib.Source.remove(rebuildId));
 
         cleanup.connect(settings, 'changed::ignored-players', rebuild);
 
@@ -583,11 +583,11 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
             'Plug one in or pair it over Bluetooth; it appears here as soon as it is.');
 
         const timers = new Map();
-        cleanup.add(() => timers.forEach(id => GLib.source_remove(id)));
+        cleanup.add(() => timers.forEach(id => GLib.Source.remove(id)));
         const flash = (widget, apply, undo) => {
             apply();
             if (timers.has(widget))
-                GLib.source_remove(timers.get(widget));
+                GLib.Source.remove(timers.get(widget));
             timers.set(widget, GLib.timeout_add(GLib.PRIORITY_DEFAULT, FLASH_MS, () => {
                 timers.delete(widget);
                 undo();

@@ -396,7 +396,7 @@ export const ControlBar = GObject.registerClass({
 
     _writeVolume() {
         if (this._volumeId)
-            GLib.source_remove(this._volumeId);
+            GLib.Source.remove(this._volumeId);
         this._volumeId = 0;
         this._player?.setVolume(this._volume.value);
     }
@@ -579,7 +579,7 @@ export const ControlBar = GObject.registerClass({
         if (mode === this._tickMode)
             return;
         if (this._tickId)
-            GLib.source_remove(this._tickId);
+            GLib.Source.remove(this._tickId);
         this._tickId = 0;
         this._tickMode = mode;
         if (!mode)
@@ -664,9 +664,9 @@ export const ControlBar = GObject.registerClass({
         this.tracksMenu.destroy();
         this._player?.disconnectObject(this);
         if (this._tickId)
-            GLib.source_remove(this._tickId);
+            GLib.Source.remove(this._tickId);
         if (this._volumeId)
-            GLib.source_remove(this._volumeId);
+            GLib.Source.remove(this._volumeId);
         if (this._unredirectOff)
             global.compositor.enable_unredirect();
         global.focus_manager.remove_group(this.panel);

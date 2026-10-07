@@ -253,26 +253,7 @@ export class Player extends EventEmitter {
         if ('MaximumRate' in props)
             this.maxRate = props.MaximumRate;
         // A new file or playing again is where the reckoning may be furthest off.
-        let refresh = false;
-        if ('Metadata' in props) {
-            const meta = props.Metadata ?? {};
-            const url = meta['xesam:url'] ?? '';
-            if (url !== this.url) {
-                if (this.url)
-                    this.lastFile = {length: this.length, reached: this.now};
-                this.read(0);
-                this._seek = null;
-                refresh = true;
-            }
-            this.url = url;
-            // Some shims send a plain string, which SetPosition cannot take.
-            const trackId = meta['mpris:trackid'];
-            this.trackId = typeof trackId === 'string' && GLib.variant_is_object_path(trackId) ? trackId : null;
-            this.length = Math.max(0, meta['mpris:length'] ?? 0) / 1e6;
-            this.title = meta['xesam:title'] || nameFromUrl(url);
-            const artist = meta['xesam:artist'];
-            this.artist = Array.isArray(artist) ? artist.join(', ') : artist ?? '';
-        }
+        let refresh = 'Metadata' in props && this._applyMetadata(props.Metadata ?? {});
         if ('PlaybackStatus' in props && props.PlaybackStatus !== this.status) {
             this.settle();
             this.status = props.PlaybackStatus;
@@ -292,6 +273,27 @@ export class Player extends EventEmitter {
             if (key in props)
                 this[field] = !!props[key];
         }
+    }
+
+    // Returns whether it names a new file.
+    _applyMetadata(meta) {
+        const url = meta['xesam:url'] ?? '';
+        const changed = url !== this.url;
+        if (changed) {
+            if (this.url)
+                this.lastFile = {length: this.length, reached: this.now};
+            this.read(0);
+            this._seek = null;
+        }
+        this.url = url;
+        // Some shims send a plain string, which SetPosition cannot take.
+        const trackId = meta['mpris:trackid'];
+        this.trackId = typeof trackId === 'string' && GLib.variant_is_object_path(trackId) ? trackId : null;
+        this.length = Math.max(0, meta['mpris:length'] ?? 0) / 1e6;
+        this.title = meta['xesam:title'] || nameFromUrl(url);
+        const artist = meta['xesam:artist'];
+        this.artist = Array.isArray(artist) ? artist.join(', ') : artist ?? '';
+        return changed;
     }
 
     applyTrackList(props) {

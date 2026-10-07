@@ -31,6 +31,25 @@ paths:
   translation does not cause, so `notify::translation-y` calls
   `TracksMenu.reposition()`.
 
+## What is on it
+
+- **Which buttons** is two settings: `previous-next` (`always`, greyed out
+  with nowhere to go; `playlist`, only while `Player.hasPlaylist`; `never`) and
+  `hidden-buttons` (`BAR_BUTTONS`: skip, volume, rate, close). A hidden
+  button's action still works from the keys and pads.
+- **The time at the end of the seek row** is a button out of the focus chain
+  whose click is the `toggle-length` action (`show-length`: the time left or
+  the whole length).
+- **`show-clock`** (off by default) adds a line under the title, "21∶40 · ends
+  at 23∶12", formatted by the shell's own `dateUtils.formatTime`, so 12/24-hour
+  follows the top bar's clock.
+- **The volume slider writes at most every 100 ms while dragged**
+  (`VOLUME_INTERVAL_MS`) and once more at `drag-end`: a write per motion event
+  was ~50 D-Bus calls a second.
+- **Strings go through `Gettext.domain('media-controls')`**, not the
+  `gettext` `extension.js` exports, which finds the extension from the call
+  stack and throws for a signal handler running from the development stage.
+
 ## Keys
 
 - **The panel calls `navigate_from_event` itself**, since the bar holds a grab.
