@@ -163,13 +163,13 @@ export class MediaControlsApp {
         this._bar.destroy();
         this._bar = null;
         if (this._hideId)
-            GLib.source_remove(this._hideId);
+            GLib.Source.remove(this._hideId);
         this._hideId = 0;
         if (this._updateId)
-            GLib.source_remove(this._updateId);
+            GLib.Source.remove(this._updateId);
         this._updateId = 0;
         if (this._quitId)
-            GLib.source_remove(this._quitId);
+            GLib.Source.remove(this._quitId);
         this._quitId = 0;
         this._hideVlcControllers(false);
         this._settings = null;
@@ -282,14 +282,14 @@ export class MediaControlsApp {
         this._bar.conceal();
         this._ungrab();
         if (this._hideId) {
-            GLib.source_remove(this._hideId);
+            GLib.Source.remove(this._hideId);
             this._hideId = 0;
         }
     }
 
     _armHide() {
         if (this._hideId)
-            GLib.source_remove(this._hideId);
+            GLib.Source.remove(this._hideId);
         this._hideId = 0;
         if (!this._bar.visible)
             return;
@@ -382,9 +382,36 @@ export class MediaControlsApp {
 
     // Returns whether a player was there to ask.
     perform(action) {
-        const p = this._player;
-        if (!p)
+        if (!this._player)
             return false;
+        if (this._performQuietly(action))
+            return true;
+        if (!this._performOnPlayer(action))
+            return false;
+        this._reveal();
+        return true;
+    }
+
+    // The actions that leave the bar as it is, or put it as they need it.
+    _performQuietly(action) {
+        switch (action) {
+        case 'quit': this._quit(); break;
+        case 'hide-bar': this._conceal(); break;
+        case 'navigate': this._toggleFocus(); break;
+        case 'tracks': this._openTracks(); break;
+        // No reveal: the subtitles being timed are under the bar.
+        case 'cycle-audio': this._remote?.cycle('audio'); break;
+        case 'cycle-subtitles': this._remote?.cycle('subtitles'); break;
+        case 'subtitles-earlier': this._remote?.shiftSubtitles(-SUBTITLE_SHIFT_MS); break;
+        case 'subtitles-later': this._remote?.shiftSubtitles(SUBTITLE_SHIFT_MS); break;
+        default: return false;
+        }
+        return true;
+    }
+
+    // The actions that bring the bar up.
+    _performOnPlayer(action) {
+        const p = this._player;
         const seek = this._settings.get_int('seek-step');
         const volume = this._settings.get_int('volume-step') / 100;
         switch (action) {
@@ -398,19 +425,10 @@ export class MediaControlsApp {
         case 'mute': p.toggleMute(); break;
         case 'slower': p.setRate(stepRate(p.rate, -1, p.minRate, p.maxRate, p.refusedRates)); break;
         case 'faster': p.setRate(stepRate(p.rate, 1, p.minRate, p.maxRate, p.refusedRates)); break;
-        case 'quit': this._quit(); return true;
-        case 'hide-bar': this._conceal(); return true;
         case 'show-bar': break;
         case 'toggle-length':
             this._settings.set_boolean('show-length', !this._settings.get_boolean('show-length'));
             break;
-        case 'navigate': this._toggleFocus(); return true;
-        case 'tracks': this._openTracks(); return true;
-        // No reveal: the subtitles being timed are under the bar.
-        case 'cycle-audio': this._remote?.cycle('audio'); return true;
-        case 'cycle-subtitles': this._remote?.cycle('subtitles'); return true;
-        case 'subtitles-earlier': this._remote?.shiftSubtitles(-SUBTITLE_SHIFT_MS); return true;
-        case 'subtitles-later': this._remote?.shiftSubtitles(SUBTITLE_SHIFT_MS); return true;
         case 'sleep-timer':
             if (!this._settings.get_boolean('sleep-timer'))
                 return false;
@@ -419,7 +437,6 @@ export class MediaControlsApp {
             break;
         default: return false;
         }
-        this._reveal();
         return true;
     }
 
@@ -480,7 +497,7 @@ export class MediaControlsApp {
     // VLC serves one client, so the connection is closed before anything else.
     _dropRemote() {
         if (this._remoteRetryId) {
-            GLib.source_remove(this._remoteRetryId);
+            GLib.Source.remove(this._remoteRetryId);
             this._remoteRetryId = 0;
         }
         const remote = this._remote;
@@ -579,7 +596,7 @@ export class MediaControlsApp {
 
     _setSleep(timer) {
         if (this._sleepId) {
-            GLib.source_remove(this._sleepId);
+            GLib.Source.remove(this._sleepId);
             this._sleepId = 0;
         }
         for (const id of this._sleep?.signals ?? [])
@@ -624,7 +641,7 @@ export class MediaControlsApp {
 
     _armSleepEnd() {
         if (this._sleepId) {
-            GLib.source_remove(this._sleepId);
+            GLib.Source.remove(this._sleepId);
             this._sleepId = 0;
         }
         const p = this._sleep.player;

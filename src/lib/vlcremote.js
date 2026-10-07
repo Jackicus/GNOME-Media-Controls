@@ -201,7 +201,7 @@ export class VlcRemote extends LineRemote {
         if (line.startsWith(`${pending.verb}: returned`)) {
             this._pending = null;
             if (pending.timeoutId)
-                GLib.source_remove(pending.timeoutId);
+                GLib.Source.remove(pending.timeoutId);
             pending.resolve(pending.lines);
             this._next();
         } else {
@@ -215,7 +215,7 @@ export class VlcRemote extends LineRemote {
         this._queue = [];
         for (const pending of all) {
             if (pending.timeoutId)
-                GLib.source_remove(pending.timeoutId);
+                GLib.Source.remove(pending.timeoutId);
             pending.reject(error);
         }
     }

@@ -6,6 +6,7 @@ paths:
 
 # The sleep timer
 
+- **Off by default** (`sleep-timer`): with it on, the bar has a button for it.
 - **Minutes** (`SLEEP_MINUTES`): 15–120, then the end of the file (counted as
   one episode), then off. **Episodes** (`sleep-timer-mode` `episodes`,
   `SLEEP_EPISODES`): 1–5 files, this one counted. Each press of the button or

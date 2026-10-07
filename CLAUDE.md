@@ -78,8 +78,8 @@ the pad in the nested shell).
 
 ## make check
 
-`make check` is what CI runs: `make lint` (ESLint; its present warnings are
-known: two `complexity`, add none) and the schema under `--strict`
+`make check` is what CI runs: `make lint` (ESLint, with no warnings; add none)
+and the schema under `--strict`
 (`EXT_CHECKS` is empty). No headless tests exist; behaviour is checked in the
 nested shell. It ends with `size`.
 
@@ -127,35 +127,20 @@ with no params: only chrome that asks for `trackFullscreen` (the top bar) hides
 over a fullscreen window. It places itself with the OSD's own arrangement and
 turns unredirection off while shown (`.claude/rules/bar.md`).
 
-**The pad drives the bar the way the keyboard does.** While the bar holds the
-focus, or its pop-out is open, the d-pad, the bottom and the right face buttons
-(`NAVIGATION`) are pressed as the arrow keys, Return and Escape on a **Clutter
-virtual keyboard**, only ever while the bar or the pop-out holds the grab, so
-they never land on the player. Every other button keeps its own action; a held
-button repeats (`.claude/rules/gamepads.md`).
+**The pad drives the bar the way the keyboard does**: while the bar or its
+pop-out holds the grab, the `NAVIGATION` buttons are arrow keys, Return and
+Escape on a Clutter virtual keyboard (`.claude/rules/gamepads.md`).
 
 **Tracks are VLC's and mpv's**. VLC's are over its `oldrc` remote-control socket, which
 `vlcconfig.js` turns on in VLC's own settings file only when the user flips the
 Players page's switch; mpv's and Celluloid's over their JSON IPC socket, found
 from the player's own process, which the Players page's mpv switch sets up with
 a script (`.claude/rules/mpv.md`); with no socket the bar
-has no tracks button (`.claude/rules/vlc.md`). `hide-vlc-controls` hides VLC's own fullscreen
-controller, a window of its own, from the shell **only while the extension is
-on**; no file is written for it.
+has no tracks button (`.claude/rules/vlc.md`, which also covers `hide-vlc-controls`).
 
-**Settings that are off by default**: `show-clock` (a line under the title,
-"21∶40 · ends at 23∶12", formatted by the shell's own `dateUtils.formatTime`, so
-12/24-hour as the top bar's clock is set) and `sleep-timer`: a button cycling
-15–120 minutes, then the end of the file, then off, or, with `sleep-timer-mode`
-`episodes`, 1–5 files, this one counted. It pauses the player, which brings
-the bar up; GNOME's own screen blank follows (`.claude/rules/sleep-timer.md`).
-
-**Which buttons** are on the bar is two settings: `previous-next` (`always`,
-greyed out with nowhere to go; `playlist`, only while `Player.hasPlaylist`;
-`never`) and `hidden-buttons` (`BAR_BUTTONS`: skip, volume, rate, close). A
-hidden button's action still works from the keys and pads. The time at the end
-of the seek row is a button out of the focus chain whose click is the
-`toggle-length` action (`show-length`: the time left or the whole length).
+**What is on the bar** (`previous-next`, `hidden-buttons`, `show-length`, and
+the clock line, off by default) is in `.claude/rules/bar.md`; the sleep timer,
+also off by default, in `.claude/rules/sleep-timer.md`.
 
 ## Design rules
 

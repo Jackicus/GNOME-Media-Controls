@@ -116,7 +116,7 @@ export class Gamepads {
 
     _stopRepeat() {
         if (this._held?.source)
-            GLib.source_remove(this._held.source);
+            GLib.Source.remove(this._held.source);
         this._held = null;
     }
 }
