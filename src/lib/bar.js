@@ -1,3 +1,4 @@
+import {domain} from 'gettext';
 import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -15,9 +16,13 @@ import {RATES, formatTime} from './actions.js';
 import {Duration, Ease, RISE} from './anim.js';
 import {TracksMenu} from './tracksmenu.js';
 
+const {gettext: _} = domain('media-controls');
+
 // Logical px on each side; the panel's max-width caps the width on a large monitor.
 const SIDE_MARGIN = 32;
 const TICK_MS = 250;
+// Between volume writes while the slider is dragged, which moves it ~50 times a second.
+const VOLUME_INTERVAL_MS = 100;
 // Logical px at 100%. St sizes a button's icon from the theme, not the panel's
 // font, so bar-scale multiplies these in JS.
 const ICON_SIZE = 16;
@@ -141,6 +146,7 @@ export const ControlBar = GObject.registerClass({
         this._seeking = false;
         this._scrolled = 0;             // touchpad scroll on the panel, in notches
         this._volumeDragging = false;
+        this._volumeId = 0;
         this._tickId = 0;
         this._tickMode = null;          // 'playing', 'idle' or null
         this._shown = false;            // arriving or here, not leaving
@@ -156,7 +162,7 @@ export const ControlBar = GObject.registerClass({
         this.panel = new St.BoxLayout({
             style_class: 'screenshot-ui-panel mc-bar',
             accessible_role: Atk.Role.TOOL_BAR,
-            accessible_name: 'Media controls',
+            accessible_name: _('Media controls'),
             orientation: Clutter.Orientation.VERTICAL,
             reactive: true,
             track_hover: true,
@@ -225,12 +231,12 @@ export const ControlBar = GObject.registerClass({
         this._elapsed = new St.Label({style_class: 'mc-time mc-elapsed', y_align: Clutter.ActorAlign.CENTER});
         this._seek = new Slider(0);
         this._seek.add_style_class_name('mc-seek');
-        this._seek.accessible_name = 'Position';
+        this._seek.accessible_name = _('Position');
         this._remaining = new St.Label({style_class: 'mc-time mc-remaining', y_align: Clutter.ActorAlign.CENTER});
         // Out of the focus chain: the slider's Left and Right skip, Up and Down leave the row.
         this._lengthToggle = new St.Button({
             style_class: 'mc-time-button',
-            accessible_name: 'Time remaining',
+            accessible_name: _('Time remaining'),
             child: this._remaining,
             can_focus: false,
             y_align: Clutter.ActorAlign.CENTER,
@@ -309,11 +315,11 @@ export const ControlBar = GObject.registerClass({
         }
 
         const transport = new St.BoxLayout({style_class: 'mc-transport'});
-        this._previous = iconButton('media-skip-backward-symbolic', 'Previous');
-        this._back = iconButton('media-seek-backward-symbolic', 'Skip back');
-        this._play = iconButton('media-playback-start-symbolic', 'Play', 'icon-button default mc-button mc-play');
-        this._forward = iconButton('media-seek-forward-symbolic', 'Skip forward');
-        this._next = iconButton('media-skip-forward-symbolic', 'Next');
+        this._previous = iconButton('media-skip-backward-symbolic', _('Previous'));
+        this._back = iconButton('media-seek-backward-symbolic', _('Skip back'));
+        this._play = iconButton('media-playback-start-symbolic', _('Play'), 'icon-button default mc-button mc-play');
+        this._forward = iconButton('media-seek-forward-symbolic', _('Skip forward'));
+        this._next = iconButton('media-skip-forward-symbolic', _('Next'));
         const actions = [
             [this._previous, 'previous'], [this._back, 'seek-back'], [this._play, 'play-pause'],
             [this._forward, 'seek-forward'], [this._next, 'next'],
@@ -324,12 +330,12 @@ export const ControlBar = GObject.registerClass({
         }
 
         const extras = new St.BoxLayout({style_class: 'mc-extras', y_align: Clutter.ActorAlign.CENTER});
-        this._tracks = iconButton('media-view-subtitles-symbolic', 'Audio and subtitles');
+        this._tracks = iconButton('media-view-subtitles-symbolic', _('Audio and subtitles'));
         this._tracks.visible = false;
         this._tracks.connect('clicked', () => this.emit('action', 'tracks'));
         this._sleep = new St.Button({
             style_class: 'screenshot-ui-type-button mc-button mc-sleep',
-            accessible_name: 'Sleep timer',
+            accessible_name: _('Sleep timer'),
             can_focus: true,
             visible: false,
             y_align: Clutter.ActorAlign.CENTER,
@@ -341,11 +347,11 @@ export const ControlBar = GObject.registerClass({
         sleepBox.add_child(this._sleepLabel);
         this._sleep.set_child(sleepBox);
         this._sleep.connect('clicked', () => this.emit('action', 'sleep-timer'));
-        this._mute = iconButton('audio-volume-high-symbolic', 'Mute');
+        this._mute = iconButton('audio-volume-high-symbolic', _('Mute'));
         this._mute.connect('clicked', () => this.emit('action', 'mute'));
         this._volume = new Slider(1);
         this._volume.add_style_class_name('mc-volume');
-        this._volume.accessible_name = 'Volume';
+        this._volume.accessible_name = _('Volume');
         this._volume.x_expand = false;
         this._volume.y_align = Clutter.ActorAlign.CENTER;
         this._volume.connect('drag-begin', () => {
@@ -353,21 +359,31 @@ export const ControlBar = GObject.registerClass({
         });
         this._volume.connect('drag-end', () => {
             this._volumeDragging = false;
+            this._writeVolume();
         });
         this._volume.connect('notify::value', () => {
-            if (!this._syncing)
-                this._player?.setVolume(this._volume.value);
+            if (this._syncing)
+                return;
+            if (!this._volumeDragging) {
+                this._writeVolume();
+            } else if (!this._volumeId) {
+                this._volumeId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, VOLUME_INTERVAL_MS, () => {
+                    this._volumeId = 0;
+                    this._writeVolume();
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
         });
         arrowKeys(this, this._volume, 'volume-up', 'volume-down');
         this._rate = new St.Button({
             style_class: 'screenshot-ui-type-button mc-button mc-rate',
             label: '1×',
-            accessible_name: 'Playback speed',
+            accessible_name: _('Playback speed'),
             can_focus: true,
             y_align: Clutter.ActorAlign.CENTER,
         });
         this._rate.connect('clicked', () => this._cycleRate());
-        this._close = iconButton('window-close-symbolic', 'Close the player');
+        this._close = iconButton('window-close-symbolic', _('Close the player'));
         this._close.connect('clicked', () => this.emit('action', 'quit'));
         for (const child of [this._tracks, this._sleep, this._mute, this._volume, this._rate, this._close])
             extras.add_child(child);
@@ -376,6 +392,13 @@ export const ControlBar = GObject.registerClass({
         row.add_child(transport);
         row.add_child(extras);
         this.panel.add_child(row);
+    }
+
+    _writeVolume() {
+        if (this._volumeId)
+            GLib.source_remove(this._volumeId);
+        this._volumeId = 0;
+        this._player?.setVolume(this._volume.value);
     }
 
     setPlayer(player) {
@@ -457,7 +480,7 @@ export const ControlBar = GObject.registerClass({
 
     setShowLength(show) {
         this._showLength = show;
-        this._lengthToggle.accessible_name = show ? 'Total length' : 'Time remaining';
+        this._lengthToggle.accessible_name = show ? _('Total length') : _('Time remaining');
         this._tick();
     }
 
@@ -481,13 +504,13 @@ export const ControlBar = GObject.registerClass({
         if (!p)
             return;
         this._syncing = true;
-        this._title.text = p.title || p.identity || 'Unknown';
+        this._title.text = p.title || p.identity || _('Unknown');
         const subtitle = p.artist || (p.title ? p.identity : '');
         this._subtitle.text = subtitle;
         this._subtitle.visible = !!subtitle;
 
         this._play.icon_name = p.playing ? 'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
-        this._play.accessible_name = p.playing ? 'Pause' : 'Play';
+        this._play.accessible_name = p.playing ? _('Pause') : _('Play');
         setSensitive(this._previous, p.canGoPrevious);
         setSensitive(this._next, p.canGoNext);
         // Both or neither, so play stays in the middle of the transport.
@@ -502,12 +525,12 @@ export const ControlBar = GObject.registerClass({
         if (!this._volumeDragging)
             this._volume.value = Math.min(1, p.volume);
         this._mute.icon_name = volumeIcon(p.volume);
-        this._mute.accessible_name = p.muted ? 'Unmute' : 'Mute';
+        this._mute.accessible_name = p.muted ? _('Unmute') : _('Mute');
 
         this._rate.visible = p.hasRate && !this._hidden.includes('rate');
         this._rate.label = `${Number(p.rate.toFixed(2))}×`;
         // The accessible name replaces the label, so it carries the value.
-        this._rate.accessible_name = `Playback speed: ${this._rate.label}`;
+        this._rate.accessible_name = _('Playback speed: %s').format(this._rate.label);
         this._syncing = false;
         this._tick();
         this._updateTicking();
@@ -536,7 +559,7 @@ export const ControlBar = GObject.registerClass({
             const text = this._sleepText();
             this._sleepLabel.text = text;
             this._sleepLabel.visible = !!text;
-            this._sleep.accessible_name = text ? `Sleep timer: ${text}` : 'Sleep timer';
+            this._sleep.accessible_name = text ? _('Sleep timer: %s').format(text) : _('Sleep timer');
         }
         if (!this._seeking) {
             this._syncing = true;
@@ -642,6 +665,8 @@ export const ControlBar = GObject.registerClass({
         this._player?.disconnectObject(this);
         if (this._tickId)
             GLib.source_remove(this._tickId);
+        if (this._volumeId)
+            GLib.source_remove(this._volumeId);
         if (this._unredirectOff)
             global.compositor.enable_unredirect();
         global.focus_manager.remove_group(this.panel);

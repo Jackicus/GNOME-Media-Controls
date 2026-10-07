@@ -1,6 +1,7 @@
 // Which player the bar is attached to (the focused fullscreen one), when the
 // bar is seen, and what each action does.
 
+import {domain} from 'gettext';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
@@ -18,6 +19,8 @@ import {Gamepads} from './gamepads.js';
 import {PlayerRegistry, clock} from './mpris.js';
 import {MpvRemote} from './mpvremote.js';
 import {VlcRemote} from './vlcremote.js';
+
+const {gettext: _} = domain('media-controls');
 
 const POINTER_INTERVAL = 100;
 const EDGE_FRACTION = 0.2;
@@ -550,10 +553,10 @@ export class MediaControlsApp {
         if (!sleep || sleep.player !== this._player)
             return '';
         if (sleep.episodes === 1)
-            return 'End';
+            return _('End');
         if (sleep.episodes)
-            return `${sleep.episodes} eps`;
-        return `${Math.max(1, Math.ceil((sleep.until - clock()) / 60))} min`;
+            return _('%d eps').format(sleep.episodes);
+        return _('%d min').format(Math.max(1, Math.ceil((sleep.until - clock()) / 60)));
     }
 
     _cycleSleep() {

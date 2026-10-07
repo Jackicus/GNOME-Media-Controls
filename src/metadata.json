@@ -2,6 +2,7 @@
   "uuid": "media-controls@jackicus",
   "name": "Media Controls",
   "description": "A control bar for fullscreen video, drawn by the shell over the player: seek, pause, skip, volume and speed, from the mouse, the keyboard or a game controller. It works with any player that shows in GNOME's media controls (MPRIS), such as VLC, mpv and Celluloid. With VLC it can also pick the audio and subtitle tracks, shift the subtitle timing and move between chapters.\n\nFor VLC's tracks, two switches in the preferences change VLC's own settings file (~/.config/vlc/vlcrc), and only when you turn them on: one turns off VLC's fullscreen controller while the extension is enabled (disabling it brings VLC's back), the other turns on VLC's remote-control socket, which the extension then uses over a private local socket. Game controllers need libmanette.",
+  "gettext-domain": "media-controls",
   "settings-schema": "org.gnome.shell.extensions.media-controls",
   "shell-version": [ "50" ],
   "url": "https://github.com/Jackicus/GNOME-Media-Controls",
