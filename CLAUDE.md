@@ -169,8 +169,9 @@ of the seek row is a button out of the focus chain whose click is the
   colours and the buttons' follow the theme: dark in the light theme too, black
   with an outline in High Contrast. The stylesheet sets size and shape in em
   (the shell's classes size in px), and keeps the focus ring, the sliders and
-  the text shades. The ring is the accent at full strength, to be found from a
-  sofa, and `!important` as the theme's own is. The sliders (`.mc-bar .slider`)
+  the text shades. The ring is the shell's own focus colour (the accent mixed
+  with white) at full strength, to be found from a sofa, and `!important` as
+  the theme's own is; the slider fill is a lighter accent (`docs/notes.md`). The sliders (`.mc-bar .slider`)
   stay white: the shell's are dark on light in the light theme. If GNOME
   renames those classes the panel loses its background.
 - **Motion** (`anim.js`): 200 ms arriving, the bar rising 8 px as it fades in;
