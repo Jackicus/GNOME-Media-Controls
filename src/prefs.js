@@ -7,7 +7,7 @@ import Gtk from 'gi://Gtk';
 
 import {ACTIONS, BAR_BUTTONS, BUTTONS, buttonForCode, normaliseName, playerNames} from './lib/actions.js';
 import {readMpvState, writeMpvState} from './lib/mpvconfig.js';
-import {readVlcState, vlcrcPath, writeVlcState} from './lib/vlcconfig.js';
+import {readVlcState, writeVlcState} from './lib/vlcconfig.js';
 
 const MPRIS_NAMESPACE = 'org.mpris.MediaPlayer2';
 const MPRIS_PATH = '/org/mpris/MediaPlayer2';
@@ -457,7 +457,7 @@ export default class MediaControlsPreferences extends ExtensionPreferences {
                 tracks.active = writeVlcState(tracks.active).trackControl;
                 failed.visible = false;
             } catch (e) {
-                failed.subtitle = `${vlcrcPath()}: ${e.message}`;
+                failed.subtitle = e.message;
                 failed.visible = true;
                 // The file is as it was, and so is the switch.
                 tracks.active = readVlcState().trackControl;

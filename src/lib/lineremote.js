@@ -10,6 +10,14 @@ import {isCancelled} from './mpris.js';
 
 const encoder = new TextEncoder();
 
+// A sandbox sees its own folder as the runtime directory; the shell sees it here.
+export function hostPath(path, sandboxId) {
+    const runtime = GLib.get_user_runtime_dir();
+    if (sandboxId && path.startsWith(`${runtime}/`))
+        return `${runtime}/.flatpak/${sandboxId}/xdg-run/${path.slice(runtime.length + 1)}`;
+    return path;
+}
+
 export class LineRemote extends EventEmitter {
     constructor() {
         super();

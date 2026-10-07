@@ -14,6 +14,13 @@ those come from VLC's C remote-control interface (`oldrc`) on a Unix socket at
 cannot name one per instance. `vlcconfig.js` turns it on in VLC's own settings
 file when the user flips the Players page's switch, and writes nothing else.
 
+- **A Flatpak VLC** (`org.videolan.VLC`) reads
+  `~/.var/app/org.videolan.VLC/config/vlc/vlcrc`, which the switch writes too
+  once that folder exists (it has run once). The same `rc-unix` path is its
+  sandbox's runtime folder, so on the host the socket is
+  `$XDG_RUNTIME_DIR/.flatpak/org.videolan.VLC/xdg-run/media-controls-vlc.sock`
+  (`hostPath`, as for mpv). Not yet seen with the Flatpak installed.
+
 - **`hide-vlc-controls`** hides VLC's fullscreen controller from the shell, not
   in its settings: the controller is an override-redirect window of its own
   (class `vlc`, no title, `Meta.WindowType.OVERRIDE_OTHER`) that VLC keeps

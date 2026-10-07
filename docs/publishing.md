@@ -127,7 +127,8 @@ sockets.
 
 **Modifying another application's files: only on an explicit switch, and only
 these options.** `lib/vlcconfig.js`'s `writeVlcState()` edits
-`~/.config/vlc/vlcrc`. "Hide VLC's controls" (`hide-vlc-controls`) writes
+`~/.config/vlc/vlcrc`, and the Flatpak VLC's
+`~/.var/app/org.videolan.VLC/config/vlc/vlcrc` once that folder exists. "Hide VLC's controls" (`hide-vlc-controls`) writes
 nothing: `src/lib/app.js` hides VLC's controller window from the shell while
 the extension is enabled. The "tracks" switch is written by `src/prefs.js`: under
 `[core]`/`[oldrc]`, adds `oldrc` to `extraintf`, sets
