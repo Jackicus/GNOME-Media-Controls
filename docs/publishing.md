@@ -52,12 +52,12 @@ link — its recursive delete follows symlinks into `src/`.
 | `version-name` | `"1.0"` | Must match `/^(?!^[. ]+$)[a-zA-Z0-9 .]{1,16}$/` (letters, digits, space, period) — `"1.0"` qualifies. Bump it with each upload |
 | `version` | absent | Correct — EGO assigns this |
 | `session-modes` | absent | Correct — the bar has no reason to run outside `user` mode |
-| `description` | two paragraphs | Names the VLC switches and the vlcrc file they change, and that game controllers need libmanette — the two things a reviewer or user could otherwise mistake for bugs |
+| `description` | two paragraphs | Names the players, the two tracks switches and the files they write (VLC's vlcrc and the Flatpak's, mpv's and Celluloid's `media-controls.lua`), that hiding VLC's controls writes nothing, and that game controllers need libmanette |
 | `url` | GitHub repo | Set |
 
 ## The review guidelines, checked against this code
 
-Checked on 2026-10-02, before the 1.0 release, against the
+Checked on 2026-10-07, before the 1.1 release (first on 2026-10-02, for 1.0), against the
 [Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html)
 and [Best Practices](https://gjs.guide/extensions/review-guidelines/best-practices.html)
 as published that day, on the zip `make pack` builds, and by running it in a
@@ -154,7 +154,7 @@ the build on anything in the zip beyond the list above.
 
 **Use a linter: meets.** `make lint` runs ESLint with gjs.guide's
 configuration (`eslint.config.mjs`) over the whole repository (`src/` and
-the GJS scripts beside it); 0 errors (some warnings).
+the GJS scripts beside it); 0 errors, 0 warnings.
 
 **`GObject.Object.run_dispose()`: twice, each with its reason.** The
 virtual keyboard in `MediaControlsApp.disable()` (`src/lib/app.js`), so it
