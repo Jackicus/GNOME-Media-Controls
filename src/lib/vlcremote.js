@@ -2,10 +2,13 @@
 // "<command>: returned". Paused, VLC answers "Press pause to continue." to
 // almost everything but still takes hotkeys, so the lists read while playing are kept.
 
+import {domain} from 'gettext';
 import GLib from 'gi://GLib';
 
 import {LineRemote, hostPath} from './lineremote.js';
 import {SOCKET_PATH} from './vlcconfig.js';
+
+const {gettext: _} = domain('media-controls');
 
 const REPLY_TIMEOUT_MS = 2000;
 const PAUSED = 'Press pause to continue.';
@@ -41,7 +44,7 @@ function parseTracks(lines) {
         const id = Number(match[1]);
         tracks.push({
             id,
-            label: id === -1 ? 'Off' : trackLabel(match[2]),
+            label: id === -1 ? _('Off') : trackLabel(match[2]),
             current: !!match[3],
         });
     }

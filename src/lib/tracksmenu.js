@@ -1,6 +1,7 @@
 // The audio-and-subtitles pop-out. Picking a track leaves it open, so audio and
 // subtitles can be chosen in one go.
 
+import {domain} from 'gettext';
 import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -11,6 +12,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {SUBTITLE_SHIFT_MS} from './actions.js';
+
+const {gettext: _} = domain('media-controls');
 
 // NO_DOT keeps an unpicked radio item lined up with the picked one's dot.
 const PICKED = PopupMenu.Ornament.DOT;
@@ -86,27 +89,27 @@ export class TracksMenu extends PopupMenu.PopupMenu {
         // A section's itemActivated closes the menu too.
         this._audio.itemActivated = () => {};
         this._subtitles.itemActivated = () => {};
-        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem('Audio'));
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_('Audio')));
         this.addMenuItem(this._audio);
-        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem('Subtitles'));
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_('Subtitles')));
         this.addMenuItem(this._subtitles);
 
-        this._sync = new ButtonRow('Timing');
-        this._sync.addButton('list-remove-symbolic', 'Subtitles earlier',
+        this._sync = new ButtonRow(_('Timing'));
+        this._sync.addButton('list-remove-symbolic', _('Subtitles earlier'),
             () => this._remote?.shiftSubtitles(-SUBTITLE_SHIFT_MS));
         this._delay = this._sync.addValue();
-        this._sync.addButton('list-add-symbolic', 'Subtitles later',
+        this._sync.addButton('list-add-symbolic', _('Subtitles later'),
             () => this._remote?.shiftSubtitles(SUBTITLE_SHIFT_MS));
-        this._sync.addButton('edit-undo-symbolic', 'Reset subtitle timing',
+        this._sync.addButton('edit-undo-symbolic', _('Reset subtitle timing'),
             () => this._remote?.resetSubtitles());
         this._sync.describeButtonsBy(this._delay);
         this.addMenuItem(this._sync);
 
-        this._chapterSeparator = new PopupMenu.PopupSeparatorMenuItem('Chapters');
+        this._chapterSeparator = new PopupMenu.PopupSeparatorMenuItem(_('Chapters'));
         this.addMenuItem(this._chapterSeparator);
         this._chapters = new ButtonRow('');
-        this._chapters.addButton('go-previous-symbolic', 'Previous chapter', () => this._chapter(-1));
-        this._chapters.addButton('go-next-symbolic', 'Next chapter', () => this._chapter(1));
+        this._chapters.addButton('go-previous-symbolic', _('Previous chapter'), () => this._chapter(-1));
+        this._chapters.addButton('go-next-symbolic', _('Next chapter'), () => this._chapter(1));
         this._chapters.describeButtonsBy(this._chapters.label);
         this.addMenuItem(this._chapters);
     }
@@ -147,11 +150,11 @@ export class TracksMenu extends PopupMenu.PopupMenu {
     }
 
     _fill({audio, subtitles, chapter}) {
-        const unread = 'Play for a moment: VLC lists its tracks only while playing';
+        const unread = _('Play for a moment: VLC lists its tracks only while playing');
         this._fillList(this._audio, this._audioItems, audio?.filter(t => t.id !== -1) ?? [],
-            audio ? 'No audio tracks' : unread, id => this._remote?.setTrack('audio', id).catch(() => {}));
+            audio ? _('No audio tracks') : unread, id => this._remote?.setTrack('audio', id).catch(() => {}));
         this._fillList(this._subtitles, this._subtitleItems, subtitles ?? [],
-            subtitles ? 'No subtitles' : unread, id => this._remote?.setTrack('subtitles', id).catch(() => {}));
+            subtitles ? _('No subtitles') : unread, id => this._remote?.setTrack('subtitles', id).catch(() => {}));
         this._sync.visible = !!subtitles?.some(t => t.id !== -1);
         this._syncDelay();
         const hasChapters = chapter.count > 1;
@@ -207,7 +210,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
     _syncChapter() {
         const {current, count} = this._chapterState;
         // VLC counts chapters from 0.
-        this._chapters.label.text = `Chapter ${current + 1} of ${count}`;
+        this._chapters.label.text = _('Chapter %d of %d').format(current + 1, count);
     }
 
     async _chapter(delta) {

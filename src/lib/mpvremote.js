@@ -2,9 +2,12 @@
 // request_id it answers and events interleaved with the replies. mpv answers
 // while paused, so nothing is kept between readings.
 
+import {domain} from 'gettext';
 import GLib from 'gi://GLib';
 
 import {LineRemote, hostPath} from './lineremote.js';
+
+const {gettext: _} = domain('media-controls');
 
 const REPLY_TIMEOUT_MS = 2000;
 const decoder = new TextDecoder();
@@ -76,7 +79,7 @@ export class MpvRemote extends LineRemote {
         const current = chapters.length ? await this._request(['get_property', 'chapter']) : 0;
         return {
             audio: trackList(tracks, 'audio'),
-            subtitles: [{id: -1, label: 'Off', current: !subtitles.some(t => t.current)}, ...subtitles],
+            subtitles: [{id: -1, label: _('Off'), current: !subtitles.some(t => t.current)}, ...subtitles],
             chapter: {current: Math.max(0, current), count: chapters.length},
         };
     }
