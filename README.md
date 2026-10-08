@@ -28,7 +28,9 @@ GNOME's media controls.
 ![The bar close up: running time, seek slider and time left on top; the title, previous, skip back, play/pause, skip forward and next, the audio-and-subtitles button, volume, speed and close below](docs/screenshots/bar-closeup.png)
 
 Play something full screen and move the mouse. The bar hides again after 3
-seconds without movement, and stays up while the video is paused.
+seconds without movement, and stays up while the video is paused: then a click
+or tap anywhere else on the screen puts it away. That click is the bar's alone
+and does not reach the player.
 
 - **Mouse:** scroll over the bar to skip back or forward 10 seconds a notch.
   Click the time at the end of the seek bar to switch between the time left and

@@ -158,6 +158,20 @@ export const ControlBar = GObject.registerClass({
         this._sleepText = null;         // null: no sleep button
         this._previousNext = 'always';  // 'always', 'playlist' or 'never'
         this._hidden = [];              // actions.js BAR_BUTTONS ids
+        this._dismissible = false;
+
+        // A press on a window never reaches the stage, so while a press outside
+        // may put the bar away, this bare actor under it takes the press.
+        this._catcherConstraint = new Layout.MonitorConstraint({index: 0});
+        this._catcher = new Clutter.Actor({reactive: true, visible: false});
+        this._catcher.add_constraint(this._catcherConstraint);
+        this._catcher.connect('event', (_actor, event) => {
+            const type = event.type();
+            if (type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN)
+                this.emit('action', 'hide-bar');
+            return Clutter.EVENT_STOP;
+        });
+        Main.uiGroup.add_child(this._catcher);
 
         this.panel = new St.BoxLayout({
             style_class: 'screenshot-ui-panel mc-bar',
@@ -210,6 +224,7 @@ export const ControlBar = GObject.registerClass({
         this.tracksMenu = new TracksMenu(this.panel, this._tracks);
         this._menuManager = new PopupMenu.PopupMenuManager(this.panel);
         this._menuManager.addMenu(this.tracksMenu);
+        this.tracksMenu.connect('open-state-changed', () => this._syncCatcher());
         this.connect('notify::translation-y', () => this.tracksMenu.reposition());
         this.connect('destroy', () => this._onDestroy());
     }
@@ -420,6 +435,7 @@ export const ControlBar = GObject.registerClass({
             this.tracksMenu.close();
         this._monitorIndex = index;
         this._constraint.index = index;
+        this._catcherConstraint.index = index;
         if (!this.panel.get_stage())
             return;
         let width = monitor.width - 2 * SIDE_MARGIN * scaleFactor();
@@ -618,6 +634,7 @@ export const ControlBar = GObject.registerClass({
         }
         // Above later chrome, as osdWindow.js does.
         this.get_parent().set_child_above_sibling(this, null);
+        this._syncCatcher();
         this.ease({
             opacity: 255,
             translation_y: 0,
@@ -632,6 +649,7 @@ export const ControlBar = GObject.registerClass({
         if (!this.visible)
             return;
         this._shown = false;
+        this._syncCatcher();
         this.remove_all_transitions();
         this.tracksMenu.close();
         const done = () => {
@@ -656,12 +674,26 @@ export const ControlBar = GObject.registerClass({
         });
     }
 
+    // Whether a press anywhere else on the monitor puts the bar away.
+    setDismissible(on) {
+        this._dismissible = on;
+        this._syncCatcher();
+    }
+
+    _syncCatcher() {
+        const want = this._shown && this._dismissible && !this.menuOpen;
+        if (want && !this._catcher.visible)
+            this.get_parent().set_child_below_sibling(this._catcher, this);
+        this._catcher.visible = want;
+    }
+
     focusDefault() {
         this._play.grab_key_focus();
     }
 
     _onDestroy() {
         this.tracksMenu.destroy();
+        this._catcher.destroy();
         this._player?.disconnectObject(this);
         if (this._tickId)
             GLib.Source.remove(this._tickId);

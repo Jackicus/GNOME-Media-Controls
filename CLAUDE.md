@@ -110,7 +110,10 @@ edge the bar is on, or `never`), watched with the shell's `PointerWatcher`,
 which takes no input away from the video as a reactive hot strip would. The
 `toggle-bar` key (default Super+C) or the pad's `navigate` (Start) opens it
 **holding the focus** (`Main.pushModal`, `POPUP` tier); Escape, a click outside,
-or the key again puts it away. A pad button performs its action and flashes the
+or the key again puts it away. Without the grab, a press or touch outside a
+**paused** bar puts it away too, and is not the player's: a press on a window
+never reaches the stage, so `ControlBar` lays a bare reactive actor over the
+monitor under itself to take it (`.claude/rules/bar.md`). A pad button performs its action and flashes the
 bar, except the track and subtitle actions, which leave it down so the
 subtitles under it stay visible. The player's own changes show it too: a pause
 (from a remote's media key, say), a seek, a new file. It hides after

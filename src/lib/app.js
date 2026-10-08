@@ -275,6 +275,7 @@ export class MediaControlsApp {
                 this._connectRemote(this._player);
         }
         this._bar.reveal();
+        this._bar.setDismissible(!this._grab && this._player.status === 'Paused');
         this._armHide();
     }
 
@@ -359,6 +360,7 @@ export class MediaControlsApp {
             return;
         this._reveal();
         this._grab = Main.pushModal(this._bar.panel, {actionMode: Shell.ActionMode.POPUP});
+        this._bar.setDismissible(false);
         // Under the grab every press or touch reaches the panel; one outside it closes the bar.
         this._pressId = this._bar.panel.connect('captured-event', (actor, event) => {
             const type = event.type();
