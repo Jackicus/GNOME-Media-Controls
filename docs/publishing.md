@@ -30,7 +30,8 @@ prefs.js
 stylesheet.css
 schemas/org.gnome.shell.extensions.media-controls.gschema.xml
 lib/actions.js  lib/anim.js  lib/app.js  lib/bar.js  lib/gamepads.js
-lib/mpris.js  lib/tracksmenu.js  lib/vlcconfig.js  lib/vlcremote.js
+lib/lineremote.js  lib/mpris.js  lib/mpvconfig.js  lib/mpvremote.js
+lib/tracksmenu.js  lib/vlcconfig.js  lib/vlcremote.js
 ```
 
 `scripts/`, `docs/`, `README.md`, `CLAUDE.md`, `.claude/` and the screenshots
@@ -89,13 +90,13 @@ focus group. `VlcRemote.close()` (`src/lib/vlcremote.js`) cancels its
 `Mainloop` anywhere in `src/`.
 
 **No GTK in the shell, no shell libraries in the preferences: meets.** Every
-file under `src/lib` imports only `Clutter`, `GLib`, `GObject`, `Gio`, `Meta`,
+file under `src/lib` imports only `Atk`, `Clutter`, `GLib`, `GObject`, `Gio`, `Meta`,
 `Pango`, `Shell`, `St`, shell `resource:///` modules and — with an awaited
 `import()` in a `try` at the top of `gamepads.js`, so a system without it keeps
 the bar — `Manette` — no `Gtk`,
 `Gdk` or `Adw`. `src/prefs.js` imports `Adw`, `Gdk`, `Gio`, `GLib`, `Gtk`,
-`Manette` (the same way, for the Controllers page) plus `lib/actions.js` and
-`lib/vlcconfig.js`, both pure GLib/Gio with no shell import.
+`Manette` (the same way, for the Controllers page) plus `lib/actions.js`,
+`lib/mpvconfig.js` and `lib/vlcconfig.js`, all pure GLib/Gio with no shell import.
 
 **Avoid interfering with the extension system: meets.** The module-cache
 workaround (`scripts/dev-extension.js`) is not part of `src/` and is never
@@ -168,7 +169,7 @@ the extension.
 **Clipboard, telemetry, privileged subprocesses: none.** Nothing reads or
 writes the clipboard, nothing is sent anywhere, nothing runs through `pkexec`.
 
-**Readable, explainable code: meets.** Comments are about 4% of `src/`'s
+**Readable, explainable code: meets.** Comments are about 5% of `src/`'s
 lines and say only why; no `try` around `destroy()`, `disconnect()` or
 `GLib.source_remove()`, no `_destroyed` or `_enabled` flags, no checks for
 other shell versions; `./scripts/dev.sh size` reports what `src/` comes to.

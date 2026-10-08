@@ -28,5 +28,6 @@ is done and was seen in the nested shell; open issues hold the rest.
 ## Your call
 
 - [ ] Open decisions: a paused bar that cannot be dismissed (#78), controlling a
-      player on another monitor while focus is elsewhere (#77)
+      player on another monitor while focus is elsewhere (#77), removing a
+      leftover `qt-fs-controller=0` from vlcrc automatically (#89)
 - [ ] Publish on extensions.gnome.org (`docs/publishing.md`)
