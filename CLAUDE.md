@@ -22,8 +22,6 @@ this repository's **`drive-extension` skill** for the bar's coordinates and its
 own commands: `player` (VLC full screen on a test clip with tracks and
 chapters), `mpris` (read or poke it), `pad` (a virtual Xbox pad), `preview`.
 Its settings are its own, VLC's vlcrc too (`.claude/rules/nested-shell.md`).
-`lib/` is staged per shell and per edit, at
-`$XDG_RUNTIME_DIR/media-controls/shell-<pid>/lib-<checksum of its files>`.
 
 `/reload`, `/logs`, `/status` and `/preview` use the nested shell; `make reload` is
 the user's own session, theirs to run. `./scripts/dev.sh devices` lists the players
@@ -78,10 +76,8 @@ the pad in the nested shell).
 
 ## make check
 
-`make check` is what CI runs: `make lint` (ESLint, with no warnings; add none)
-and the schema under `--strict`
-(`EXT_CHECKS` is empty). No headless tests exist; behaviour is checked in the
-nested shell. It ends with `size`.
+`make check` is `make lint` and the schema alone (`EXT_CHECKS` is empty): no
+headless tests exist, and behaviour is checked in the nested shell.
 
 ## How it fits together
 
@@ -175,12 +171,3 @@ also off by default, in `.claude/rules/sleep-timer.md`.
 - **Escape goes to the player when the bar does not hold the focus**, and
   VLC's Escape leaves fullscreen, after which the bar correctly detaches. A
   pop-out opened with the mouse needs one Escape, not two.
-- **An older `make link` install may be a symlink to `src/`** rather than a
-  directory of links; `make status` reports it, and `make link` replaces it.
-- **No `GTypeName`**: the shell names a GObject class after its module's path,
-  `Gjs_lib_bar_MediaControlsBar` installed and `Gjs_lib-<checksum>_bar_…` per
-  stage, so a reload after an edit registers a new name. A fixed `GTypeName`
-  fails with "already registered"; the `MediaControls` class name is the prefix.
-- **Shell 50 only**: no fallbacks for other versions (unredirection is
-  `global.compositor`'s, as `osdWindow.js` calls it); 48 and 49 are for
-  `gnome-ext:port-shell-version`.
