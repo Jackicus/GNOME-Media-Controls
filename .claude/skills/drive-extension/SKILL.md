@@ -32,14 +32,7 @@ volume, rate, title): the bar showing a pause is not the player pausing.
 | `preview` | `start` (if none runs), the test clip, the bar up, a shot in `dist/preview.png` |
 | `logs` | `[Media Controls]` lines are ours: failures, and the development entry point's `Enabled from …`. Which player the bar is attached to is seen in a `shot`. |
 
-The preferences: `run gnome-extensions prefs media-controls@jackicus`. A shell
-started from a Claude Code session stops itself after 10 minutes with no
-`nested.sh` command (`NESTED_IDLE=<seconds>` at `start`, `0` =
-never).
-
-The nested shell runs the link's entry point, `scripts/dev-extension.js`; to
-check the shipped `src/extension.js` (which logs nothing on success), point the
-installed `extension.js` link at it for one `start`, then point it back.
+The preferences: `run gnome-extensions prefs media-controls@jackicus`.
 
 ## Reading the screen (1600×900)
 
