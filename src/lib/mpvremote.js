@@ -114,8 +114,10 @@ export class MpvRemote extends LineRemote {
             }
             const id = this._nextId++;
             const timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REPLY_TIMEOUT_MS, () => {
+                const error = new Error(`mpv did not answer ${command[0]}`);
                 this._requests.delete(id);
-                this._lost(new Error(`mpv did not answer ${command[0]}`));
+                reject(error);
+                this._lost(error);
                 return GLib.SOURCE_REMOVE;
             });
             this._requests.set(id, {resolve, reject, timeoutId});

@@ -58,7 +58,8 @@ link — its recursive delete follows symlinks into `src/`.
 
 ## The review guidelines, checked against this code
 
-Checked on 2026-10-07, before the 1.1 release (first on 2026-10-02, for 1.0), against the
+Checked on 2026-10-08, before the release after 1.1 (before that on 2026-10-07, for 1.1,
+and first on 2026-10-02, for 1.0), against the
 [Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html)
 and [Best Practices](https://gjs.guide/extensions/review-guidelines/best-practices.html)
 as published that day, on the zip `make pack` builds, and by running it in a
@@ -80,9 +81,11 @@ disconnects every `connectObject` group (`_player`, `global.display`,
 `Main.overview`, `Main.layoutManager`, `global.window_manager`, `_settings`,
 `_registry`), destroys the bar, then removes the hide and update sources. Last, it
 shows VLC's controller window again if `hide-vlc-controls` had hidden it.
-`ControlBar._onDestroy()` (`src/lib/bar.js`) disconnects the player, removes
-its own redraw timer, restores unredirection, and removes the panel from the
-focus group. `VlcRemote.close()` (`src/lib/vlcremote.js`) cancels its
+`ControlBar._onDestroy()` (`src/lib/bar.js`) destroys the pop-out and the
+press catcher it put in `Main.uiGroup` (the bare actor that takes a press
+outside a paused bar), disconnects the player, removes its own redraw and
+volume timers, restores unredirection, and removes the panel from the focus
+group. `VlcRemote.close()` (`src/lib/vlcremote.js`) cancels its
 `Gio.Cancellable` and clears pending command timeouts. `PlayerRegistry`
 (`src/lib/mpris.js`) cancels its own cancellable in `disable()`.
 
