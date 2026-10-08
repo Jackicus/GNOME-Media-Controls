@@ -4,7 +4,9 @@
   "description": "A control bar for fullscreen video, drawn by the shell over the player: seek, pause, skip, volume and speed, from the mouse, the keyboard or a game controller. It works with any player that shows in GNOME's media controls (MPRIS), such as VLC, mpv, Celluloid and Showtime. With VLC, mpv and Celluloid it can also pick the audio and subtitle tracks, shift the subtitle timing and move between chapters.\n\nThe tracks need a switch in the preferences, and other applications' files change only when you turn one on: the VLC switch turns on VLC's remote-control socket in its settings file (~/.config/vlc/vlcrc, and the Flatpak VLC's own), and the mpv and Celluloid switch adds a small script, media-controls.lua, to their scripts folders. The bar then talks to the player over a private local socket. Hiding VLC's own fullscreen controls writes nothing. Game controllers need libmanette.",
   "gettext-domain": "media-controls",
   "settings-schema": "org.gnome.shell.extensions.media-controls",
-  "shell-version": [ "50" ],
+  "shell-version": [
+    "50"
+  ],
   "url": "https://github.com/Jackicus/GNOME-Media-Controls",
-  "version-name": "1.1"
+  "version-name": "1.2"
 }
