@@ -45,7 +45,8 @@ The preferences: `run gnome-extensions prefs media-controls@jackicus`.
   (`pointer-reveal` `anywhere`): the pointer watcher only reacts to a change.
   With `edge`, the moves must land below y ≈ 720 (above y ≈ 180 with
   `bar-position` `top`, where the panel is `320,28` to `1280,120`). It hides
-  `hide-delay` (3) s after the last movement unless paused.
+  `hide-delay` (3) s after the last movement unless paused; a paused bar is
+  put away by a click outside its panel (`click 700 300`), which VLC never sees.
 - **The bar:** panel `363,778` to `1236,872`; crop shots to `343 760 913 130`.
   Seek slider on y ≈ 800 from x ≈ 445 to 1155; `click 800 800` is the middle
   of the clip. Transport on y ≈ 839: previous 706, skip back 748, **play 799**,
