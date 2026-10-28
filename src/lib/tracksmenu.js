@@ -7,7 +7,6 @@ import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
-import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
@@ -142,7 +141,7 @@ export class TracksMenu extends PopupMenu.PopupMenu {
             return;
         this._fill(state);
         this._aim();
-        this.open(BoxPointer.PopupAnimation.FULL);
+        this.open();
         if (focus) {
             const current = state.audio?.find(t => t.current);
             (this._audioItems.get(current?.id) ?? [...this._audioItems.values()][0])?.grab_key_focus();

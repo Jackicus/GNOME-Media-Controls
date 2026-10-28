@@ -14,7 +14,7 @@ jumped from than where it went is dropped (`Player.reading`; commit 285a995).
 
 ## The fade-in stalls if restarted (`bar.js` `reveal`)
 
-The pointer watcher asks for the bar every 100 ms while the pointer moves.
+Pointer motion asks for the bar every 100 ms (`POINTER_INTERVAL`) while the pointer moves.
 Restarting the 200 ms ease each time kept it from settling: the opacity stuck
 at 254, rounded down, and the bar never finished arriving. `reveal()` returns
 early while the bar is arriving or shown (`_shown`; commit 4ce0db0).

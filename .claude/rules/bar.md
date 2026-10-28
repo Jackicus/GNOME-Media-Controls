@@ -52,23 +52,29 @@ paths:
 
 ## Keys
 
-- **The panel calls `navigate_from_event` itself**, since the bar holds a grab.
-  A focused slider takes
-  Left/Right first (the seek slider skips by `seek-step` instead of the
-  Slider's tenth of the film, `arrowKeys`); Up/Down leave it.
+- **Keys are `Clutter.KeyController`s, not `key-press-event`**: on 51 an
+  actor's actions see an event before its own signal does. The panel is a
+  focus group (`add_group` gives it the shell's controller, which moves the
+  focus under the grab too). A focused slider takes Left/Right first, in a
+  controller in the **capture** phase, since the Slider's own key binding is
+  an action too (the seek slider skips by `seek-step` instead of the Slider's
+  tenth of the film, `arrowKeys`); Up/Down leave it.
 - **A `PopupMenu` toggles on Return, Space or the arrow towards it reaching its
   source actor**, which is the panel for `TracksMenu` (so it stands above the
-  bar rather than over its top row). The panel's key handler swallows those;
-  a focused button has already taken them.
+  bar rather than over its top row); on 51 that is a key controller the menu
+  adds to the panel. The panel's own controller, added after the focus
+  group's and before the menu exists, swallows those keys; a focused button
+  has already taken them.
 - **`TracksMenu` overrides `itemActivated` on its sections as well as the
   menu**: picking a track leaves the pop-out open.
-- A scroll anywhere on the panel skips as the buttons do; the volume slider
-  keeps its own scroll.
+- A scroll anywhere on the panel skips as the buttons do (`seekScroll`, a
+  `Clutter.ScrollController`); the seek slider's is in the capture phase, ahead
+  of the Slider's own scroll controllers. The volume slider keeps its own.
 
 ## Touch
 
-- **`PointerWatcher` never sees a finger** (it polls the pointer), so while it
-  runs `app.js` also watches the stage's `captured-event` for `TOUCH_BEGIN` and
+- **The cursor tracker never sees a finger** (`position-invalidated` is for
+  the pointer alone), so while it is watched `app.js` also watches the stage's `captured-event` for `TOUCH_BEGIN` and
   treats it as a pointer move to where it landed, edge band and monitor test
   included.
 - **A press or touch outside the bar closes it under its grab**: the panel's

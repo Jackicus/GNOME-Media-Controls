@@ -47,7 +47,7 @@ link — its recursive delete follows symlinks into `src/`.
 | Key | Now | Note |
 |---|---|---|
 | `uuid` | `media-controls@jackicus` | Fixed once uploaded — this is the EGO entry |
-| `shell-version` | `["50"]` | The only version run, and the only one the code is written for; another is added with `gnome-ext:port-shell-version` |
+| `shell-version` | `["51"]` | The only version run, and the only one the code is written for; another is added with `gnome-ext:port-shell-version` |
 | `settings-schema` | set | `getSettings()` is called with no arguments in both `app.js` and `prefs.js` |
 | `gettext-domain` | `media-controls` | The shell binds it to the extension's `locale/` at load; the bar's modules translate through `Gettext.domain('media-controls')`, which works from the development stage too. No translations ship yet, and the preferences are English only |
 | `version-name` | `"1.2"` | Must match `/^(?!^[. ]+$)[a-zA-Z0-9 .]{1,16}$/` (letters, digits, space, period) — `"1.2"` qualifies. Bump it with each upload |
@@ -193,7 +193,7 @@ None. No file under `src/` reads or writes an underscore-prefixed field on a
 shell object (`Main.*`, `global.*`, or anything from `resource:///`) — every
 shell interaction goes through public API (`PopupMenu.sourceActor`,
 `setSourceAlignment`, `itemActivated`, `addChrome()`, `pushModal()`,
-`PointerWatcher`, `St.FocusManager`). If that ever changes, record what broke
+`Meta.CursorTracker`, `St.FocusManager`). If that ever changes, record what broke
 and when here.
 
 ## Before each upload
