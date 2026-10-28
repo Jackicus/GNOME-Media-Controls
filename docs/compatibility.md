@@ -33,6 +33,12 @@ Meta call in `src/` and every selector in the stylesheet (`screenshot-ui-panel`,
   the sliders' arrows and the seek slider's scroll in the capture phase, the
   panel's keys after the focus group's controller and before the menu's
   (`.claude/rules/bar.md`).
+- **An actor's event signals are deprecated** (`captured-event`, `event` and
+  the rest). The bar's three are Clutter gestures: the stage's touch watch, the
+  press outside the panel under its grab, and the catcher
+  (`.claude/rules/bar.md`). No other 51 or GJS 1.90 deprecation is in `src/`:
+  no `vertical`, `St.ButtonMask`, `makeProxyWrapper`, `Shell.GLSLEffect` or
+  async `disable()`.
 - **`PopupMenu.open()` takes a params object**, not a `PopupAnimation`.
 - **`BoxPointer` turns unredirection off while mapped** (it was while
   visible); the bar's own `disable_unredirect` is unaffected.

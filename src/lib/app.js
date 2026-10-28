@@ -49,8 +49,7 @@ export class MediaControlsApp {
         this._pointerTimeoutId = 0;
         this._hideId = 0;
         this._grab = null;
-        this._pressId = 0;
-        this._touchId = 0;
+        this._touch = null;
         this._updateId = 0;
         this._watched = null;
         this._remote = null;
@@ -69,6 +68,12 @@ export class MediaControlsApp {
         this._bar.connect('action', (_bar, action) => this.perform(action));
         this._bar.panel.connect('notify::hover', () => this._armHide());
         this._bar.tracksMenu.connect('open-state-changed', () => this._armHide());
+        // Under the grab every press or touch reaches the panel; one outside it closes the bar.
+        const outside = new Clutter.ClickGesture({recognize_on_press: true});
+        outside.connect('may-recognize', () => !!this._grab &&
+            !this._bar.panel.contains(global.stage.get_event_actor(outside.get_point_event(0))));
+        outside.connect('recognize', () => this._conceal());
+        this._bar.panel.add_action(outside);
         const settings = this._settings;
         const syncButtons = () =>
             this._bar.setButtons(settings.get_string('previous-next'), settings.get_strv('hidden-buttons'));
@@ -327,11 +332,14 @@ export class MediaControlsApp {
                 GLib.Source.set_name_by_id(this._pointerTimeoutId, '[media-controls] pointer');
             });
             // The cursor tracker never sees a finger: a touch is a move to where it lands.
-            this._touchId = global.stage.connect('captured-event', (_stage, event) => {
+            // Turning every sequence down leaves the touch to the rest of the stage.
+            this._touch = new Clutter.ClickGesture();
+            this._touch.connect('should-handle-sequence', (_gesture, event) => {
                 if (event.type() === Clutter.EventType.TOUCH_BEGIN)
                     this._pointerMoved(...event.get_coords());
-                return Clutter.EVENT_PROPAGATE;
+                return false;
             });
+            global.stage.add_action_full('media-controls-touch', Clutter.EventPhase.CAPTURE, this._touch);
         } else if (!want) {
             this._stopPointerWatch();
         }
@@ -344,9 +352,9 @@ export class MediaControlsApp {
         if (this._pointerTimeoutId)
             GLib.Source.remove(this._pointerTimeoutId);
         this._pointerTimeoutId = 0;
-        if (this._touchId)
-            global.stage.disconnect(this._touchId);
-        this._touchId = 0;
+        if (this._touch)
+            global.stage.remove_action(this._touch);
+        this._touch = null;
     }
 
     _pointerMoved(x, y) {
@@ -376,14 +384,6 @@ export class MediaControlsApp {
         this._reveal();
         this._grab = Main.pushModal(this._bar.panel, {actionMode: Shell.ActionMode.POPUP});
         this._bar.setDismissible(false);
-        // Under the grab every press or touch reaches the panel; one outside it closes the bar.
-        this._pressId = this._bar.panel.connect('captured-event', (actor, event) => {
-            const type = event.type();
-            if ((type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN) &&
-                !actor.contains(global.stage.get_event_actor(event)))
-                this._conceal();
-            return Clutter.EVENT_PROPAGATE;
-        });
         this._bar.focusDefault();
         this._armHide();
     }
@@ -391,8 +391,6 @@ export class MediaControlsApp {
     _ungrab() {
         if (!this._grab)
             return;
-        this._bar.panel.disconnect(this._pressId);
-        this._pressId = 0;
         Main.popModal(this._grab);
         this._grab = null;
     }

@@ -30,3 +30,17 @@ green 3.55, yellow 4.49, orange 3.92, red 3.10, pink 3.86, purple 2.29, slate
 `st-mix(accent, white, 80%)`, which keeps it the accent: blue 4.76, red 3.90,
 purple 3.39, yellow 5.64. The focused slider handle, `st-lighten(accent, 25%)`,
 was already 5.58 for purple.
+
+## Mutter's "enable_unredirect_for_display while unredirection is enabled"
+
+Not ours. Mutter keeps one count for every caller and warns when an enable
+finds it at zero. The bar's `disable_unredirect()` and `enable_unredirect()`
+pair through `_unredirectOff` (`reveal`, the end of `conceal`, `_onDestroy`);
+an ease removed before it ends never runs `conceal`'s `onComplete`. The
+pop-out's `BoxPointer` pairs on `notify::mapped`, and its destroy handler
+does not double it, since `clutter_actor_dispose` freezes notifications first
+(both read at gnome-shell and mutter 51.1). In the nested shell (51.1, GTX 1080
+desktop, 2026-10-28) reloads with the grab held, with the pop-out open and
+mid-fade, and quick open-and-close runs, logged no warning. The one sighting
+(twice, 2026-10-27 17:49 UTC) was in the real session, where Media Controls
+is not enabled.

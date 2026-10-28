@@ -74,22 +74,27 @@ paths:
 ## Touch
 
 - **The cursor tracker never sees a finger** (`position-invalidated` is for
-  the pointer alone), so while it is watched `app.js` also watches the stage's `captured-event` for `TOUCH_BEGIN` and
-  treats it as a pointer move to where it landed, edge band and monitor test
-  included.
-- **A press or touch outside the bar closes it under its grab**: the panel's
-  `captured-event` takes `BUTTON_PRESS` and `TOUCH_BEGIN` alike, as the shell's
-  popup menus do.
+  the pointer alone), so while it is watched `app.js` puts a `ClickGesture` on
+  the stage whose `should-handle-sequence` treats a `TOUCH_BEGIN` as a pointer
+  move to where it landed, edge band and monitor test included, and turns
+  every sequence down, so the gesture never takes part in the touch.
+- **A press or touch outside the bar closes it under its grab**: a
+  `ClickGesture` on the panel (`recognize_on_press`) whose `may-recognize`
+  holds only for an event actor outside it, as the shell's `PopupMenuManager`
+  does. Inside the panel it declines, and the buttons and sliders keep the
+  press.
 - **Without the grab, a paused bar is put away by a press outside it** too,
-  which a stage `captured-event` cannot see: Mutter hands a press on a window
-  to the client and Clutter never gets it (a touch it does get). So while the
-  bar is shown, paused (`setDismissible`, from `app.js`) and its pop-out is
-  shut, a bare reactive actor covers the monitor just under it and emits
-  `hide-bar` on a press or touch. Meanwhile the player gets no pointer events:
-  that click, a scroll or a double-click over the video are the catcher's, and
-  the pointer is the shell's. Keys still go to the player. An open pop-out
-  holds its own grab, so the catcher stands aside: one press closes the
-  pop-out, the next the bar.
+  which the stage cannot see: Mutter hands a press on a window to the client
+  and Clutter never gets it (a touch it does get). So while the bar is shown,
+  paused (`setDismissible`, from `app.js`) and its pop-out is shut, a bare
+  reactive actor covers the monitor just under it and emits `hide-bar` on a
+  press or touch (a `ClickGesture`, `recognize_on_press`). Meanwhile the
+  player gets no pointer events: that click, a scroll or a double-click over
+  the video are the catcher's, and the pointer is the shell's. A gesture
+  stops nothing, so a scroll over the catcher goes on to the stage's own
+  handler (Super+scroll). Keys still go to the player. An open pop-out holds
+  its own grab, so the catcher stands aside: one press closes the pop-out,
+  the next the bar.
 - Driven in the nested shell with the kit's `tap` step (kit #40), or a local
   copy of it, which `nested_driver.py` does not have yet.
 
