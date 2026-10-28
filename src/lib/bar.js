@@ -182,12 +182,9 @@ export const ControlBar = GObject.registerClass({
         this._catcherConstraint = new Layout.MonitorConstraint({index: 0});
         this._catcher = new Clutter.Actor({reactive: true, visible: false});
         this._catcher.add_constraint(this._catcherConstraint);
-        this._catcher.connect('event', (_actor, event) => {
-            const type = event.type();
-            if (type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN)
-                this.emit('action', 'hide-bar');
-            return Clutter.EVENT_STOP;
-        });
+        const press = new Clutter.ClickGesture({recognize_on_press: true});
+        press.connect('recognize', () => this.emit('action', 'hide-bar'));
+        this._catcher.add_action(press);
         Main.uiGroup.add_child(this._catcher);
 
         this.panel = new St.BoxLayout({
