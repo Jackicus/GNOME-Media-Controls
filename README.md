@@ -107,8 +107,7 @@ Both work as Flatpaks.
 
 ## Requirements
 
-- GNOME Shell 50. Shell 48 and 49 have been read through but not run, so they
-  are not claimed (`docs/compatibility.md`).
+- GNOME Shell 51 (`docs/compatibility.md`).
 - A player that shows up in GNOME's media controls (MPRIS): VLC (with its D-Bus
   control on, as it is by default), Celluloid, Showtime (GNOME's video player),
   or mpv with [mpv-mpris](https://github.com/hoyon/mpv-mpris). Run mpv with

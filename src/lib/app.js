@@ -8,7 +8,6 @@ import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import {getPointerWatcher} from 'resource:///org/gnome/shell/ui/pointerWatcher.js';
 
 import {
     NAVIGATION, SLEEP_EPISODES, SLEEP_MINUTES, SUBTITLE_SHIFT_MS, isIgnored, normaliseName, playerNames, repeats,
@@ -46,7 +45,8 @@ export class MediaControlsApp {
         this._pads = null;
         this._player = null;
         this._window = null;
-        this._pointerWatch = null;
+        this._pointerId = 0;
+        this._pointerTimeoutId = 0;
         this._hideId = 0;
         this._grab = null;
         this._pressId = 0;
@@ -313,9 +313,20 @@ export class MediaControlsApp {
 
     _syncPointerWatch() {
         const want = !!this._player && this._settings.get_string('pointer-reveal') !== 'never';
-        if (want && !this._pointerWatch) {
-            this._pointerWatch = getPointerWatcher().addWatch(POINTER_INTERVAL, (x, y) => this._pointerMoved(x, y));
-            // The pointer watcher never sees a finger: a touch is a move to where it lands.
+        if (want && !this._pointerId) {
+            // Read at most once a POINTER_INTERVAL, however fast the mouse reports.
+            this._pointerId = global.backend.get_cursor_tracker().connect('position-invalidated', () => {
+                if (this._pointerTimeoutId)
+                    return;
+                this._pointerTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, POINTER_INTERVAL, () => {
+                    this._pointerTimeoutId = 0;
+                    const [x, y] = global.get_pointer();
+                    this._pointerMoved(x, y);
+                    return GLib.SOURCE_REMOVE;
+                });
+                GLib.Source.set_name_by_id(this._pointerTimeoutId, '[media-controls] pointer');
+            });
+            // The cursor tracker never sees a finger: a touch is a move to where it lands.
             this._touchId = global.stage.connect('captured-event', (_stage, event) => {
                 if (event.type() === Clutter.EventType.TOUCH_BEGIN)
                     this._pointerMoved(...event.get_coords());
@@ -327,8 +338,12 @@ export class MediaControlsApp {
     }
 
     _stopPointerWatch() {
-        this._pointerWatch?.remove();
-        this._pointerWatch = null;
+        if (this._pointerId)
+            global.backend.get_cursor_tracker().disconnect(this._pointerId);
+        this._pointerId = 0;
+        if (this._pointerTimeoutId)
+            GLib.Source.remove(this._pointerTimeoutId);
+        this._pointerTimeoutId = 0;
         if (this._touchId)
             global.stage.disconnect(this._touchId);
         this._touchId = 0;
@@ -552,7 +567,7 @@ export class MediaControlsApp {
     // Only called while the bar or its pop-out holds the grab, so the key lands there.
     _pressKey(keyval) {
         if (!this._keyboard) {
-            const seat = Clutter.get_default_backend().get_default_seat();
+            const seat = global.stage.context.get_backend().get_default_seat();
             this._keyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
         }
         const time = GLib.get_monotonic_time();

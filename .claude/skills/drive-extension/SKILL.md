@@ -42,7 +42,7 @@ The preferences: `run gnome-extensions prefs media-controls@jackicus`.
   --rc-fake-tty --rc-unix=$XDG_RUNTIME_DIR/<short>.sock --vout=dummy
   --aout=dummy --no-dbus FILE`, and kill it by pid).
 - **Showing the bar:** two `move`s to different points over the player
-  (`pointer-reveal` `anywhere`): the pointer watcher only reacts to a change.
+  (`pointer-reveal` `anywhere`): only motion reveals it, never where the pointer already is.
   With `edge`, the moves must land below y ≈ 720 (above y ≈ 180 with
   `bar-position` `top`, where the panel is `320,28` to `1280,120`). It hides
   `hide-delay` (3) s after the last movement unless paused; a paused bar is

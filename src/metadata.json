@@ -5,7 +5,7 @@
   "gettext-domain": "media-controls",
   "settings-schema": "org.gnome.shell.extensions.media-controls",
   "shell-version": [
-    "50"
+    "51"
   ],
   "url": "https://github.com/Jackicus/GNOME-Media-Controls",
   "version-name": "1.2"

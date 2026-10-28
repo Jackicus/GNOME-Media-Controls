@@ -7,8 +7,8 @@ over a **fullscreen video player**: a replacement for VLC's own fullscreen
 controller that works the same way over mpv, Celluloid or anything else that
 speaks MPRIS, and that for VLC adds audio and subtitle tracks, subtitle timing
 and chapters. It is a bar the shell draws over the player's window, not a
-player. `metadata.json` claims shell 50, the version it has been run on, and
-the code is written for 50 alone; another version is `gnome-ext:port-shell-version`'s.
+player. `metadata.json` claims shell 51, the version it has been run on, and
+the code is written for 51 alone; another version is `gnome-ext:port-shell-version`'s.
 
 It stands alone: it depends on no other extension and knows of none. If another
 extension has trouble working beside it, that is fixed in that extension's own
@@ -64,8 +64,8 @@ scripts/demo-clip.sh  `make demo-clip`: docs/media/big-buck-bunny-demo.mkv, the
                       README screenshots' film, with docs/media/captions/
 ```
 
-`docs/compatibility.md` records the reading of Shell 48 and 49 and what a boot
-must check. `docs/publishing.md` covers the EGO zip (`make pack` refuses a stray
+`docs/compatibility.md` records the reading of Shell 51 against 50 and what
+changed. `docs/publishing.md` covers the EGO zip (`make pack` refuses a stray
 file) and the review guidelines; `docs/notes.md` the measurements the code keeps. `TODO.md` is the user's list of what is left to test.
 
 Area detail is in `.claude/rules/`, loaded with the files it covers: `bar.md`
@@ -106,8 +106,9 @@ fullscreen video in one draws its own controls.
 
 **When is it seen?** Pointer motion over the player (`pointer-reveal`:
 `anywhere` like VLC's controller, `edge` for the fifth of the monitor at the
-edge the bar is on, or `never`), watched with the shell's `PointerWatcher`,
-which takes no input away from the video as a reactive hot strip would. The
+edge the bar is on, or `never`), watched through Mutter's cursor tracker
+(`position-invalidated`, read at most every 100 ms), which takes no input
+away from the video as a reactive hot strip would. The
 `toggle-bar` key (default Super+C) or the pad's `navigate` (Start) opens it
 **holding the focus** (`Main.pushModal`, `POPUP` tier); Escape, a click outside,
 or the key again puts it away. Without the grab, a press or touch outside a

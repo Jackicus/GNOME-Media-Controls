@@ -1,45 +1,48 @@
 # Shell versions
 
-`metadata.json` claims 50, the version the extension has been booted on (50.5,
-main desktop). 48 and 49 have been **read, not booted**, so they are not
-claimed.
+`metadata.json` claims 51, the version the extension has been booted on: GNOME
+Shell 51.1 (mutter 51.1, gjs 1.90.1) in a nested shell on the main desktop
+(GTX 1080), 2026-10-28. 50 is no longer claimed: no machine here runs it now,
+and the code is written for 51 alone.
 
-## Read on 2026-10-04
+## Read on 2026-10-28
 
-gnome-shell 48.8, 49.10, 50.5 and mutter 48.8, 49.8, 50.5; the gjs.guide
-upgrade pages for 48, 49 and 50 list nothing that touches what is used here.
-Every `resource:///org/gnome/shell/…` import, every shell, St, Clutter and Meta
-call in `src/` and every selector in the stylesheet (`screenshot-ui-panel`,
-`screenshot-ui-type-button`, `icon-button`, `slider`) exists with the same
-signature at all three tags. `prefs.js` uses Adw widgets from 1.5 or earlier,
-older than libadwaita 1.7 (48) and 1.8 (49). No newer language feature is used.
+gnome-shell and mutter 50.5 against 51.1, and the gjs.guide upgrade page for
+51. Every `resource:///org/gnome/shell/…` import, every shell, St, Clutter and
+Meta call in `src/` and every selector in the stylesheet (`screenshot-ui-panel`,
+`screenshot-ui-type-button`, `icon-button`, `slider`) was checked at 51.1.
+`prefs.js` runs unchanged on the libadwaita and GTK 51 ships with.
 
-## What differs
+## What 51 changed here
 
-- **`addChrome()` on 48 and 49** defaults to `affectsInputRegion: true`
-  (`ui/layout.js`), and on an X11 session `_updateRegions()` then adds every
-  visible chrome actor's rectangle to the input region. The bar is
-  monitor-sized (`MonitorConstraint`), so clicks over the video would be
-  swallowed while it is up. Wayland is unaffected. 50 has no such key, and
-  passing it there throws `Unrecognized parameter`. The fix that needs no
-  version branch is what `osdWindow.js` does, `Main.uiGroup.add_child(bar)`;
-  `reveal()` already raises the bar above its siblings. It touches the 50
-  path too, so it is made when 48 or 49 is ported, and booted on 50 with it.
-- **`GrabHelper`** (the tracks pop-out opens through `PopupMenuManager`): 48 and
-  49 refuse to grab unless the stage's seat state is `ALL` and swallow a press
-  outside the grab; 50 uses a click gesture and no `ignoreRelease`. The stage
-  state stays `ALL` under the bar's own `pushModal`, so the pop-out should
-  open, but a click on a bar button while it is open probably closes it and is
-  swallowed on 48 and 49 and not on 50. Only a boot settles it.
-- **Cosmetic:** 48's `dateUtils.formatTime` uses U+2236 and adds a left-to-right
-  mark, which the clock line (`clockTime()` in `bar.js`) would carry; 48's
-  `BoxPointer` opens linearly with no scale; 49 changed the insensitive
-  foreground.
+- **`ui/pointerWatcher.js` is gone** (gnome-shell ad7cdec43). Its import
+  failed, so the extension did not load at all. `app.js` watches
+  `Meta.CursorTracker`'s `position-invalidated` (as the magnifier now does)
+  and reads `global.get_pointer()` at most every `POINTER_INTERVAL`.
+- **`Clutter.get_default_backend()` is gone** (mutter f7c4a8e7c): the pad's
+  virtual keyboard takes its seat from `global.stage.context.get_backend()`.
+- **`St.FocusManager.navigate_from_event()` is gone** (gnome-shell 5ca6fb233):
+  `add_group()` now gives the group a `Clutter.KeyController` that moves the
+  focus, under a grab too.
+- **Actions see an event before the actor's own signal**, and the shell's
+  widgets moved to actions: the `Slider` takes Left/Right through a key
+  binding and scroll through `Clutter.ScrollController`s, and a `PopupMenu`
+  puts a key controller on its source actor (the bar's panel) that toggles it
+  on Return and Space and opens it on Up. The bar's `key-press-event` and
+  `scroll-event` handlers no longer came first, so they are controllers now:
+  the sliders' arrows and the seek slider's scroll in the capture phase, the
+  panel's keys after the focus group's controller and before the menu's
+  (`.claude/rules/bar.md`).
+- **`PopupMenu.open()` takes a params object**, not a `PopupAnimation`.
+- **`BoxPointer` turns unredirection off while mapped** (it was while
+  visible); the bar's own `disable_unredirect` is unaffected.
 
-## To claim 48 or 49
+## Booted on 51.1
 
-Boot it (a Fedora 42 or 43 VM), then in `stop` + `start`: the bar over a
-fullscreen player, the tracks pop-out opening and closing (and the click
-difference above), the sleep timer, the pad's virtual keyboard, and on 48 the
-clock line. Add the version to `metadata.json` and the boot, with
-`gnome-shell --version`, here.
+Nested shell, `start --clean` and again after `stop` + `start`: enabled with no
+errors in the log; the bar over VLC full screen on pointer motion; a wheel
+notch on the seek slider and on the panel skips by `seek-step`, the volume
+slider keeps its own scroll; Super+C, the arrow keys (the seek slider's
+Right skips by `seek-step`, Up from the top row opens nothing), Return
+pausing and Escape hiding; the tracks pop-out opening, picks keeping it open,
+one Escape closing it; the virtual pad's Start, D-pad and A; the preferences.

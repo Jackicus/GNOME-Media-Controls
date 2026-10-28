@@ -96,16 +96,34 @@ function iconButton(iconName, accessibleName, styleClass = 'screenshot-ui-type-b
     });
 }
 
-// Left and Right step by seek-step and volume-step, not the Slider's tenth of the whole.
+// Left and Right step by seek-step and volume-step, not the Slider's tenth of the
+// whole. Captured, as the Slider's own key binding acts before any signal.
 function arrowKeys(bar, slider, forward, back) {
-    slider.connect('key-press-event', (_actor, event) => {
-        const key = event.get_key_symbol();
+    const keys = new Clutter.KeyController();
+    keys.connect('key-press', () => {
+        const [, key] = keys.get_key();
         if (key !== Clutter.KEY_Right && key !== Clutter.KEY_Left)
             return Clutter.EVENT_PROPAGATE;
         const rtl = slider.get_text_direction() === Clutter.TextDirection.RTL;
         bar.emit('action', (key === Clutter.KEY_Right) !== rtl ? forward : back);
         return Clutter.EVENT_STOP;
     });
+    slider.add_action_full('mc-arrow-keys', Clutter.EventPhase.CAPTURE, keys);
+}
+
+// A wheel notch skips once by seek-step; touchpad deltas add up to whole notches.
+function seekScroll(bar, actor, phase) {
+    const scroll = new Clutter.ScrollController({
+        flags: Clutter.ScrollControllerFlags.DISCRETE |
+            Clutter.ScrollControllerFlags.SCROLL_VERTICAL |
+            Clutter.ScrollControllerFlags.SCROLL_HORIZONTAL,
+    });
+    scroll.connect('scroll', (_scroll, _sprite, _source, dx, dy) => {
+        const notches = dx - dy;
+        for (let i = 0; i < Math.abs(notches); i++)
+            bar.emit('action', notches > 0 ? 'seek-forward' : 'seek-back');
+    });
+    actor.add_action_full('mc-seek-scroll', phase, scroll);
 }
 
 // Greyed out and out of the focus chain together, as popupMenu.js syncSensitive does.
@@ -144,7 +162,6 @@ export const ControlBar = GObject.registerClass({
         this._player = null;
         this._syncing = false;
         this._seeking = false;
-        this._scrolled = 0;             // touchpad scroll on the panel, in notches
         this._volumeDragging = false;
         this._volumeId = 0;
         this._tickId = 0;
@@ -184,18 +201,16 @@ export const ControlBar = GObject.registerClass({
         this.add_child(this.panel);
         // max-width is in em, so the width follows the style.
         this.panel.connect('style-changed', () => this.setMonitor(this._monitorIndex));
-        // Under the grab no key reaches the stage, so the panel navigates from
-        // the event itself, as the shell's popup menu items do.
         global.focus_manager.add_group(this.panel);
-        this.panel.connect('key-press-event', (_actor, event) => {
-            const key = event.get_key_symbol();
+        // After the focus group's own controller, which moves the focus, and
+        // before the pop-out's, which toggles it from its source, the panel.
+        const keys = new Clutter.KeyController();
+        keys.connect('key-press', () => {
+            const [, key] = keys.get_key();
             if (key === Clutter.KEY_Escape) {
                 this.emit('action', 'hide-bar');
                 return Clutter.EVENT_STOP;
             }
-            if (global.focus_manager.navigate_from_event(event))
-                return Clutter.EVENT_STOP;
-            // Stopped here, or the pop-out, whose source is the panel, would toggle.
             switch (key) {
             case Clutter.KEY_Up:
             case Clutter.KEY_Down:
@@ -209,7 +224,8 @@ export const ControlBar = GObject.registerClass({
                 return Clutter.EVENT_PROPAGATE;
             }
         });
-        this.panel.connect('scroll-event', (_actor, event) => this._onScroll(event));
+        this.panel.add_action(keys);
+        seekScroll(this, this.panel, Clutter.EventPhase.BUBBLE);
 
         this._buildSeekRow();
         this._buildControlRow();
@@ -274,39 +290,9 @@ export const ControlBar = GObject.registerClass({
             if (this._seeking && !this._syncing)
                 this._tick();
         });
-        // Skip by seek-step, not by the Slider's fraction of the whole.
-        this._seek.connect('scroll-event', (_actor, event) => this._onScroll(event));
+        // Captured, as the Slider's own scrolling acts before any signal.
+        seekScroll(this, this._seek, Clutter.EventPhase.CAPTURE);
         arrowKeys(this, this._seek, 'seek-forward', 'seek-back');
-    }
-
-    // A wheel notch skips once; touchpad deltas add up to whole notches. The
-    // emulated copy a wheel also sends is dropped.
-    _onScroll(event) {
-        if (event.is_pointer_emulated())
-            return Clutter.EVENT_STOP;
-        let notches = 0;
-        switch (event.get_scroll_direction()) {
-        case Clutter.ScrollDirection.UP:
-        case Clutter.ScrollDirection.RIGHT:
-            notches = 1;
-            break;
-        case Clutter.ScrollDirection.DOWN:
-        case Clutter.ScrollDirection.LEFT:
-            notches = -1;
-            break;
-        case Clutter.ScrollDirection.SMOOTH: {
-            const [, dy] = event.get_scroll_delta();
-            this._scrolled -= dy;
-            notches = Math.trunc(this._scrolled);
-            this._scrolled -= notches;
-            break;
-        }
-        default:
-            break;
-        }
-        for (let i = 0; i < Math.abs(notches); i++)
-            this.emit('action', notches > 0 ? 'seek-forward' : 'seek-back');
-        return Clutter.EVENT_STOP;
     }
 
     _buildControlRow() {
